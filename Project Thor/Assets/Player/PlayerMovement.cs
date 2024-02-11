@@ -2,30 +2,54 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using static UnityEngine.UI.GridLayoutGroup;
 
 public class PlayerMovement : NetworkBehaviour
 {
+    [Header("Components")]
+
     public Transform Orientation;
     public Rigidbody Rb;
     public CapsuleCollider Collider;
-    public LayerMask layerMask;
-    public LayerMask WhatIsGround;
+    public GameObject PlayerCameraObject;
+    public Camera PlayerCamera;
 
-    public float moveSpeed = 3f;
-    public float JumpForce = 10f;
-    public float GroundFriction;
-    public float AirFriction;
-    public float Gravity;
+    [Header("Ticking")]
+    public int ServerDelay = 4;
 
-    public int ServerDelay = 5;
+    private int TimeStamp;
+    private float DeltaTime;
+
+    [Header("Networking")]
 
     private ClientRpcParams OwningClientID;
+    private bool bAutonomousProxy;
+    private bool bHost;
+
+    [Header("Client Data")]
+
     private Dictionary<int, Inputs> InputsDictionary = new Dictionary<int, Inputs>();
     private Inputs CurrentInput;
-    private int TimeStamp;
 
-    private float DeltaTime;
+    [Header("Client Corrections")]
+
+    public float CorrectionDistance = 0.5f;
+    public float MinTimeBetweenCorrections = 1;
+    public int DefaultCorrectionSmoothTime;
+    public float SmallCorrectionThreshold;
+    public int SmallCorrectionSmoothTime;
+
+    private Dictionary<int, Vector3> ClientDataDictionary = new Dictionary<int, Vector3>();
+    private ClientCorrection ServerState;
+    private float LastTimeSentCorrection;
+    private float LastTimeSentClientData;
+    private bool ReplayMoves;
+    private int SimulateTimeStamp;
+    private bool bSmoothingCorrection;
+    private bool bSmoothingPosition;
+    private int StartSmoothingCorrectionTime;
+    private Vector3 StartCorrectionPosition;
+    private Vector3 CorrectedPosition;
+    private int CorrectionSmoothTime;
 
     private int TotalTimes;
     private int TotalTimeDifference;
@@ -33,24 +57,44 @@ public class PlayerMovement : NetworkBehaviour
     private int EarlyInputsCount;
     private float LastTimeSentClientTimeCorrection;
 
-    bool bAutonomousProxy;
-    bool bHost;
+    [Header("Movement")]
 
-    private Vector3 MoveDirection;
-    private Vector3 Velocity;
-    private bool bIsGrounded;
+    public LayerMask layerMask;
+    //public float MaxSlopeAngle = 55;
 
     private Bounds bounds;
     private int MaxBounces = 5;
     private float SkinWidth = 0.015f;
-    private float MaxSlopeAngle = 55;
+
+    public float moveSpeed = 3f;
+    public float JumpForce = 10f;
+    public LayerMask WhatIsGround;
+    public int JumpCooldown = 30;
+    public float GroundFriction = 8;
+    public float AirFriction = 0.25f;
+    public float Gravity = 1;
+
+    private Quaternion Rotation;
+    private Quaternion ForwardRotation;
+    private Vector3 MoveDirection;
+    private bool bIsGrounded;
+
+    /*
+     * 
+     * Variables That Need To Be Sent For Client Corrections
+     * 
+     */
+
+    private Vector3 Velocity;
+    private int LastTimeJumped;
 
     // Start is called before the first frame update
     void Start()
     {
         Rb = GetComponent<Rigidbody>();
+        PlayerCamera = PlayerCameraObject.GetComponent<Camera>();
 
-        bAutonomousProxy = IsClient && IsOwner;
+        bAutonomousProxy = IsClient && IsOwner && !IsServer;
         bHost = IsServer && IsOwner;
 
         if(IsServer && !IsOwner)
@@ -76,13 +120,19 @@ public class PlayerMovement : NetworkBehaviour
 
         DeltaTime = Time.fixedDeltaTime;
 
-        if(bHost)
+        if(IsServer)
         {
-            HostTick();
+            if(IsOwner)
+            {
+                HostTick();
+            }
+
+            else
+            {
+                ServerTickForOtherPlayers();
+            }
 
             ServerTickForAll();
-
-            return;
         }
 
         if (bAutonomousProxy)
@@ -91,16 +141,13 @@ public class PlayerMovement : NetworkBehaviour
 
             return;
         }
-
-        if (IsServer)
-        {
-            ServerTickForOtherPlayers();
-        }
     }
 
     void HostTick()
     {
-        CurrentInput = new Inputs(TimeStamp, Orientation.transform.rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space));
+        Rotation = PlayerCamera.transform.rotation;
+
+        CurrentInput = new Inputs(TimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space));
 
         HandleInputs(CurrentInput);
 
@@ -117,11 +164,35 @@ public class PlayerMovement : NetworkBehaviour
         HandleInputs(CurrentInput);
 
         MovePlayer();
+
+        if (ClientDataDictionary.TryGetValue(TimeStamp, out Vector3 clientposition))
+        {
+            CheckClientPositionError(transform.position, clientposition);
+        }
     }
 
     void AutonomousProxyTick()
     {
-        CurrentInput = new Inputs(TimeStamp, Orientation.transform.rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space));
+        if (bSmoothingPosition)
+        {
+            bSmoothingPosition = false;
+
+            transform.position = CorrectedPosition;
+
+            if (TimeStamp - StartSmoothingCorrectionTime >= CorrectionSmoothTime)
+            {
+                bSmoothingCorrection = false;
+            }
+        }
+
+        if (ReplayMoves)
+        {
+            ReplayMovesAfterCorrection();
+        }
+
+        Rotation = PlayerCamera.transform.rotation;
+
+        CurrentInput = new Inputs(TimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space));
 
         InputsDictionary.Add(TimeStamp, CurrentInput);
 
@@ -129,12 +200,38 @@ public class PlayerMovement : NetworkBehaviour
 
         HandleInputs(CurrentInput);
 
+        if(Input.GetKey(KeyCode.LeftShift))
+        {
+            Velocity = new Vector3(0, 1000, 0);
+        }
+
         MovePlayer();
+
+        if (Time.time - LastTimeSentClientData > 0.2)
+        {
+            LastTimeSentClientData = Time.time;
+
+            SendClientDataServerRpc(TimeStamp, transform.position);
+        }
+
+
+        if (bSmoothingCorrection)
+        {
+            bSmoothingPosition = true;
+
+            CorrectedPosition = transform.position;
+
+            float Alpha = (float)(TimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime;
+
+            Vector3 SmoothPosition = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, Alpha);
+
+            transform.position = SmoothPosition;
+        }
     }
 
     void ServerTickForAll()
     {
-        ReplicatePositionClientRpc(transform.position);
+        ReplicatePositionClientRpc(transform.position, Rotation);
     }
 
     void MovePlayer()
@@ -158,8 +255,10 @@ public class PlayerMovement : NetworkBehaviour
 
             Velocity.y = 0;
 
-            if (CurrentInput.SpaceBar)
+            if (CurrentInput.SpaceBar && TimeStamp - LastTimeJumped > JumpCooldown)
             {
+                LastTimeJumped = TimeStamp;
+
                 JumpVel = Vector3.up * JumpForce;
             }
         }
@@ -201,7 +300,6 @@ public class PlayerMovement : NetworkBehaviour
         {
             Vector3 SnapToSurface = Vel.normalized * (hit.distance - SkinWidth);
             Vector3 Leftover = Vel - SnapToSurface;
-            float Angle = Vector3.Angle(Vector3.up, hit.normal);
 
             if(SnapToSurface.magnitude <= SkinWidth)
             {
@@ -209,6 +307,8 @@ public class PlayerMovement : NetworkBehaviour
             }
 
             /*
+            float Angle = Vector3.Angle(Vector3.up, hit.normal);
+
             if(Angle <= MaxSlopeAngle)
             {
                 Leftover = ProjectAndScale(Leftover, hit.normal);
@@ -255,6 +355,109 @@ public class PlayerMovement : NetworkBehaviour
         return Vec;
     }
 
+/*
+*
+* Client Corrections
+*
+*/
+
+    [ServerRpc]
+    public void SendClientDataServerRpc(int timestamp, Vector3 position)
+    {
+        ClientDataDictionary.Add(timestamp, position);
+
+        CheckClientTimeError(timestamp);
+    }
+
+    public void CheckClientPositionError(Vector3 serverpos, Vector3 clientpos)
+    {
+        if(Time.time - LastTimeSentCorrection < MinTimeBetweenCorrections)
+        {
+            return;
+        }
+
+        float distancebetweenclientserver = (clientpos - serverpos).magnitude;
+
+        if (distancebetweenclientserver <= CorrectionDistance)
+        {
+            transform.position = clientpos;
+        }
+
+        else
+        {
+            LastTimeSentCorrection = Time.time;
+
+            SendClientCorrection();
+
+            print("Client Correction Sent!");
+        }
+    }
+
+    public void SendClientCorrection()
+    {
+        ClientCorrection Data = new ClientCorrection(TimeStamp, transform.position, Velocity, LastTimeJumped);
+
+        ClientCorrectionClientRpc(Data, OwningClientID);
+    }
+
+    void SetToServerState()
+    {
+        transform.position = ServerState.Position;
+        Velocity = ServerState.Velocity;
+        LastTimeJumped = ServerState.LastTimeJumped;
+    }
+
+    [ClientRpc]
+    public void ClientCorrectionClientRpc(ClientCorrection Data, ClientRpcParams clientRpcParams = default)
+    {
+        AfterCorrectionReceived(Data.TimeStamp);
+
+        ServerState = Data;
+    }
+
+    void AfterCorrectionReceived(int replaytimestamp)
+    {
+        ReplayMoves = true;
+        SimulateTimeStamp = replaytimestamp;
+
+        bSmoothingCorrection = true;
+        StartSmoothingCorrectionTime = TimeStamp;
+        StartCorrectionPosition = transform.position;
+    }
+
+    void ReplayMovesAfterCorrection()
+    {
+        SetToServerState();
+
+        int currentTime = TimeStamp;
+        TimeStamp = SimulateTimeStamp + 1;
+
+        while (TimeStamp < currentTime)
+        {
+            if (InputsDictionary.TryGetValue(TimeStamp, out Inputs inputs))
+            {
+                CurrentInput = inputs;
+            }
+
+            HandleInputs(CurrentInput);
+
+            MovePlayer();
+
+            TimeStamp++;
+        }
+
+        ReplayMoves = false;
+
+        if ((transform.position - StartCorrectionPosition).magnitude < SmallCorrectionThreshold)
+        {
+            CorrectionSmoothTime = SmallCorrectionSmoothTime;
+
+            return;
+        }
+
+        CorrectionSmoothTime = DefaultCorrectionSmoothTime;
+    }
+
     void CheckClientTimeError(int clienttime)
     {
         if (Time.time - LastTimeSentClientTimeCorrection < 1)
@@ -298,11 +501,28 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
+    [ClientRpc]
+    public void SendClientTimeCorrectionClientRpc(int timediff, ClientRpcParams clientRpcParams = default)
+    {
+        TimeStamp += timediff;
+    }
+
+/*
+*
+* Inputs
+*
+*/
+
     void HandleInputs(Inputs input)
     {
         MoveDirection = Vector3.zero;
 
-        Orientation.rotation = input.Rotation;
+        Quaternion quaternion = input.Rotation;
+
+        float a = Mathf.Sqrt((quaternion.w * quaternion.w) + (quaternion.y * quaternion.y));
+        ForwardRotation = new Quaternion(x: 0, y: quaternion.y, z: 0, w: quaternion.w / a);
+
+        Orientation.rotation = ForwardRotation;
 
         if (input.W)
         {
@@ -327,28 +547,41 @@ public class PlayerMovement : NetworkBehaviour
         MoveDirection.Normalize();
     }
 
-    [ClientRpc]
-    public void SendClientTimeCorrectionClientRpc(int timediff, ClientRpcParams clientRpcParams = default)
-    {
-        TimeStamp += timediff;
-    }
-
-    [ClientRpc]
-    public void ReplicatePositionClientRpc(Vector3 position)
-    {
-        if(bAutonomousProxy)
-        {
-            return;
-        }
-        
-        transform.position = position;
-    }
-
     [ServerRpc]
     public void SendInputsServerRpc(Inputs input)
     {
         InputsDictionary.Add(input.TimeStamp, input);
 
         CheckClientTimeError(input.TimeStamp);
+    }
+
+    [ClientRpc]
+    public void ReplicatePositionClientRpc(Vector3 position, Quaternion rotation)
+    {
+        if (IsOwner || IsServer)
+        {
+            return;
+        }
+
+        transform.position = position;
+
+        Quaternion quaternion = rotation;
+
+        float a = Mathf.Sqrt((quaternion.w * quaternion.w) + (quaternion.y * quaternion.y));
+        ForwardRotation = new Quaternion(x: 0, y: quaternion.y, z: 0, w: quaternion.w / a);
+
+        Orientation.transform.rotation = ForwardRotation;
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        if (!IsOwner) 
+        { 
+            return; 
+        }
+
+        PlayerCameraObject.SetActive(true);
     }
 }

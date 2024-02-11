@@ -28,7 +28,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 9173709660492808160}
   m_Father: {fileID: 3525563439652999784}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7128634963229666594
@@ -42,7 +43,6 @@ GameObject:
   - component: {fileID: 9173709660492808160}
   - component: {fileID: 9197228066205744665}
   - component: {fileID: 9168428289713122763}
-  - component: {fileID: 2002957141486635390}
   m_Layer: 0
   m_Name: CharacterModel
   m_TagString: Untagged
@@ -58,12 +58,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7128634963229666594}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 3525563439652999784}
+  m_Father: {fileID: 2328282342131481982}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &9197228066205744665
 MeshFilter:
@@ -115,29 +115,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!136 &2002957141486635390
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7128634963229666594}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
-  m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8171128481059500243
 GameObject:
   m_ObjectHideFlags: 0
@@ -157,7 +134,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &245901753364132158
 Transform:
   m_ObjectHideFlags: 0
@@ -325,7 +302,6 @@ Transform:
   m_Children:
   - {fileID: 245901753364132158}
   - {fileID: 2328282342131481982}
-  - {fileID: 9173709660492808160}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3262352661020298619
@@ -363,18 +339,26 @@ MonoBehaviour:
   Orientation: {fileID: 2328282342131481982}
   Rb: {fileID: 3326173135175182560}
   Collider: {fileID: 5985029051314000624}
+  PlayerCameraObject: {fileID: 8171128481059500243}
+  PlayerCamera: {fileID: 0}
+  ServerDelay: 4
+  CorrectionDistance: 0.5
+  MinTimeBetweenCorrections: 1
+  DefaultCorrectionSmoothTime: 10
+  SmallCorrectionThreshold: 10
+  SmallCorrectionSmoothTime: 10
   layerMask:
-    serializedVersion: 2
-    m_Bits: 1
-  WhatIsGround:
     serializedVersion: 2
     m_Bits: 1
   moveSpeed: 5
   JumpForce: 15
+  WhatIsGround:
+    serializedVersion: 2
+    m_Bits: 1
+  JumpCooldown: 30
   GroundFriction: 8
   AirFriction: 0.25
   Gravity: 1
-  ServerDelay: 4
 --- !u!54 &3326173135175182560
 Rigidbody:
   m_ObjectHideFlags: 0
