@@ -10,7 +10,6 @@ public class PlayerMovement : NetworkBehaviour
     public Transform Orientation;
     public Rigidbody Rb;
     public CapsuleCollider Collider;
-    public GameObject PlayerCameraObject;
     public Camera PlayerCamera;
 
     [Header("Ticking")]
@@ -23,7 +22,6 @@ public class PlayerMovement : NetworkBehaviour
 
     private ClientRpcParams OwningClientID;
     private bool bAutonomousProxy;
-    private bool bHost;
 
     [Header("Client Data")]
 
@@ -92,10 +90,8 @@ public class PlayerMovement : NetworkBehaviour
     void Start()
     {
         Rb = GetComponent<Rigidbody>();
-        PlayerCamera = PlayerCameraObject.GetComponent<Camera>();
 
         bAutonomousProxy = IsClient && IsOwner && !IsServer;
-        bHost = IsServer && IsOwner;
 
         if(IsServer && !IsOwner)
         {
@@ -571,17 +567,5 @@ public class PlayerMovement : NetworkBehaviour
         ForwardRotation = new Quaternion(x: 0, y: quaternion.y, z: 0, w: quaternion.w / a);
 
         Orientation.transform.rotation = ForwardRotation;
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-
-        if (!IsOwner) 
-        { 
-            return; 
-        }
-
-        PlayerCameraObject.SetActive(true);
     }
 }
