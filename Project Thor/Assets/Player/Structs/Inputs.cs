@@ -12,8 +12,9 @@ public struct Inputs : INetworkSerializable
     public bool A;
     public bool D;
     public bool SpaceBar;
+    public bool Shift;
 
-    public Inputs(int timestamp, Quaternion rotation, bool w, bool a, bool s, bool d, bool spacebar)
+    public Inputs(int timestamp, Quaternion rotation, bool w, bool a, bool s, bool d, bool spacebar, bool shift)
     {
         TimeStamp = timestamp;
         Rotation = rotation;
@@ -22,6 +23,7 @@ public struct Inputs : INetworkSerializable
         S = s;
         D = d;
         SpaceBar = spacebar;
+        Shift = shift;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -37,6 +39,7 @@ public struct Inputs : INetworkSerializable
             fastBufferWriter.WriteValueSafe(S);
             fastBufferWriter.WriteValueSafe(D);
             fastBufferWriter.WriteValueSafe(SpaceBar);
+            fastBufferWriter.WriteValueSafe(Shift);
         }
 
         if (serializer.IsReader)
@@ -50,6 +53,7 @@ public struct Inputs : INetworkSerializable
             fastBufferReader.ReadValueSafe(out bool s);
             fastBufferReader.ReadValueSafe(out bool d);
             fastBufferReader.ReadValueSafe(out bool spacebar);
+            fastBufferReader.ReadValueSafe(out bool shift);
 
             TimeStamp = timestamp;
             Rotation = rotation;
@@ -58,6 +62,7 @@ public struct Inputs : INetworkSerializable
             S = s;
             D = d;
             SpaceBar = spacebar;
+            Shift = shift;
         }
     }
 }

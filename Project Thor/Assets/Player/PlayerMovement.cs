@@ -8,11 +8,12 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Components")]
 
     public Transform Orientation;
-    public Rigidbody Rb;
-    public CapsuleCollider Collider;
     public Camera PlayerCamera;
+    private Rigidbody Rb;
+    private CapsuleCollider Collider;
 
     [Header("Ticking")]
+
     public int ServerDelay = 4;
 
     private int TimeStamp;
@@ -64,7 +65,8 @@ public class PlayerMovement : NetworkBehaviour
     private int MaxBounces = 5;
     private float SkinWidth = 0.015f;
 
-    public float moveSpeed = 3f;
+    public float WalkMoveSpeed = 3f;
+    public float SprintMoveSpeed = 6f;
     public float JumpForce = 10f;
     public LayerMask WhatIsGround;
     public int JumpCooldown = 30;
@@ -90,6 +92,7 @@ public class PlayerMovement : NetworkBehaviour
     void Start()
     {
         Rb = GetComponent<Rigidbody>();
+        Collider = GetComponent<CapsuleCollider>();
 
         bAutonomousProxy = IsClient && IsOwner && !IsServer;
 
@@ -107,16 +110,13 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
         TimeStamp++;
 
-        print(DeltaTime);
-
         DeltaTime = Time.fixedDeltaTime;
 
-        if(IsServer)
+        if (IsServer)
         {
             if(IsOwner)
             {
@@ -143,7 +143,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         Rotation = PlayerCamera.transform.rotation;
 
-        CurrentInput = new Inputs(TimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space));
+        CurrentInput = CreateInput();
 
         HandleInputs(CurrentInput);
 
@@ -188,18 +188,13 @@ public class PlayerMovement : NetworkBehaviour
 
         Rotation = PlayerCamera.transform.rotation;
 
-        CurrentInput = new Inputs(TimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space));
+        CurrentInput = CreateInput();
 
         InputsDictionary.Add(TimeStamp, CurrentInput);
 
         SendInputsServerRpc(CurrentInput);
 
         HandleInputs(CurrentInput);
-
-        if(Input.GetKey(KeyCode.LeftShift))
-        {
-            Velocity = new Vector3(0, 1000, 0);
-        }
 
         MovePlayer();
 
@@ -234,12 +229,17 @@ public class PlayerMovement : NetworkBehaviour
     {
         bIsGrounded = Physics.Raycast(transform.position, Vector3.down, Collider.height * 0.5f + 0.15f, WhatIsGround);
 
-        Debug.DrawLine(transform.position, transform.position + Vector3.down * (Collider.height * 0.5f + 0.1f));
+        float MoveSpeed = WalkMoveSpeed;
+
+        if (CurrentInput.Shift)
+        {
+            MoveSpeed = SprintMoveSpeed;
+        }
 
         Vector3 JumpVel = Vector3.zero;
         Vector3 GravityVel = Gravity * Vector3.down;
         float frictionmultiplier = 1 - AirFriction * DeltaTime;
-        Vector3 InputVel = (MoveDirection * moveSpeed) * (1 + AirFriction) * DeltaTime;
+        Vector3 InputVel = (MoveDirection * MoveSpeed) * (1 + AirFriction) * DeltaTime;
 
         if (bIsGrounded)
         {
@@ -247,7 +247,7 @@ public class PlayerMovement : NetworkBehaviour
 
             frictionmultiplier = 1 - GroundFriction * DeltaTime;
 
-            InputVel = (MoveDirection * moveSpeed) * (1 + GroundFriction) * DeltaTime;
+            InputVel = (MoveDirection * MoveSpeed) * (1 + GroundFriction) * DeltaTime;
 
             Velocity.y = 0;
 
@@ -509,6 +509,13 @@ public class PlayerMovement : NetworkBehaviour
 *
 */
 
+    Inputs CreateInput()
+    {
+        Inputs input = new Inputs(TimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space), Input.GetKey(KeyCode.LeftShift));
+
+        return input;
+    }
+
     void HandleInputs(Inputs input)
     {
         MoveDirection = Vector3.zero;
@@ -567,5 +574,15 @@ public class PlayerMovement : NetworkBehaviour
         ForwardRotation = new Quaternion(x: 0, y: quaternion.y, z: 0, w: quaternion.w / a);
 
         Orientation.transform.rotation = ForwardRotation;
+    }
+
+    public Vector3 GetVelocity()
+    {
+        return Velocity;
+    }
+
+    public bool GetIsGrounded()
+    {
+        return bIsGrounded;
     }
 }
