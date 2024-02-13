@@ -29,6 +29,12 @@ public class PlayerMovement : NetworkBehaviour
     private Dictionary<int, Inputs> InputsDictionary = new Dictionary<int, Inputs>();
     private Inputs CurrentInput;
 
+    [Header("Replicate Movement")]
+
+    public int ReplicatePositionInterval = 5;
+
+    private int LastTimeReplicatedPosition;
+
     [Header("Client Corrections")]
 
     public float CorrectionDistance = 0.5f;
@@ -222,7 +228,12 @@ public class PlayerMovement : NetworkBehaviour
 
     void ServerTickForAll()
     {
-        ReplicatePositionClientRpc(transform.position, Rotation);
+        if (TimeStamp - LastTimeReplicatedPosition >= ReplicatePositionInterval)
+        {
+            LastTimeReplicatedPosition = TimeStamp;
+            
+            ReplicatePositionClientRpc(transform.position, Rotation);
+        }
     }
 
     void MovePlayer()
@@ -357,7 +368,7 @@ public class PlayerMovement : NetworkBehaviour
 *
 */
 
-    [ServerRpc]
+    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendClientDataServerRpc(int timestamp, Vector3 position)
     {
         ClientDataDictionary.Add(timestamp, position);
@@ -403,7 +414,7 @@ public class PlayerMovement : NetworkBehaviour
         LastTimeJumped = ServerState.LastTimeJumped;
     }
 
-    [ClientRpc]
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void ClientCorrectionClientRpc(ClientCorrection Data, ClientRpcParams clientRpcParams = default)
     {
         AfterCorrectionReceived(Data.TimeStamp);
@@ -497,7 +508,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    [ClientRpc]
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendClientTimeCorrectionClientRpc(int timediff, ClientRpcParams clientRpcParams = default)
     {
         TimeStamp += timediff;
@@ -550,7 +561,7 @@ public class PlayerMovement : NetworkBehaviour
         MoveDirection.Normalize();
     }
 
-    [ServerRpc]
+    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendInputsServerRpc(Inputs input)
     {
         InputsDictionary.Add(input.TimeStamp, input);
@@ -558,7 +569,7 @@ public class PlayerMovement : NetworkBehaviour
         CheckClientTimeError(input.TimeStamp);
     }
 
-    [ClientRpc]
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void ReplicatePositionClientRpc(Vector3 position, Quaternion rotation)
     {
         if (IsOwner || IsServer)
