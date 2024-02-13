@@ -807,7 +807,8 @@ PlayerSettings:
   platformArchitecture: {}
   scriptingBackend: {}
   il2cppCompilerConfiguration: {}
-  il2cppCodeGeneration: {}
+  il2cppCodeGeneration:
+    WebGL: 1
   managedStrippingLevel:
     EmbeddedLinux: 1
     GameCoreScarlett: 1
