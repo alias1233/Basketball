@@ -9,12 +9,15 @@ public class PlayerMovement : NetworkBehaviour
 
     public Transform Orientation;
     public Camera PlayerCamera;
-    private Rigidbody Rb;
     private CapsuleCollider Collider;
 
     [Header("Ticking")]
 
-    public int ServerDelay = 4;
+    public int FixedTickPerSecond = 60;
+    public int TickTime;
+    public int ServerDelay = 10;
+    public int ServerMaxFixedTicksPerFrame = 30;
+    public int MaxFixedTicksPerFrame = 60;
 
     private int TimeStamp;
     private float DeltaTime;
@@ -31,7 +34,7 @@ public class PlayerMovement : NetworkBehaviour
 
     [Header("Replicate Movement")]
 
-    public int ReplicatePositionInterval = 5;
+    public int ReplicatePositionInterval = 3;
 
     private int LastTimeReplicatedPosition;
 
@@ -94,11 +97,18 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 Velocity;
     private int LastTimeJumped;
 
+    //TESTING
+    //private int Ticking;
+    //private bool bTick;
+    //private float FixedTickRate;
+    //private float FixedTickDelta;
+
     // Start is called before the first frame update
     void Start()
     {
-        Rb = GetComponent<Rigidbody>();
         Collider = GetComponent<CapsuleCollider>();
+
+        DeltaTime = Time.fixedDeltaTime;
 
         bAutonomousProxy = IsClient && IsOwner && !IsServer;
 
@@ -114,17 +124,17 @@ public class PlayerMovement : NetworkBehaviour
                 }
             };
         }
+
+        //FixedTickRate = 1.0f / FixedTickPerSecond;
     }
 
     void FixedUpdate()
     {
         TimeStamp++;
 
-        DeltaTime = Time.fixedDeltaTime;
-
         if (IsServer)
         {
-            if(IsOwner)
+            if (IsOwner)
             {
                 HostTick();
             }
@@ -158,7 +168,7 @@ public class PlayerMovement : NetworkBehaviour
 
     void ServerTickForOtherPlayers()
     {
-        if(InputsDictionary.TryGetValue(TimeStamp, out Inputs inputs))
+        if (InputsDictionary.TryGetValue(TimeStamp, out Inputs inputs))
         {
             CurrentInput = inputs;
         }
@@ -204,13 +214,12 @@ public class PlayerMovement : NetworkBehaviour
 
         MovePlayer();
 
-        if (Time.time - LastTimeSentClientData > 0.2)
+        if (Time.time - LastTimeSentClientData > 0.33)
         {
             LastTimeSentClientData = Time.time;
 
             SendClientDataServerRpc(TimeStamp, transform.position);
         }
-
 
         if (bSmoothingCorrection)
         {
@@ -480,15 +489,15 @@ public class PlayerMovement : NetworkBehaviour
 
         if (clienttime < TimeStamp)
         {
-            LateInputsCount++;
+            //LateInputsCount++;
         }
 
         if (clienttime > TimeStamp + 2 * ServerDelay)
         {
-            EarlyInputsCount++;
+            //EarlyInputsCount++;
         }
 
-        if (LateInputsCount >= 3 || EarlyInputsCount >= 3 || Time.time - LastTimeSentClientTimeCorrection > 7)
+        if (LateInputsCount >= 3 || EarlyInputsCount >= 3 || Time.time - LastTimeSentClientTimeCorrection > 5)
         {
             LateInputsCount = 0;
             EarlyInputsCount = 0;

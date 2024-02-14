@@ -340,7 +340,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Orientation: {fileID: 2328282342131481982}
   PlayerCamera: {fileID: 6819543550437210069}
-  ServerDelay: 4
+  FixedTickPerSecond: 60
+  TickTime: 2
+  ServerDelay: 10
+  ServerMaxFixedTicksPerFrame: 30
+  MaxFixedTicksPerFrame: 60
+  ReplicatePositionInterval: 4
   CorrectionDistance: 0.5
   MinTimeBetweenCorrections: 1
   DefaultCorrectionSmoothTime: 10
@@ -355,7 +360,7 @@ MonoBehaviour:
   WhatIsGround:
     serializedVersion: 2
     m_Bits: 1
-  JumpCooldown: 30
+  JumpCooldown: 10
   GroundFriction: 8
   AirFriction: 0.25
   Gravity: 0.75

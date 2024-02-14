@@ -25,6 +25,8 @@ public class MainMenuScript : MonoBehaviour
     private TMP_Text JoinCode;
     [SerializeField]
     private TMP_Dropdown RegionSelector;
+    [SerializeField]
+    private GameObject MainMenuCameraObject;
 
     private List<Region> Regions;
     private string RegionId;
@@ -42,7 +44,9 @@ public class MainMenuScript : MonoBehaviour
         Regions = regions;
         List<string> RegionNames = new List<string>();
 
-        foreach(Region region in regions)
+        RegionNames.Add("Select Region");
+
+        foreach (Region region in regions)
         {
             RegionNames.Add(region.Id);
         }
@@ -52,15 +56,16 @@ public class MainMenuScript : MonoBehaviour
 
     public async void StartHost()
     {
-        print(Regions[RegionSelector.value].Id);
-
-        foreach (Region region in Regions)
+        if(RegionSelector.value != 0)
         {
-            if(region.Id.Equals(Regions[RegionSelector.value].Id))
+            foreach (Region region in Regions)
             {
-                RegionId = region.Id;
+                if (region.Id.Equals(Regions[RegionSelector.value - 1].Id))
+                {
+                    RegionId = region.Id;
 
-                break;
+                    break;
+                }
             }
         }
 
@@ -69,12 +74,18 @@ public class MainMenuScript : MonoBehaviour
         JoinCode.text = Text;
 
         CreateAndJoinGame.SetActive(false);
+
+        MainMenuCameraObject.SetActive(false);
     }
 
     public void StartClient(string joinCode)
     {
         InitializeRelay.Instance.StartClient(joinCode);
 
+        JoinCode.text = joinCode;
+
         CreateAndJoinGame.SetActive(false);
+
+        MainMenuCameraObject.SetActive(false);
     }
 }

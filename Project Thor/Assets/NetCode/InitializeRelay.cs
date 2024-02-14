@@ -77,10 +77,10 @@ public class InitializeRelay : MonoBehaviour
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joincode);
             var unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
 
-            //unityTransport.SetRelayServerData(new RelayServerData(joinAllocation, "udp"));
-
             unityTransport.SetRelayServerData(new RelayServerData(joinAllocation, "wss"));
             unityTransport.UseWebSockets = true;
+
+            //unityTransport.SetRelayServerData(new RelayServerData(joinAllocation, "udp"));
 
             NetworkManager.Singleton.StartClient();
         }
