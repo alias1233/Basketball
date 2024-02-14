@@ -345,7 +345,7 @@ MonoBehaviour:
   ServerDelay: 10
   ServerMaxFixedTicksPerFrame: 30
   MaxFixedTicksPerFrame: 60
-  ReplicatePositionInterval: 4
+  ReplicatePositionInterval: 0.1
   CorrectionDistance: 0.5
   MinTimeBetweenCorrections: 1
   DefaultCorrectionSmoothTime: 10

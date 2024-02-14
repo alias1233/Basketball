@@ -26,6 +26,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private ClientRpcParams OwningClientID;
     private bool bAutonomousProxy;
+    private bool bSimulatedProxy;
 
     [Header("Client Data")]
 
@@ -34,9 +35,9 @@ public class PlayerMovement : NetworkBehaviour
 
     [Header("Replicate Movement")]
 
-    public int ReplicatePositionInterval = 3;
+    public float ReplicatePositionInterval = 0.1f;
 
-    private int LastTimeReplicatedPosition;
+    private float LastTimeReplicatedPosition;
 
     [Header("Client Corrections")]
 
@@ -112,6 +113,8 @@ public class PlayerMovement : NetworkBehaviour
 
         bAutonomousProxy = IsClient && IsOwner && !IsServer;
 
+        bSimulatedProxy = IsClient && !IsOwner && !IsServer;
+
         if(IsServer && !IsOwner)
         {
             TimeStamp = -ServerDelay;
@@ -150,6 +153,13 @@ public class PlayerMovement : NetworkBehaviour
         if (bAutonomousProxy)
         {
             AutonomousProxyTick();
+
+            return;
+        }
+
+        if(bSimulatedProxy)
+        {
+            SimulatedProxyTick();
 
             return;
         }
@@ -237,12 +247,17 @@ public class PlayerMovement : NetworkBehaviour
 
     void ServerTickForAll()
     {
-        if (TimeStamp - LastTimeReplicatedPosition >= ReplicatePositionInterval)
+        if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
         {
-            LastTimeReplicatedPosition = TimeStamp;
+            LastTimeReplicatedPosition = Time.time;
             
-            ReplicatePositionClientRpc(transform.position, Rotation);
+            ReplicatePositionClientRpc(transform.position, Velocity, Rotation);
         }
+    }
+
+    void SimulatedProxyTick()
+    {
+        MovePlayer();
     }
 
     void MovePlayer()
@@ -579,7 +594,7 @@ public class PlayerMovement : NetworkBehaviour
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicatePositionClientRpc(Vector3 position, Quaternion rotation)
+    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation)
     {
         if (IsOwner || IsServer)
         {
@@ -587,6 +602,7 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         transform.position = position;
+        Velocity = velocity;
 
         Quaternion quaternion = rotation;
 
