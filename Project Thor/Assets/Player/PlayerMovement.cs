@@ -13,11 +13,7 @@ public class PlayerMovement : NetworkBehaviour
 
     [Header("Ticking")]
 
-    public int FixedTickPerSecond = 60;
-    public int TickTime;
     public int ServerDelay = 10;
-    public int ServerMaxFixedTicksPerFrame = 30;
-    public int MaxFixedTicksPerFrame = 60;
 
     private int TimeStamp;
     private float DeltaTime;
@@ -38,6 +34,7 @@ public class PlayerMovement : NetworkBehaviour
     public float ReplicatePositionInterval = 0.1f;
 
     private float LastTimeReplicatedPosition;
+    private bool bUpdatedThisFrame;
 
     [Header("Client Corrections")]
 
@@ -69,7 +66,6 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Movement")]
 
     public LayerMask layerMask;
-    //public float MaxSlopeAngle = 55;
 
     private Bounds bounds;
     private int MaxBounces = 5;
@@ -99,10 +95,18 @@ public class PlayerMovement : NetworkBehaviour
     private int LastTimeJumped;
 
     //TESTING
-    //private int Ticking;
-    //private bool bTick;
-    //private float FixedTickRate;
-    //private float FixedTickDelta;
+
+    /*
+    public float MaxSlopeAngle = 55;
+    private int Ticking;
+    private bool bTick;
+    private float FixedTickRate;
+    private float FixedTickDelta;
+    public int ServerMaxFixedTicksPerFrame = 30;
+    public int MaxFixedTicksPerFrame = 60;
+    public int FixedTickPerSecond = 60;
+    public int TickTime;
+    */
 
     // Start is called before the first frame update
     void Start()
@@ -111,9 +115,8 @@ public class PlayerMovement : NetworkBehaviour
 
         DeltaTime = Time.fixedDeltaTime;
 
-        bAutonomousProxy = IsClient && IsOwner && !IsServer;
-
-        bSimulatedProxy = IsClient && !IsOwner && !IsServer;
+        bAutonomousProxy = IsOwner && !IsServer;
+        bSimulatedProxy = !IsOwner && !IsServer;
 
         if(IsServer && !IsOwner)
         {
@@ -148,6 +151,8 @@ public class PlayerMovement : NetworkBehaviour
             }
 
             ServerTickForAll();
+
+            return;
         }
 
         if (bAutonomousProxy)
@@ -257,7 +262,16 @@ public class PlayerMovement : NetworkBehaviour
 
     void SimulatedProxyTick()
     {
-        MovePlayer();
+        if(bUpdatedThisFrame)
+        {
+            bUpdatedThisFrame = false;
+
+            return;
+        }
+
+        Vector3 Delta = Velocity * DeltaTime;
+
+        transform.Translate(CollideAndSlide(transform.position, Delta, 0, Delta));
     }
 
     void MovePlayer()
@@ -544,14 +558,14 @@ public class PlayerMovement : NetworkBehaviour
 *
 */
 
-    Inputs CreateInput()
+    private Inputs CreateInput()
     {
         Inputs input = new Inputs(TimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space), Input.GetKey(KeyCode.LeftShift));
 
         return input;
     }
 
-    void HandleInputs(Inputs input)
+    private void HandleInputs(Inputs input)
     {
         MoveDirection = Vector3.zero;
 
@@ -601,6 +615,8 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
+        bUpdatedThisFrame = true;
+
         transform.position = position;
         Velocity = velocity;
 
@@ -620,5 +636,10 @@ public class PlayerMovement : NetworkBehaviour
     public bool GetIsGrounded()
     {
         return bIsGrounded;
+    }
+
+    public Quaternion GetRotation()
+    {
+        return Rotation;
     }
 }
