@@ -257,7 +257,7 @@ public class PlayerMovement : NetworkBehaviour
             ReplicatePositionClientRpc(transform.position, Velocity, Rotation);
         }
 
-
+        RewindDataDictionary.Add(TimeStamp, transform.position);
     }
 
     void SimulatedProxyTick()
