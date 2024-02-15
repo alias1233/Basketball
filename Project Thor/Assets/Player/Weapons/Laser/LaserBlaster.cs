@@ -17,11 +17,21 @@ public class LaserBlaster : BaseWeapon
 
     public override void Fire1()
     {
+        if(Laser.enabled)
+        {
+            return;
+        }
+
         Laser.enabled = true;
     }
 
     public override void StopFire1()
     {
+        if (!Laser.enabled)
+        {
+            return;
+        }
+
         Laser.enabled = false;
     }
 
@@ -34,7 +44,7 @@ public class LaserBlaster : BaseWeapon
 
         Laser.SetPosition(0, LaserObject.transform.position);
 
-        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
+        Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.forward);
         RaycastHit colliderInfo;
 
         if (Physics.Raycast(laserRay, out colliderInfo, 1000))

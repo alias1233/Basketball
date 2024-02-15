@@ -15,6 +15,10 @@ public class BaseWeapon : NetworkBehaviour
 
     public int FireCooldown1;
     public int FireCooldown2;
+
+    private bool IsShooting1;
+    private bool IsShooting2;
+
     public int Damage;
     public int Damage2;
 
@@ -35,7 +39,7 @@ public class BaseWeapon : NetworkBehaviour
             return;
         }
 
-        if(Input.GetKey(KeyCode.Mouse0))
+        if(Input.GetKey(KeyCode.Mouse0) || IsShooting1)
         {
             if(TimeStamp - LastTimeShot1 >= FireCooldown1)
             {
@@ -50,7 +54,7 @@ public class BaseWeapon : NetworkBehaviour
             StopFire1();
         }
 
-        if (Input.GetKey(KeyCode.Mouse1))
+        if (Input.GetKey(KeyCode.Mouse1) || IsShooting2)
         {
             if (TimeStamp - LastTimeShot2 >= FireCooldown2)
             {

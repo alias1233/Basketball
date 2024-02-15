@@ -30,6 +30,11 @@ public class PlayerMovement : NetworkBehaviour
     private Dictionary<int, Inputs> InputsDictionary = new Dictionary<int, Inputs>();
     private Inputs CurrentInput;
 
+    [Header("Hit Registration")]
+
+    private Dictionary<int, Vector3> RewindDataDictionary = new Dictionary<int, Vector3>();
+    private Vector3 OriginalPosition;
+
     [Header("Replicate Movement")]
 
     public float ReplicatePositionInterval = 0.1f;
@@ -99,14 +104,6 @@ public class PlayerMovement : NetworkBehaviour
 
     /*
     public float MaxSlopeAngle = 55;
-    private int Ticking;
-    private bool bTick;
-    private float FixedTickRate;
-    private float FixedTickDelta;
-    public int ServerMaxFixedTicksPerFrame = 30;
-    public int MaxFixedTicksPerFrame = 60;
-    public int FixedTickPerSecond = 60;
-    public int TickTime;
     */
 
     // Start is called before the first frame update
@@ -131,8 +128,6 @@ public class PlayerMovement : NetworkBehaviour
                 }
             };
         }
-
-        //FixedTickRate = 1.0f / FixedTickPerSecond;
     }
 
     void FixedUpdate()
@@ -261,6 +256,8 @@ public class PlayerMovement : NetworkBehaviour
             
             ReplicatePositionClientRpc(transform.position, Velocity, Rotation);
         }
+
+
     }
 
     void SimulatedProxyTick()
@@ -629,6 +626,35 @@ public class PlayerMovement : NetworkBehaviour
 
         Orientation.transform.rotation = ForwardRotation;
         CameraTransform.transform.rotation = rotation;
+    }
+
+    public bool RewindToPosition()
+    {
+        OriginalPosition = transform.position;
+
+        ulong ping = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId);
+
+        int pingintick = (int)(((float)(ping)) * 0.04f); 
+
+        print(ping);
+
+        int RewindToTime = TimeStamp - (ServerDelay + pingintick);
+
+        print(RewindToTime);
+
+        if(RewindDataDictionary.TryGetValue(RewindToTime, out Vector3 RewindedPosition))
+        {
+            transform.position = RewindedPosition;
+
+            return true;
+        }
+        
+        return false;
+    }
+
+    public void ResetToOriginalPosition()
+    {
+        transform.position = OriginalPosition;
     }
 
     public Vector3 GetVelocity()
