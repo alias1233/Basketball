@@ -571,11 +571,10 @@ public class PlayerMovement : NetworkBehaviour
     private void HandleInputs(Inputs input)
     {
         MoveDirection = Vector3.zero;
+        Rotation = input.Rotation;
 
-        Quaternion quaternion = input.Rotation;
-
-        float a = Mathf.Sqrt((quaternion.w * quaternion.w) + (quaternion.y * quaternion.y));
-        ForwardRotation = new Quaternion(x: 0, y: quaternion.y, z: 0, w: quaternion.w / a);
+        float a = Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y));
+        ForwardRotation = new Quaternion(x: 0, y: Rotation.y, z: 0, w: Rotation.w / a);
 
         Orientation.rotation = ForwardRotation;
 
