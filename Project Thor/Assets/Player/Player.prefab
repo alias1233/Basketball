@@ -539,6 +539,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Orientation: {fileID: 2328282342131481982}
+  CameraTransform: {fileID: 245901753364132158}
   PlayerCamera: {fileID: 6819543550437210069}
   ServerDelay: 4
   ReplicatePositionInterval: 0.075

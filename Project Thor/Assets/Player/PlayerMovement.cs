@@ -8,6 +8,7 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Components")]
 
     public Transform Orientation;
+    public Transform CameraTransform;
     public Camera PlayerCamera;
     private CapsuleCollider Collider;
 
@@ -626,6 +627,7 @@ public class PlayerMovement : NetworkBehaviour
         ForwardRotation = new Quaternion(x: 0, y: quaternion.y, z: 0, w: quaternion.w / a);
 
         Orientation.transform.rotation = ForwardRotation;
+        CameraTransform.transform.rotation = rotation;
     }
 
     public Vector3 GetVelocity()
