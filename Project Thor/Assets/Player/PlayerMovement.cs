@@ -191,7 +191,7 @@ public class PlayerMovement : NetworkBehaviour
 
         HandleInputs(CurrentInput);
         
-        PlayerCamera.transform.rotation = Rotation;
+        CameraTransform.transform.rotation = Rotation;
 
         MovePlayer();
 
