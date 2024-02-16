@@ -4,7 +4,12 @@ using UnityEngine;
 
 public class BaseWeapon : MonoBehaviour
 {
+    [SerializeField]
+    public WeaponManager Manager;
+
+    [SerializeField]
     public GameObject WeaponModel;
+    [SerializeField]
     public PlayerMovement PlayerMovementComponent;
 
     public int AmmoCount;

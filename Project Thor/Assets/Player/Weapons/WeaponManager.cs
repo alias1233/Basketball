@@ -8,6 +8,15 @@ public class WeaponManager : NetworkBehaviour
     [SerializeField]
     private List<BaseWeapon> WeaponList;
 
+    public enum ActiveWeaponNumber
+    {
+        Laser,
+        Sword
+    }
+
+    public NetworkVariable<ActiveWeaponNumber> ActiveWeaponIndex = new NetworkVariable<ActiveWeaponNumber>(default,
+        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
     private BaseWeapon ActiveWeapon;
 
     private int TimeStamp;
@@ -18,9 +27,33 @@ public class WeaponManager : NetworkBehaviour
     private int LastTimeShot1;
     private int LastTimeShot2;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
+        ActiveWeaponIndex.Value = ActiveWeaponNumber.Laser;
+        ActiveWeaponIndex.OnValueChanged += OnChangeActiveWeapon;
+
         ActiveWeapon = WeaponList[0];
+        ActiveWeapon.ChangeActive(true);
+    }
+
+    void OnChangeActiveWeapon(ActiveWeaponNumber previous, ActiveWeaponNumber current)
+    {
+        ActiveWeapon.ChangeActive(false);
+
+        switch (current)
+        {
+            case ActiveWeaponNumber.Laser:
+
+                ActiveWeapon = WeaponList[0];
+
+                break;
+
+            case ActiveWeaponNumber.Sword:
+
+                ActiveWeapon = WeaponList[1];
+
+                break;
+        }
 
         ActiveWeapon.ChangeActive(true);
     }
@@ -93,5 +126,22 @@ public class WeaponManager : NetworkBehaviour
         {
             ActiveWeapon.StopFire2();
         }
+    }
+
+    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
+    public void StartFiring1ServerRpc()
+    {
+        IsShooting1 = true;
+    }
+
+    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
+    public void StopFiring1ServerRpc()
+    {
+        IsShooting1 = false;
+    }
+
+    public bool GetHasAuthority()
+    {
+        return IsServer;
     }
 }

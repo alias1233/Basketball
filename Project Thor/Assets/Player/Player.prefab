@@ -46,6 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d73f0b40b482c4c42841644ea9615a96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Manager: {fileID: 1094920780060433367}
   WeaponModel: {fileID: 6450711723351282781}
   PlayerMovementComponent: {fileID: 1582057334220984081}
   AmmoCount: 0
@@ -147,6 +148,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   WeaponList:
   - {fileID: 2916724919434419935}
+  ActiveWeaponIndex:
+    m_InternalValue: 0
+  IsShooting1: 0
+  IsShooting2: 0
 --- !u!1 &5679593772232893411
 GameObject:
   m_ObjectHideFlags: 0
@@ -482,6 +487,7 @@ GameObject:
   - component: {fileID: 3326173135175182560}
   - component: {fileID: 5985029051314000624}
   - component: {fileID: 633952257611861061}
+  - component: {fileID: 902397126190315325}
   m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
@@ -630,6 +636,21 @@ MonoBehaviour:
   PlayerCamera: {fileID: 6819543550437210069}
   PlayerAudioListener: {fileID: 669068662572429745}
   CharacterModel: {fileID: 175575920068356609}
+--- !u!114 &902397126190315325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8407543891952496747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 087032a2bd6194544b3dc2da30465edb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MaxHealth: 100
+  Health:
+    m_InternalValue: 0
 --- !u!1001 &6450711723351249661
 PrefabInstance:
   m_ObjectHideFlags: 0

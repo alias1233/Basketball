@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Security;
 using Unity.Burst.CompilerServices;
 using UnityEngine;
 
@@ -17,30 +18,40 @@ public class LaserBlaster : BaseWeapon
 
     public override void Fire1()
     {
-        if(Laser.enabled)
+        if (!Laser.enabled)
         {
-            return;
-        }
+            Laser.enabled = true;
 
-        Laser.enabled = true;
+            if (!Manager.GetHasAuthority())
+            {
+                Manager.StartFiring1ServerRpc();
+
+                return;
+            }
+        }
 
         Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
         RaycastHit colliderInfo;
 
         if (Physics.Raycast(laserRay, out colliderInfo, 1000))
         {
-
+             
         }
     }
 
     public override void StopFire1()
     {
-        if (!Laser.enabled)
+        if (Laser.enabled)
         {
-            return;
-        }
+            Laser.enabled = false;
 
-        Laser.enabled = false;
+            if (Manager.GetHasAuthority())
+            {
+                return;
+            }
+
+            Manager.StopFiring1ServerRpc();
+        }
     }
 
     public void Update()
