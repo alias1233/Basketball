@@ -11,6 +11,8 @@ public class WeaponManager : NetworkBehaviour
         Sword
     }
 
+    [Header("Components")]
+
     [SerializeField]
     private PlayerManager Player;
 
@@ -78,6 +80,11 @@ public class WeaponManager : NetworkBehaviour
 
     private void FixedUpdate()
     {
+        if (Player.GetIsDead())
+        {
+            return;
+        }
+
         CurrentTimeStamp = Player.GetTimeStamp();
 
         if (IsOwner)
@@ -244,5 +251,10 @@ public class WeaponManager : NetworkBehaviour
     public bool GetHasAuthority()
     {
         return IsServer;
+    }
+
+    public Teams GetTeam()
+    {
+        return Player.GetTeam();
     }
 }

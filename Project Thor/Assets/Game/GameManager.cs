@@ -2,17 +2,31 @@ using System;
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
-using TMPro;
 using static ConnectionNotificationManager;
-using Unity.VisualScripting;
+
+public enum Teams
+{ 
+    Red,
+    Blue
+}
+
 
 public class GameManager : NetworkBehaviour
 {
     public static GameManager Singleton { get; internal set; }
 
-    private NetworkList<PlayerInformation> PlayerList;
+    [SerializeField]
+    private GameObject PlayerPrefab;
 
-    public TMP_Text TESTINGTEXT;
+    [SerializeField]
+    private Transform RedTeamSpawn;
+    [SerializeField]
+    private Transform BlueTeamSpawn;
+
+    [SerializeField]
+    private Transform Graveyard;
+
+    private NetworkList<PlayerInformation> PlayerList;
 
     private void Awake()
     {
@@ -23,54 +37,45 @@ public class GameManager : NetworkBehaviour
 
     private void Start()
     {
-        ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdatePlayerList;
+        ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdatePlayers;
     }
 
-    private void Update()
+    private void UpdatePlayers(ulong clientId, ConnectionStatus connection)
     {
-        
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-
-        if (IsClient)
-        {
-            PlayerList.OnListChanged += OnClientPlayerListChanged;
-        }
-
-        if (IsServer)
-        {
-            PlayerList.OnListChanged += OnServerPlayerListChanged;
-        }
-    }
-
-    void OnServerPlayerListChanged(NetworkListEvent<PlayerInformation> changeEvent)
-    {
-
-    }
-
-    void OnClientPlayerListChanged(NetworkListEvent<PlayerInformation> changeEvent)
-    {
-
-    }
-
-    private void UpdatePlayerList(ulong clientid, ConnectionStatus connection)
-    {
-        if(!IsServer)
+        if (!IsServer)
         {
             return;
         }
 
-        ushort team = (ushort)(clientid % 2);
+        Teams team = Teams.Red;
+        ushort val = (ushort)(clientId % 2);
 
-        PlayerInformation playerinfo = new PlayerInformation(clientid, team);
+        if (val == 1)
+        {
+            team = Teams.Blue;
+        }
+
+        PlayerInformation playerinfo = new PlayerInformation(clientId, team);
 
         if (connection == ConnectionStatus.Connected)
         {
             PlayerList.Add(playerinfo);
         }
+
+        GameObject newPlayer = Instantiate(PlayerPrefab);
+
+        if (team == Teams.Red)
+        {
+            newPlayer.transform.position = RedTeamSpawn.position;
+        }
+
+        if (team == Teams.Blue)
+        {
+            newPlayer.transform.position = BlueTeamSpawn.position;
+        }
+
+        NetworkObject PlayerNetworkObject = newPlayer.GetComponent<NetworkObject>();
+        PlayerNetworkObject.SpawnAsPlayerObject(clientId);
     }
 
     public List<PlayerInformation> GetAllPlayerInformation()
@@ -83,6 +88,26 @@ public class GameManager : NetworkBehaviour
         }
 
         return playerlist;
+    }
+
+    public Vector3 GetSpawnLocation(Teams team)
+    {
+        if (team == Teams.Red)
+        {
+            return RedTeamSpawn.position;
+        }
+
+        if (team == Teams.Blue)
+        {
+            return BlueTeamSpawn.position;
+        }
+
+        return Vector3.zero;
+    }
+
+    public Vector3 GetGraveyardLocation()
+    {
+        return Graveyard.position;
     }
 
     public override void OnDestroy()

@@ -8,7 +8,7 @@ using UnityEngine;
 public struct PlayerInformation : INetworkSerializable, System.IEquatable<PlayerInformation>
 {
     public ulong Id;
-    public ushort Team;
+    public Teams Team;
     //public FixedString32Bytes Name;
 
     /*
@@ -20,7 +20,7 @@ public struct PlayerInformation : INetworkSerializable, System.IEquatable<Player
     }
     */
 
-    public PlayerInformation(ulong id, ushort team)
+    public PlayerInformation(ulong id, Teams team)
     {
         Id = id;
         Team = team;
@@ -42,7 +42,7 @@ public struct PlayerInformation : INetworkSerializable, System.IEquatable<Player
             FastBufferReader fastBufferReader = serializer.GetFastBufferReader();
 
             fastBufferReader.ReadValueSafe(out ulong id);
-            fastBufferReader.ReadValueSafe(out ushort team);
+            fastBufferReader.ReadValueSafe(out Teams team);
             //fastBufferReader.ReadValueSafe(out FixedString32Bytes Name);
 
             Id = id;

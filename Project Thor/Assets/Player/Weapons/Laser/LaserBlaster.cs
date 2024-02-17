@@ -11,6 +11,9 @@ public class LaserBlaster : BaseWeapon
     [SerializeField]
     private LineRenderer Laser;
 
+    [SerializeField]
+    private LayerMask ObjectLayer;
+
     public void Start()
     {
         Laser = LaserObject.GetComponent<LineRenderer>();
@@ -33,9 +36,9 @@ public class LaserBlaster : BaseWeapon
         {
              foreach(RaycastHit i in colliderInfo)
             {
-                if(i.transform.gameObject.TryGetComponent<StatsComponent>(out StatsComponent stats))
+                if(i.transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
                 {
-                    stats.Damage(Damage);
+                    stats.Damage(Manager.GetTeam(), Damage);
                 }
             }
         }
@@ -61,7 +64,7 @@ public class LaserBlaster : BaseWeapon
         Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.forward);
         RaycastHit colliderInfo;
 
-        if (Physics.Raycast(laserRay, out colliderInfo, 100))
+        if (Physics.Raycast(laserRay, out colliderInfo, 100, ObjectLayer))
         {
             Laser.SetPosition(1, colliderInfo.point);
 

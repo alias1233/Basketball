@@ -112,6 +112,11 @@ public class PlayerMovement : NetworkBehaviour
 
     void FixedUpdate()
     {
+        if(Player.GetIsDead())
+        {
+            return;
+        }
+
         CurrentTimeStamp = Player.GetTimeStamp();
 
         switch (LocalRole)
@@ -540,7 +545,7 @@ public class PlayerMovement : NetworkBehaviour
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation)
     {
-        if (IsOwner || IsServer)
+        if (IsOwner || IsServer || Player.GetIsDead())
         {
             return;
         }
