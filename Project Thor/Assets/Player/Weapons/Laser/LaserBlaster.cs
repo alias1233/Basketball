@@ -21,21 +21,23 @@ public class LaserBlaster : BaseWeapon
         if (!Laser.enabled)
         {
             Laser.enabled = true;
+        }
 
-            if (!Manager.GetHasAuthority())
-            {
-                Manager.StartFiring1ServerRpc();
-
-                return;
-            }
+        if (!Manager.GetHasAuthority())
+        {
+            return;
         }
 
         Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
-        RaycastHit colliderInfo;
-
-        if (Physics.Raycast(laserRay, out colliderInfo, 1000))
+        RaycastHit[] colliderInfo = Physics.RaycastAll(laserRay, 100, PlayerLayer);
         {
-             
+             foreach(RaycastHit i in colliderInfo)
+            {
+                if(i.transform.gameObject.TryGetComponent<StatsComponent>(out StatsComponent stats))
+                {
+                    stats.Damage(Damage);
+                }
+            }
         }
     }
 
@@ -44,13 +46,6 @@ public class LaserBlaster : BaseWeapon
         if (Laser.enabled)
         {
             Laser.enabled = false;
-
-            if (Manager.GetHasAuthority())
-            {
-                return;
-            }
-
-            Manager.StopFiring1ServerRpc();
         }
     }
 
@@ -66,13 +61,13 @@ public class LaserBlaster : BaseWeapon
         Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.forward);
         RaycastHit colliderInfo;
 
-        if (Physics.Raycast(laserRay, out colliderInfo, 1000))
+        if (Physics.Raycast(laserRay, out colliderInfo, 100))
         {
             Laser.SetPosition(1, colliderInfo.point);
 
             return;
         }
 
-        Laser.SetPosition(1, laserRay.GetPoint(1000));
+        Laser.SetPosition(1, laserRay.GetPoint(100));
     }
 }

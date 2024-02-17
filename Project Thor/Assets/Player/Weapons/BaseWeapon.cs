@@ -12,6 +12,8 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public PlayerMovement PlayerMovementComponent;
 
+    public LayerMask PlayerLayer;
+
     public int AmmoCount;
 
     public int FireCooldown1;

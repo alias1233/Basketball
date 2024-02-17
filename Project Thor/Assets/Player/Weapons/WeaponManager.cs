@@ -5,21 +5,37 @@ using UnityEngine;
 
 public class WeaponManager : NetworkBehaviour
 {
-    [SerializeField]
-    private List<BaseWeapon> WeaponList;
-
     public enum ActiveWeaponNumber
     {
         Laser,
         Sword
     }
 
-    public NetworkVariable<ActiveWeaponNumber> ActiveWeaponIndex = new NetworkVariable<ActiveWeaponNumber>(default,
+    [SerializeField]
+    private PlayerManager Player;
+
+    private int CurrentTimeStamp;
+
+    private NetworkRole LocalRole;
+
+    [SerializeField]
+    private List<BaseWeapon> WeaponList;
+
+    [Header("Client Data")]
+
+    public float SendInputCooldown = 0.1f;
+    private float LastTimeSentInputs;
+
+    private Dictionary<int, WeaponInputs> InputsDictionary = new Dictionary<int, WeaponInputs>();
+    private WeaponInputs CurrentInput;
+
+    private NetworkVariable<ActiveWeaponNumber> ActiveWeaponIndex = new NetworkVariable<ActiveWeaponNumber>(default,
         NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     private BaseWeapon ActiveWeapon;
 
-    private int TimeStamp;
+    public float ReplicateShootingCooldown = 0.15f;
+    private float LastTimReplicatedShooting;
 
     public bool IsShooting1;
     public bool IsShooting2;
@@ -34,6 +50,8 @@ public class WeaponManager : NetworkBehaviour
 
         ActiveWeapon = WeaponList[0];
         ActiveWeapon.ChangeActive(true);
+
+        LocalRole = Player.GetLocalRole();
     }
 
     void OnChangeActiveWeapon(ActiveWeaponNumber previous, ActiveWeaponNumber current)
@@ -60,48 +78,53 @@ public class WeaponManager : NetworkBehaviour
 
     private void FixedUpdate()
     {
-        TimeStamp++;
+        CurrentTimeStamp = Player.GetTimeStamp();
 
-        if (!IsOwner)
+        if (IsOwner)
         {
-            if(IsShooting1)
-            {
-                if (TimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
-                {
-                    LastTimeShot1 = TimeStamp;
+            OwnerTick();
 
-                    ActiveWeapon.Fire1();
-                }
+            if (!IsServer)
+            {
+                return;
             }
 
-            else
+            if (Time.time - LastTimReplicatedShooting >= ReplicateShootingCooldown)
             {
-                ActiveWeapon.StopFire1();
-            }
+                LastTimReplicatedShooting = Time.time;
 
-            if (IsShooting2)
-            {
-                if (TimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
-                {
-                    LastTimeShot2 = TimeStamp;
-
-                    ActiveWeapon.Fire2();
-                }
-            }
-
-            else
-            {
-                ActiveWeapon.StopFire2();
+                ReplicateShootingClientRpc(CurrentInput.Mouse1, CurrentInput.Mouse2);
             }
 
             return;
         }
 
-        if(Input.GetKey(KeyCode.Mouse0))
+        if(IsServer)
         {
-            if(TimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            TickForOThers();
+
+            return;
+        }
+
+        SimulatedProxyTick();
+    }
+
+    private void OwnerTick()
+    {
+        if(Time.time - LastTimeSentInputs >= SendInputCooldown)
+        {
+            LastTimeSentInputs = Time.time;
+
+            CurrentInput = new WeaponInputs(CurrentTimeStamp, Input.GetKey(KeyCode.Mouse0), Input.GetKey(KeyCode.Mouse1));
+
+            SendWeaponInputsServerRpc(CurrentInput);
+        }
+
+        if (CurrentInput.Mouse1)
+        {
+            if (CurrentTimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
             {
-                LastTimeShot1 = TimeStamp;
+                LastTimeShot1 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire1();
             }
@@ -112,11 +135,82 @@ public class WeaponManager : NetworkBehaviour
             ActiveWeapon.StopFire1();
         }
 
-        if (Input.GetKey(KeyCode.Mouse1))
+        if (CurrentInput.Mouse2)
         {
-            if (TimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            if (CurrentTimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
             {
-                LastTimeShot2 = TimeStamp;
+                LastTimeShot2 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire2();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire2();
+        }
+    }
+
+    private void TickForOThers()
+    {
+        if(InputsDictionary.TryGetValue(CurrentTimeStamp, out var input))
+        {
+            CurrentInput = input;
+        }
+
+        if (CurrentInput.Mouse1)
+        {
+            if (CurrentTimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            {
+                LastTimeShot1 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire1();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire1();
+        }
+
+        if (CurrentInput.Mouse1)
+        {
+            if (CurrentTimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            {
+                LastTimeShot2 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire2();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire2();
+        }
+    }
+
+    private void SimulatedProxyTick()
+    {
+        if (IsShooting1)
+        {
+            if (CurrentTimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            {
+                LastTimeShot1 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire1();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire1();
+        }
+
+        if (IsShooting2)
+        {
+            if (CurrentTimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            {
+                LastTimeShot2 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire2();
             }
@@ -129,17 +223,24 @@ public class WeaponManager : NetworkBehaviour
     }
 
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
-    public void StartFiring1ServerRpc()
+    public void SendWeaponInputsServerRpc(WeaponInputs input)
     {
-        IsShooting1 = true;
+        InputsDictionary.Add(input.TimeStamp, input);
+
+        Player.CheckClientTimeError(input.TimeStamp);
     }
 
-    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
-    public void StopFiring1ServerRpc()
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateShootingClientRpc(bool mouse1, bool mouse2)
     {
-        IsShooting1 = false;
-    }
+        if (IsOwner || IsServer)
+        {
+            return;
+        }
 
+        IsShooting1 = mouse1;
+        IsShooting2 = mouse2;
+    }
     public bool GetHasAuthority()
     {
         return IsServer;

@@ -7,6 +7,7 @@ public class PlayerMovement : NetworkBehaviour
 {
     [Header("Components")]
 
+    private PlayerManager Player;
     public Transform Orientation;
     public Transform CameraTransform;
     public Camera PlayerCamera;
@@ -14,16 +15,13 @@ public class PlayerMovement : NetworkBehaviour
 
     [Header("Ticking")]
 
-    public int ServerDelay = 10;
-
-    private int TimeStamp;
+    private int CurrentTimeStamp;
     private float DeltaTime;
 
     [Header("Networking")]
 
     private ClientRpcParams OwningClientID;
-    private bool bAutonomousProxy;
-    private bool bSimulatedProxy;
+    private NetworkRole LocalRole;
 
     [Header("Client Data")]
 
@@ -62,12 +60,6 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 StartCorrectionPosition;
     private Vector3 CorrectedPosition;
     private int CorrectionSmoothTime;
-
-    private int TotalTimes;
-    private int TotalTimeDifference;
-    private int LateInputsCount;
-    private int EarlyInputsCount;
-    private float LastTimeSentClientTimeCorrection;
 
     [Header("Movement")]
 
@@ -109,60 +101,48 @@ public class PlayerMovement : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Player = GetComponent<PlayerManager>();
         Collider = GetComponent<CapsuleCollider>();
 
         DeltaTime = Time.fixedDeltaTime;
 
-        bAutonomousProxy = IsOwner && !IsServer;
-        bSimulatedProxy = !IsOwner && !IsServer;
-
-        if(IsServer && !IsOwner)
-        {
-            TimeStamp = -ServerDelay;
-
-            OwningClientID = new ClientRpcParams
-            {
-                Send = new ClientRpcSendParams
-                {
-                    TargetClientIds = new ulong[] { OwnerClientId }
-                }
-            };
-        }
+        LocalRole = Player.GetLocalRole();
+        OwningClientID = Player.GetClientRpcParamsSendToOwner();
     }
 
     void FixedUpdate()
     {
-        TimeStamp++;
+        CurrentTimeStamp = Player.GetTimeStamp();
 
-        if (IsServer)
+        switch (LocalRole)
         {
-            if (IsOwner)
-            {
+            case NetworkRole.HostOwner:
+
                 HostTick();
-            }
 
-            else
-            {
+                ServerTickForAll();
+
+                break;
+
+            case NetworkRole.HostProxy:
+
+                ServerTickForAll();
+
                 ServerTickForOtherPlayers();
-            }
 
-            ServerTickForAll();
+                break;
 
-            return;
-        }
+            case NetworkRole.AutonomousProxy:
 
-        if (bAutonomousProxy)
-        {
-            AutonomousProxyTick();
+                AutonomousProxyTick();
 
-            return;
-        }
+                break;
 
-        if(bSimulatedProxy)
-        {
-            SimulatedProxyTick();
+            case NetworkRole.SimulatedProxy:
 
-            return;
+                SimulatedProxyTick();
+
+                break;
         }
     }
 
@@ -179,7 +159,7 @@ public class PlayerMovement : NetworkBehaviour
 
     void ServerTickForOtherPlayers()
     {
-        if (InputsDictionary.TryGetValue(TimeStamp, out Inputs inputs))
+        if (InputsDictionary.TryGetValue(CurrentTimeStamp, out Inputs inputs))
         {
             CurrentInput = inputs;
         }
@@ -190,7 +170,7 @@ public class PlayerMovement : NetworkBehaviour
 
         MovePlayer();
 
-        if (ClientDataDictionary.TryGetValue(TimeStamp, out Vector3 clientposition))
+        if (ClientDataDictionary.TryGetValue(CurrentTimeStamp, out Vector3 clientposition))
         {
             CheckClientPositionError(transform.position, clientposition);
         }
@@ -204,7 +184,7 @@ public class PlayerMovement : NetworkBehaviour
 
             transform.position = CorrectedPosition;
 
-            if (TimeStamp - StartSmoothingCorrectionTime >= CorrectionSmoothTime)
+            if (CurrentTimeStamp - StartSmoothingCorrectionTime >= CorrectionSmoothTime)
             {
                 bSmoothingCorrection = false;
             }
@@ -219,7 +199,7 @@ public class PlayerMovement : NetworkBehaviour
 
         CurrentInput = CreateInput();
 
-        InputsDictionary.Add(TimeStamp, CurrentInput);
+        InputsDictionary.Add(CurrentTimeStamp, CurrentInput);
 
         SendInputsServerRpc(CurrentInput);
 
@@ -231,7 +211,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             LastTimeSentClientData = Time.time;
 
-            SendClientDataServerRpc(TimeStamp, transform.position);
+            SendClientDataServerRpc(CurrentTimeStamp, transform.position);
         }
 
         if (bSmoothingCorrection)
@@ -240,7 +220,7 @@ public class PlayerMovement : NetworkBehaviour
 
             CorrectedPosition = transform.position;
 
-            float Alpha = (float)(TimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime;
+            float Alpha = (float)(CurrentTimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime;
 
             Vector3 SmoothPosition = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, Alpha);
 
@@ -257,7 +237,7 @@ public class PlayerMovement : NetworkBehaviour
             ReplicatePositionClientRpc(transform.position, Velocity, Rotation);
         }
 
-        RewindDataDictionary.Add(TimeStamp, transform.position);
+        RewindDataDictionary.Add(CurrentTimeStamp, transform.position);
     }
 
     void SimulatedProxyTick()
@@ -300,9 +280,9 @@ public class PlayerMovement : NetworkBehaviour
 
             Velocity.y = 0;
 
-            if (CurrentInput.SpaceBar && TimeStamp - LastTimeJumped > JumpCooldown)
+            if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
             {
-                LastTimeJumped = TimeStamp;
+                LastTimeJumped = CurrentTimeStamp;
 
                 JumpVel = Vector3.up * JumpForce;
             }
@@ -411,7 +391,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         ClientDataDictionary.Add(timestamp, position);
 
-        CheckClientTimeError(timestamp);
+        Player.CheckClientTimeError(timestamp);
     }
 
     public void CheckClientPositionError(Vector3 serverpos, Vector3 clientpos)
@@ -440,7 +420,7 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SendClientCorrection()
     {
-        ClientCorrection Data = new ClientCorrection(TimeStamp, transform.position, Velocity, LastTimeJumped);
+        ClientCorrection Data = new ClientCorrection(CurrentTimeStamp, transform.position, Velocity, LastTimeJumped);
 
         ClientCorrectionClientRpc(Data, OwningClientID);
     }
@@ -466,7 +446,7 @@ public class PlayerMovement : NetworkBehaviour
         SimulateTimeStamp = replaytimestamp;
 
         bSmoothingCorrection = true;
-        StartSmoothingCorrectionTime = TimeStamp;
+        StartSmoothingCorrectionTime = CurrentTimeStamp;
         StartCorrectionPosition = transform.position;
     }
 
@@ -474,12 +454,12 @@ public class PlayerMovement : NetworkBehaviour
     {
         SetToServerState();
 
-        int currentTime = TimeStamp;
-        TimeStamp = SimulateTimeStamp + 1;
+        int currentTime = CurrentTimeStamp;
+        CurrentTimeStamp = SimulateTimeStamp + 1;
 
-        while (TimeStamp < currentTime)
+        while (CurrentTimeStamp < currentTime)
         {
-            if (InputsDictionary.TryGetValue(TimeStamp, out Inputs inputs))
+            if (InputsDictionary.TryGetValue(CurrentTimeStamp, out Inputs inputs))
             {
                 CurrentInput = inputs;
             }
@@ -488,7 +468,7 @@ public class PlayerMovement : NetworkBehaviour
 
             MovePlayer();
 
-            TimeStamp++;
+            CurrentTimeStamp++;
         }
 
         ReplayMoves = false;
@@ -503,55 +483,6 @@ public class PlayerMovement : NetworkBehaviour
         CorrectionSmoothTime = DefaultCorrectionSmoothTime;
     }
 
-    void CheckClientTimeError(int clienttime)
-    {
-        if (Time.time - LastTimeSentClientTimeCorrection < 1)
-        {
-            return;
-        }
-
-        TotalTimes++;
-
-        int CorrectTime = TimeStamp + ServerDelay;
-
-        TotalTimeDifference = TotalTimeDifference + CorrectTime - clienttime;
-
-        if (clienttime < TimeStamp)
-        {
-            //LateInputsCount++;
-        }
-
-        if (clienttime > TimeStamp + 2 * ServerDelay)
-        {
-            //EarlyInputsCount++;
-        }
-
-        if (LateInputsCount >= 3 || EarlyInputsCount >= 3 || Time.time - LastTimeSentClientTimeCorrection > 5)
-        {
-            LateInputsCount = 0;
-            EarlyInputsCount = 0;
-            LastTimeSentClientTimeCorrection = Time.time;
-
-            int timediff = TotalTimeDifference / TotalTimes;
-
-            if (timediff != 0)
-            {
-                SendClientTimeCorrectionClientRpc(timediff, OwningClientID);
-
-                print(TotalTimeDifference / TotalTimes);
-            }
-
-            TotalTimeDifference = 0;
-            TotalTimes = 0;
-        }
-    }
-
-    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void SendClientTimeCorrectionClientRpc(int timediff, ClientRpcParams clientRpcParams = default)
-    {
-        TimeStamp += timediff;
-    }
-
 /*
 *
 * Inputs
@@ -560,7 +491,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private Inputs CreateInput()
     {
-        Inputs input = new Inputs(TimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space), Input.GetKey(KeyCode.LeftShift));
+        Inputs input = new Inputs(CurrentTimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space), Input.GetKey(KeyCode.LeftShift));
 
         return input;
     }
@@ -603,7 +534,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         InputsDictionary.Add(input.TimeStamp, input);
 
-        CheckClientTimeError(input.TimeStamp);
+        Player.CheckClientTimeError(input.TimeStamp);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -638,7 +569,7 @@ public class PlayerMovement : NetworkBehaviour
 
         print(ping);
 
-        int RewindToTime = TimeStamp - (ServerDelay + pingintick);
+        int RewindToTime = CurrentTimeStamp - (Player.GetServerDelay() + pingintick);
 
         print(RewindToTime);
 
