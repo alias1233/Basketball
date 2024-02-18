@@ -28,11 +28,6 @@ public class PlayerMovement : NetworkBehaviour
     private Dictionary<int, Inputs> InputsDictionary = new Dictionary<int, Inputs>();
     private Inputs CurrentInput;
 
-    [Header("Hit Registration")]
-
-    private Dictionary<int, Vector3> RewindDataDictionary = new Dictionary<int, Vector3>();
-    private Vector3 OriginalPosition;
-
     [Header("Replicate Movement")]
 
     public float ReplicatePositionInterval = 0.1f;
@@ -241,8 +236,6 @@ public class PlayerMovement : NetworkBehaviour
             
             ReplicatePositionClientRpc(transform.position, Velocity, Rotation);
         }
-
-        RewindDataDictionary.Add(CurrentTimeStamp, transform.position);
     }
 
     void SimulatedProxyTick()
@@ -562,35 +555,6 @@ public class PlayerMovement : NetworkBehaviour
 
         Orientation.transform.rotation = ForwardRotation;
         CameraTransform.transform.rotation = rotation;
-    }
-
-    public bool RewindToPosition()
-    {
-        OriginalPosition = transform.position;
-
-        ulong ping = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(NetworkManager.Singleton.NetworkConfig.NetworkTransport.ServerClientId);
-
-        int pingintick = (int)(((float)(ping)) * 0.04f); 
-
-        print(ping);
-
-        int RewindToTime = CurrentTimeStamp - (Player.GetServerDelay() + pingintick);
-
-        print(RewindToTime);
-
-        if(RewindDataDictionary.TryGetValue(RewindToTime, out Vector3 RewindedPosition))
-        {
-            transform.position = RewindedPosition;
-
-            return true;
-        }
-        
-        return false;
-    }
-
-    public void ResetToOriginalPosition()
-    {
-        transform.position = OriginalPosition;
     }
 
     public Vector3 GetVelocity()

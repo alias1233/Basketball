@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -44,6 +45,12 @@ public class WeaponManager : NetworkBehaviour
 
     private int LastTimeShot1;
     private int LastTimeShot2;
+
+    [Header("Client Data")]
+
+    public int Radius;
+
+    public TMP_Text PINGTEXT;
 
     public override void OnNetworkSpawn()
     {
@@ -248,6 +255,12 @@ public class WeaponManager : NetworkBehaviour
         IsShooting1 = mouse1;
         IsShooting2 = mouse2;
     }
+
+    public bool GetIsOwner()
+    {
+        return IsOwner;
+    }
+
     public bool GetHasAuthority()
     {
         return IsServer;
@@ -256,5 +269,17 @@ public class WeaponManager : NetworkBehaviour
     public Teams GetTeam()
     {
         return Player.GetTeam();
+    }
+
+    public int GetPingInTick()
+    {
+        PINGTEXT.text = Player.GetPingInTick().ToString();
+
+        return Player.GetPingInTick();
+    }
+
+    public int GetRadius()
+    {
+        return Radius;
     }
 }

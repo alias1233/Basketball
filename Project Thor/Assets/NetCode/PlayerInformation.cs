@@ -9,6 +9,7 @@ public struct PlayerInformation : INetworkSerializable, System.IEquatable<Player
 {
     public ulong Id;
     public Teams Team;
+
     //public FixedString32Bytes Name;
 
     /*

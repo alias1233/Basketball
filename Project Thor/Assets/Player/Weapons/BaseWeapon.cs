@@ -12,6 +12,7 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public PlayerMovement PlayerMovementComponent;
 
+    public List<PlayerManager> RewindedPlayerList;
     public LayerMask PlayerLayer;
 
     public int AmmoCount;
@@ -19,8 +20,8 @@ public class BaseWeapon : MonoBehaviour
     public int FireCooldown1;
     public int FireCooldown2;
 
-    public int Damage;
-    public int Damage2;
+    public float Damage;
+    public float Damage2;
 
     public virtual void ChangeActive(bool active)
     {

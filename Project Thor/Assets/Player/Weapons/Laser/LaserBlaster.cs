@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net.Security;
 using Unity.Burst.CompilerServices;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class LaserBlaster : BaseWeapon
@@ -21,10 +22,7 @@ public class LaserBlaster : BaseWeapon
 
     public override void Fire1()
     {
-        if (!Laser.enabled)
-        {
-            Laser.enabled = true;
-        }
+        Laser.enabled = true;
 
         if (!Manager.GetHasAuthority())
         {
@@ -32,24 +30,51 @@ public class LaserBlaster : BaseWeapon
         }
 
         Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
-        RaycastHit[] colliderInfo = Physics.RaycastAll(laserRay, 100, PlayerLayer);
+
+        if (!Manager.GetIsOwner())
         {
-             foreach(RaycastHit i in colliderInfo)
+            RewindedPlayerList.Clear();
+
+            RaycastHit[] Hits = new RaycastHit[5];
+
+            int NumHits = Physics.SphereCastNonAlloc(laserRay, Manager.GetRadius(), Hits, 100, PlayerLayer);
+
+            for (int i = 0; i < NumHits; i++)
             {
-                if(i.transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+                if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager rewind))
                 {
-                    stats.Damage(Manager.GetTeam(), Damage);
+                    if (rewind.RewindToPosition(Manager.GetTeam(), Manager.GetPingInTick()))
+                    {
+                        RewindedPlayerList.Add(rewind);
+                    }
                 }
+            }
+        }
+
+        RaycastHit[] Hits2 = new RaycastHit[5];
+
+        int NumHits2 = Physics.RaycastNonAlloc(laserRay, Hits2, 100, PlayerLayer);
+
+        for (int i = 0; i < NumHits2; i++)
+        {
+            if (Hits2[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            {
+                stats.Damage(Manager.GetTeam(), Damage);
+            }
+        }
+
+        if (!Manager.GetIsOwner())
+        {
+            foreach(PlayerManager i in RewindedPlayerList)
+            {
+                i.ResetToOriginalPosition();
             }
         }
     }
 
     public override void StopFire1()
     {
-        if (Laser.enabled)
-        {
-            Laser.enabled = false;
-        }
+        Laser.enabled = false;
     }
 
     public void Update()

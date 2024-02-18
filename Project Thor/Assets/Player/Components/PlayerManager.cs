@@ -40,10 +40,15 @@ public class PlayerManager : NetworkBehaviour
     public GameObject FirstPersonComponents;
     public GameObject ThirdPersonComponents;
 
+    [Header("Hit Registration")]
+
+    private Dictionary<int, Vector3> RewindDataDictionary = new Dictionary<int, Vector3>();
+    private Vector3 OriginalPosition;
+
     [Header("Stats")]
 
     public int MaxHealth;
-    private NetworkVariable<int> Health = new NetworkVariable<int>();
+    private NetworkVariable<float> Health = new NetworkVariable<float>();
 
     [SerializeField]
     private TMP_Text HealthBarText;
@@ -57,7 +62,7 @@ public class PlayerManager : NetworkBehaviour
     {
         if (IsServer && !IsOwner)
         {
-            TimeStamp = -GetServerDelay();
+            TimeStamp = -ServerDelay;
 
             OwningClientID = new ClientRpcParams
             {
@@ -141,10 +146,53 @@ public class PlayerManager : NetworkBehaviour
             return;
         }
 
+        RewindDataDictionary.Add(TimeStamp, transform.position);
+
         if(transform.position.y < -100)
         {
             Health.Value = -1;
         }
+    }
+
+    public bool RewindToPosition(Teams team, int pingintick)
+    {
+        if(Team == team)
+        {
+            return false;
+        }
+
+        int RewindToTime = TimeStamp - (ServerDelay + pingintick);
+
+        if (RewindDataDictionary.TryGetValue(RewindToTime, out Vector3 RewindedPosition))
+        {
+            OriginalPosition = transform.position;
+            transform.position = RewindedPosition;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public void ResetToOriginalPosition()
+    {
+        if(Dead)
+        {
+            return;
+        }
+
+        transform.position = OriginalPosition;
+    }
+
+    public int GetPingInTick()
+    {
+        ulong ping = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(OwnerClientId);
+
+        int pingintick = (int)(((float)(ping)) * 0.04f);
+
+        print("PING:" + pingintick);
+
+        return pingintick;
     }
 
     public void CheckClientTimeError(int clienttime)
@@ -184,7 +232,7 @@ public class PlayerManager : NetworkBehaviour
         TimeStamp += timediff;
     }
 
-    public void Damage(Teams team, int damage)
+    public void Damage(Teams team, float damage)
     {
         if (!IsServer || Team == team)
         {
@@ -194,11 +242,11 @@ public class PlayerManager : NetworkBehaviour
         Health.Value -= damage;
     }
 
-    public void OnHealthChanged(int previous, int current)
+    public void OnHealthChanged(float previous, float current)
     {
         HealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
 
-        if (current <= 0)
+        if (previous > 0 && current <= 0)
         {
             Dead = true;
 
@@ -235,11 +283,6 @@ public class PlayerManager : NetworkBehaviour
     }
 
     public int GetTimeStamp()
-    {
-        return TimeStamp;
-    }
-
-    public int GetServerDelay()
     {
         return TimeStamp;
     }
