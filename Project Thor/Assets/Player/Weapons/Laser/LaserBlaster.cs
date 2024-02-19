@@ -24,7 +24,7 @@ public class LaserBlaster : BaseWeapon
     {
         Laser.enabled = true;
 
-        Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.forward);
+        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
         if (!Manager.GetHasAuthority())
         {
@@ -88,7 +88,7 @@ public class LaserBlaster : BaseWeapon
 
         Laser.SetPosition(0, LaserObject.transform.position);
 
-        Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.forward);
+        Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.rotation * (Vector3.forward + Offset));
         RaycastHit colliderInfo;
 
         if (Physics.Raycast(laserRay, out colliderInfo, Range, ObjectLayer))

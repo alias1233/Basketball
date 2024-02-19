@@ -17,6 +17,8 @@ public class BaseWeapon : MonoBehaviour
     public List<PlayerManager> RewindedPlayerList;
     public LayerMask PlayerLayer;
 
+    public Vector3 Offset;
+
     public int Range;
 
     public int AmmoCount;

@@ -623,4 +623,9 @@ public class PlayerMovement : NetworkBehaviour
     {
         return Rotation;
     }
+
+    public Vector3 GetPosition()
+    {
+        return transform.position;
+    }
 }
