@@ -12,13 +12,20 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public PlayerMovement PlayerMovementComponent;
 
+    public bool ReplicateInput;
+
     public List<PlayerManager> RewindedPlayerList;
     public LayerMask PlayerLayer;
+
+    public int Range;
 
     public int AmmoCount;
 
     public int FireCooldown1;
     public int FireCooldown2;
+
+    public int LastTimeShot1;
+    public int LastTimeShot2;
 
     public float Damage;
     public float Damage2;

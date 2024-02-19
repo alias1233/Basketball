@@ -6,6 +6,7 @@ using UnityEngine.UI;
 
 public class SettingsUIScript : MonoBehaviour
 {
+    public GameObject PlayerUI;
     public GameObject SettingsObject;
     public TMP_Text PlayerInfoText;
     public Slider SensitivitySlider;
@@ -26,6 +27,7 @@ public class SettingsUIScript : MonoBehaviour
                 PlayerCameraScript.Sens = SensitivitySlider.value;
 
                 SettingsObject.SetActive(false);
+                PlayerUI.SetActive(true);
 
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
@@ -33,6 +35,7 @@ public class SettingsUIScript : MonoBehaviour
 
             else
             {
+                PlayerUI.SetActive(false);
                 SettingsObject.SetActive(true);
 
                 Cursor.lockState = CursorLockMode.None;

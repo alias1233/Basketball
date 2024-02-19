@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -9,7 +8,8 @@ public class WeaponManager : NetworkBehaviour
     public enum ActiveWeaponNumber
     {
         Laser,
-        Sword
+        Sword,
+        Pistol
     }
 
     [Header("Components")]
@@ -43,14 +43,9 @@ public class WeaponManager : NetworkBehaviour
     public bool IsShooting1;
     public bool IsShooting2;
 
-    private int LastTimeShot1;
-    private int LastTimeShot2;
-
     [Header("Client Data")]
 
     public int Radius;
-
-    public TMP_Text PINGTEXT;
 
     public override void OnNetworkSpawn()
     {
@@ -80,12 +75,23 @@ public class WeaponManager : NetworkBehaviour
                 ActiveWeapon = WeaponList[1];
 
                 break;
+
+            case ActiveWeaponNumber.Pistol:
+
+                ActiveWeapon = WeaponList[2];
+
+                break;
         }
 
         ActiveWeapon.ChangeActive(true);
     }
 
-    private void FixedUpdate()
+    public void FixedTick(int timestamp)
+    {
+        CurrentTimeStamp = timestamp;
+
+    /*
+    void FixedUpdate()
     {
         if (Player.GetIsDead())
         {
@@ -93,12 +99,13 @@ public class WeaponManager : NetworkBehaviour
         }
 
         CurrentTimeStamp = Player.GetTimeStamp();
+    */
 
         if (IsOwner)
         {
             OwnerTick();
 
-            if (!IsServer)
+            if (!IsServer || !ActiveWeapon.ReplicateInput)
             {
                 return;
             }
@@ -110,6 +117,11 @@ public class WeaponManager : NetworkBehaviour
                 ReplicateShootingClientRpc(CurrentInput.Mouse1, CurrentInput.Mouse2);
             }
 
+            return;
+        }
+
+        if(!ActiveWeapon.ReplicateInput)
+        {
             return;
         }
 
@@ -125,7 +137,57 @@ public class WeaponManager : NetworkBehaviour
 
     private void OwnerTick()
     {
-        if(Time.time - LastTimeSentInputs >= SendInputCooldown)
+        if (Input.GetKey(KeyCode.Alpha1))
+        {
+            ActiveWeaponIndex.Value = ActiveWeaponNumber.Laser;
+        }
+
+        else if (Input.GetKey(KeyCode.Alpha2))
+        {
+            ActiveWeaponIndex.Value = ActiveWeaponNumber.Sword;
+        }
+
+        else if(Input.GetKey(KeyCode.Alpha3))
+        {
+            ActiveWeaponIndex.Value = ActiveWeaponNumber.Pistol;
+        }
+
+        if (!ActiveWeapon.ReplicateInput)
+        {
+            if (Input.GetKey(KeyCode.Mouse0))
+            {
+                if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+                {
+                    ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
+
+                    ActiveWeapon.Fire1();
+                }
+            }
+
+            else
+            {
+                ActiveWeapon.StopFire1();
+            }
+
+            if (Input.GetKey(KeyCode.Mouse1))
+            {
+                if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+                {
+                    ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
+
+                    ActiveWeapon.Fire2();
+                }
+            }
+
+            else
+            {
+                ActiveWeapon.StopFire2();
+            }
+
+            return;
+        }
+
+        if (Time.time - LastTimeSentInputs >= SendInputCooldown)
         {
             LastTimeSentInputs = Time.time;
 
@@ -136,9 +198,9 @@ public class WeaponManager : NetworkBehaviour
 
         if (CurrentInput.Mouse1)
         {
-            if (CurrentTimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
             {
-                LastTimeShot1 = CurrentTimeStamp;
+                ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire1();
             }
@@ -151,9 +213,9 @@ public class WeaponManager : NetworkBehaviour
 
         if (CurrentInput.Mouse2)
         {
-            if (CurrentTimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
             {
-                LastTimeShot2 = CurrentTimeStamp;
+                ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire2();
             }
@@ -174,9 +236,9 @@ public class WeaponManager : NetworkBehaviour
 
         if (CurrentInput.Mouse1)
         {
-            if (CurrentTimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
             {
-                LastTimeShot1 = CurrentTimeStamp;
+                ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire1();
             }
@@ -189,9 +251,9 @@ public class WeaponManager : NetworkBehaviour
 
         if (CurrentInput.Mouse1)
         {
-            if (CurrentTimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
             {
-                LastTimeShot2 = CurrentTimeStamp;
+                ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire2();
             }
@@ -207,9 +269,9 @@ public class WeaponManager : NetworkBehaviour
     {
         if (IsShooting1)
         {
-            if (CurrentTimeStamp - LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
             {
-                LastTimeShot1 = CurrentTimeStamp;
+                ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire1();
             }
@@ -222,9 +284,9 @@ public class WeaponManager : NetworkBehaviour
 
         if (IsShooting2)
         {
-            if (CurrentTimeStamp - LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
             {
-                LastTimeShot2 = CurrentTimeStamp;
+                ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
 
                 ActiveWeapon.Fire2();
             }
@@ -239,7 +301,7 @@ public class WeaponManager : NetworkBehaviour
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendWeaponInputsServerRpc(WeaponInputs input)
     {
-        InputsDictionary.Add(input.TimeStamp, input);
+        InputsDictionary[input.TimeStamp] = input;
 
         Player.CheckClientTimeError(input.TimeStamp);
     }
@@ -273,8 +335,6 @@ public class WeaponManager : NetworkBehaviour
 
     public int GetPingInTick()
     {
-        PINGTEXT.text = Player.GetPingInTick().ToString();
-
         return Player.GetPingInTick();
     }
 

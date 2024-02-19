@@ -89,6 +89,11 @@ public class PlayerMovement : NetworkBehaviour
 
     //TESTING
 
+    public bool ALLOWTESTING;
+    public bool TESTINGBOOL;
+    public bool TESTINGBOOL2;
+    public int TESTINGINT;
+
     /*
     public float MaxSlopeAngle = 55;
     */
@@ -105,6 +110,11 @@ public class PlayerMovement : NetworkBehaviour
         OwningClientID = Player.GetClientRpcParamsSendToOwner();
     }
 
+    public void FixedTick(int timestamp)
+    {
+        CurrentTimeStamp = timestamp;
+
+    /*
     void FixedUpdate()
     {
         if(Player.GetIsDead())
@@ -113,6 +123,7 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         CurrentTimeStamp = Player.GetTimeStamp();
+    */
 
         switch (LocalRole)
         {
@@ -148,6 +159,47 @@ public class PlayerMovement : NetworkBehaviour
 
     void HostTick()
     {
+        if(ALLOWTESTING)
+        {
+            Rotation = PlayerCamera.transform.rotation;
+
+            if (Input.GetKeyDown(KeyCode.CapsLock))
+            {
+                TESTINGBOOL = true;
+            }
+
+            if (TESTINGBOOL)
+            {
+                if (CurrentTimeStamp - TESTINGINT >= 120)
+                {
+                    TESTINGINT = CurrentTimeStamp;
+
+                    TESTINGBOOL2 = !TESTINGBOOL2;
+                }
+
+                if (TESTINGBOOL2)
+                {
+                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, true, false, false, false, true);
+                }
+
+                else
+                {
+                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, false, false, true, false, true);
+                }
+            }
+
+            else
+            {
+                CurrentInput = CreateInput();
+            }
+
+            HandleInputs(CurrentInput);
+
+            MovePlayer();
+
+            return;
+        }
+
         Rotation = PlayerCamera.transform.rotation;
 
         CurrentInput = CreateInput();
@@ -199,7 +251,7 @@ public class PlayerMovement : NetworkBehaviour
 
         CurrentInput = CreateInput();
 
-        InputsDictionary.Add(CurrentTimeStamp, CurrentInput);
+        InputsDictionary[CurrentTimeStamp] = CurrentInput;
 
         SendInputsServerRpc(CurrentInput);
 
@@ -530,7 +582,7 @@ public class PlayerMovement : NetworkBehaviour
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendInputsServerRpc(Inputs input)
     {
-        InputsDictionary.Add(input.TimeStamp, input);
+        InputsDictionary[input.TimeStamp] = input;
 
         Player.CheckClientTimeError(input.TimeStamp);
     }

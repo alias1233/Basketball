@@ -31,6 +31,9 @@ public class PlayerManager : NetworkBehaviour
 
     [Header("Components")]
 
+    public PlayerMovement Movement;
+    public WeaponManager Weapons;
+
     public List<MonoBehaviour> DisabledForOwnerScripts;
     public List<MonoBehaviour> DisabledForOthersScripts;
 
@@ -39,6 +42,8 @@ public class PlayerManager : NetworkBehaviour
 
     public GameObject FirstPersonComponents;
     public GameObject ThirdPersonComponents;
+
+    public GameObject FirstPersonPlayerUI;
 
     [Header("Hit Registration")]
 
@@ -51,11 +56,15 @@ public class PlayerManager : NetworkBehaviour
     private NetworkVariable<float> Health = new NetworkVariable<float>();
 
     [SerializeField]
-    private TMP_Text HealthBarText;
+    private TMP_Text FirstPersonHealthBarText;
+    [SerializeField]
+    private TMP_Text ThirdPersonHealthBarText;
 
     private Teams Team;
 
     private bool Dead;
+
+    public int RespawnTime;
 
     // Start is called before the first frame update
     void Start()
@@ -90,16 +99,35 @@ public class PlayerManager : NetworkBehaviour
 
         OnHealthChanged(Health.Value, Health.Value);
 
+        if (IsOwner)
+        {
+            if (Team == Teams.Red)
+            {
+                FirstPersonHealthBarText.color = Color.red;
+
+                return;
+            }
+
+            if (Team == Teams.Blue)
+            {
+                FirstPersonHealthBarText.color = Color.blue;
+
+                return;
+            }
+
+            return;
+        }
+
         if (Team == Teams.Red)
         {
-            HealthBarText.color = Color.red;
+            ThirdPersonHealthBarText.color = Color.red;
 
             return;
         }
 
         if (Team == Teams.Blue)
         {
-            HealthBarText.color = Color.blue;
+            ThirdPersonHealthBarText.color = Color.blue;
 
             return;
         }
@@ -137,9 +165,15 @@ public class PlayerManager : NetworkBehaviour
         Health.OnValueChanged -= OnHealthChanged;
     }
 
-    public void FixedUpdate()
+    void FixedUpdate()
     {
         TimeStamp++;
+
+        if(!Dead)
+        {
+            Movement.FixedTick(TimeStamp);
+            Weapons.FixedTick(TimeStamp);
+        }
 
         if(!IsServer)
         {
@@ -168,6 +202,9 @@ public class PlayerManager : NetworkBehaviour
             OriginalPosition = transform.position;
             transform.position = RewindedPosition;
 
+            print("ORIGINAL POSITION AT " + TimeStamp + ": " + OriginalPosition);
+            print("REWINDED POSITION " + TimeStamp + ": " + transform.position);
+
             return true;
         }
 
@@ -188,9 +225,9 @@ public class PlayerManager : NetworkBehaviour
     {
         ulong ping = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(OwnerClientId);
 
-        int pingintick = (int)(((float)(ping)) * 0.04f);
+        int pingintick = (int)((float)ping * 0.04f);
 
-        print("PING:" + pingintick);
+        print("PING:" + ping);
 
         return pingintick;
     }
@@ -217,8 +254,6 @@ public class PlayerManager : NetworkBehaviour
             if (timediff != 0)
             {
                 SendClientTimeCorrectionClientRpc(timediff, OwningClientID);
-
-                print(TotalTimeDifference / TotalTimes);
             }
 
             TotalTimeDifference = 0;
@@ -244,11 +279,28 @@ public class PlayerManager : NetworkBehaviour
 
     public void OnHealthChanged(float previous, float current)
     {
-        HealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
+        if (IsOwner)
+        {
+            FirstPersonHealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
+        }
+
+        else
+        {
+            ThirdPersonHealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
+        }
 
         if (previous > 0 && current <= 0)
         {
             Dead = true;
+
+            if(IsOwner)
+            {
+                DeathManager.Singleton.PossessGhost(transform.position, PlayerCamera.transform.rotation);
+
+                PlayerCamera.enabled = false;
+                PlayerAudioListener.enabled = false;
+                FirstPersonPlayerUI.SetActive(false);
+            }
 
             if (!IsServer)
             {
@@ -259,7 +311,7 @@ public class PlayerManager : NetworkBehaviour
 
             transform.position = GameManager.Singleton.GetGraveyardLocation();
 
-            Invoke(nameof(Respawn), 7);
+            Invoke(nameof(Respawn), RespawnTime);
 
             return;
         }
@@ -267,6 +319,15 @@ public class PlayerManager : NetworkBehaviour
         if(previous <= 0 && current > 0)
         {
             Dead = false;
+
+            if (IsOwner)
+            {
+                DeathManager.Singleton.UnpossessGhost();
+
+                PlayerCamera.enabled = true;
+                PlayerAudioListener.enabled = true;
+                FirstPersonPlayerUI.SetActive(true);
+            }
 
             transform.position = GameManager.Singleton.GetSpawnLocation(Team);
         }

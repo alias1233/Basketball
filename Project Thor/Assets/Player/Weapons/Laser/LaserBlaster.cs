@@ -24,12 +24,12 @@ public class LaserBlaster : BaseWeapon
     {
         Laser.enabled = true;
 
+        Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.forward);
+
         if (!Manager.GetHasAuthority())
         {
             return;
         }
-
-        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
 
         if (!Manager.GetIsOwner())
         {
@@ -37,7 +37,7 @@ public class LaserBlaster : BaseWeapon
 
             RaycastHit[] Hits = new RaycastHit[5];
 
-            int NumHits = Physics.SphereCastNonAlloc(laserRay, Manager.GetRadius(), Hits, 100, PlayerLayer);
+            int NumHits = Physics.SphereCastNonAlloc(laserRay, Manager.GetRadius(), Hits, Range, PlayerLayer);
 
             for (int i = 0; i < NumHits; i++)
             {
@@ -49,11 +49,13 @@ public class LaserBlaster : BaseWeapon
                     }
                 }
             }
+
+            Physics.SyncTransforms();
         }
 
         RaycastHit[] Hits2 = new RaycastHit[5];
 
-        int NumHits2 = Physics.RaycastNonAlloc(laserRay, Hits2, 100, PlayerLayer);
+        int NumHits2 = Physics.RaycastNonAlloc(laserRay, Hits2, Range, PlayerLayer);
 
         for (int i = 0; i < NumHits2; i++)
         {
@@ -77,7 +79,7 @@ public class LaserBlaster : BaseWeapon
         Laser.enabled = false;
     }
 
-    public void Update()
+    public void LateUpdate()
     {
         if (!Laser.enabled)
         {
@@ -89,7 +91,7 @@ public class LaserBlaster : BaseWeapon
         Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.forward);
         RaycastHit colliderInfo;
 
-        if (Physics.Raycast(laserRay, out colliderInfo, 100, ObjectLayer))
+        if (Physics.Raycast(laserRay, out colliderInfo, Range, ObjectLayer))
         {
             Laser.SetPosition(1, colliderInfo.point);
 
