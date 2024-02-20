@@ -356,7 +356,7 @@ public class PlayerMovement : NetworkBehaviour
             p1,
             p2,
             bounds.extents.x,
-            Vel.normalized,
+            Vel,
             out hit,
             dist,
             layerMask
@@ -400,9 +400,11 @@ public class PlayerMovement : NetworkBehaviour
                     Leftover = ProjectAndScale(Leftover, hit.normal) * Scale;
                 }
             }
-            */
 
             Leftover = ProjectAndScale(Leftover, hit.normal);
+            */
+
+            Leftover = Vector3.ProjectOnPlane(Leftover, hit.normal);
 
             return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1, VelInit);
         }

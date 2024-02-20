@@ -1571,7 +1571,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8894601691352692594}
   - component: {fileID: 1619342609401847761}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Laser
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2700,8 +2700,24 @@ PrefabInstance:
       value: LaserBlasterModel
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: 917380f913869f74e806b33aa65452f4, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: 917380f913869f74e806b33aa65452f4, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100002, guid: 917380f913869f74e806b33aa65452f4, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 100004, guid: 917380f913869f74e806b33aa65452f4, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 100008, guid: 917380f913869f74e806b33aa65452f4, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 917380f913869f74e806b33aa65452f4, type: 3}
       propertyPath: m_LocalScale.x
