@@ -2233,7 +2233,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6ce33f90c760ba449105ccc45ae4aaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ServerDelay: 4
+  ServerDelay: 5
   Movement: {fileID: 1582057334220984081}
   Weapons: {fileID: 1094920780060433367}
   DisabledForOwnerScripts: []

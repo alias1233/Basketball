@@ -90,52 +90,39 @@ public class WeaponManager : NetworkBehaviour
     {
         CurrentTimeStamp = timestamp;
 
-    /*
-    void FixedUpdate()
-    {
-        if (Player.GetIsDead())
+        switch (LocalRole)
         {
-            return;
+            case NetworkRole.HostOwner:
+
+                HostTick();
+
+                ServerTickForAll();
+
+                break;
+
+            case NetworkRole.HostProxy:
+
+                ServerTickForOtherPlayers();
+
+                ServerTickForAll();
+
+                break;
+
+            case NetworkRole.AutonomousProxy:
+
+                AutonomousProxyTick();
+
+                break;
+
+            case NetworkRole.SimulatedProxy:
+
+                SimulatedProxyTick();
+
+                break;
         }
-
-        CurrentTimeStamp = Player.GetTimeStamp();
-    */
-
-        if (IsOwner)
-        {
-            OwnerTick();
-
-            if (!IsServer || !ActiveWeapon.ReplicateInput)
-            {
-                return;
-            }
-
-            if (Time.time - LastTimReplicatedShooting >= ReplicateShootingCooldown)
-            {
-                LastTimReplicatedShooting = Time.time;
-
-                ReplicateShootingClientRpc(CurrentInput.Mouse1, CurrentInput.Mouse2);
-            }
-
-            return;
-        }
-
-        if(!ActiveWeapon.ReplicateInput)
-        {
-            return;
-        }
-
-        if(IsServer)
-        {
-            TickForOThers();
-
-            return;
-        }
-
-        SimulatedProxyTick();
     }
 
-    private void OwnerTick()
+    void HostTick()
     {
         if (Input.GetKey(KeyCode.Alpha1))
         {
@@ -147,7 +134,93 @@ public class WeaponManager : NetworkBehaviour
             ActiveWeaponIndex.Value = ActiveWeaponNumber.Sword;
         }
 
-        else if(Input.GetKey(KeyCode.Alpha3))
+        else if (Input.GetKey(KeyCode.Alpha3))
+        {
+            ActiveWeaponIndex.Value = ActiveWeaponNumber.Pistol;
+        }
+
+        if (Input.GetKey(KeyCode.Mouse0))
+        {
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            {
+                ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire1();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire1();
+        }
+
+        if (Input.GetKey(KeyCode.Mouse1))
+        {
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            {
+                ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire2();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire2();
+        }
+    }
+
+    void ServerTickForOtherPlayers()
+    {
+        if (InputsDictionary.TryGetValue(CurrentTimeStamp, out var input))
+        {
+            CurrentInput = input;
+        }
+
+        if (CurrentInput.Mouse1)
+        {
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            {
+                ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire1();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire1();
+        }
+
+        if (CurrentInput.Mouse1)
+        {
+            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
+            {
+                ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
+
+                ActiveWeapon.Fire2();
+            }
+        }
+
+        else
+        {
+            ActiveWeapon.StopFire2();
+        }
+    }
+
+    void AutonomousProxyTick()
+    {
+        if (Input.GetKey(KeyCode.Alpha1))
+        {
+            ActiveWeaponIndex.Value = ActiveWeaponNumber.Laser;
+        }
+
+        else if (Input.GetKey(KeyCode.Alpha2))
+        {
+            ActiveWeaponIndex.Value = ActiveWeaponNumber.Sword;
+        }
+
+        else if (Input.GetKey(KeyCode.Alpha3))
         {
             ActiveWeaponIndex.Value = ActiveWeaponNumber.Pistol;
         }
@@ -227,45 +300,22 @@ public class WeaponManager : NetworkBehaviour
         }
     }
 
-    private void TickForOThers()
+    void ServerTickForAll()
     {
-        if(InputsDictionary.TryGetValue(CurrentTimeStamp, out var input))
+        if (!ActiveWeapon.ReplicateInput)
         {
-            CurrentInput = input;
+            return;
         }
 
-        if (CurrentInput.Mouse1)
+        if (Time.time - LastTimReplicatedShooting >= ReplicateShootingCooldown)
         {
-            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
-            {
-                ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
+            LastTimReplicatedShooting = Time.time;
 
-                ActiveWeapon.Fire1();
-            }
-        }
-
-        else
-        {
-            ActiveWeapon.StopFire1();
-        }
-
-        if (CurrentInput.Mouse1)
-        {
-            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
-            {
-                ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
-
-                ActiveWeapon.Fire2();
-            }
-        }
-
-        else
-        {
-            ActiveWeapon.StopFire2();
+            ReplicateShootingClientRpc(CurrentInput.Mouse1, CurrentInput.Mouse2, Player.GetClientRpcParamsIgnoreOwner());
         }
     }
 
-    private void SimulatedProxyTick()
+    void SimulatedProxyTick()
     {
         if (IsShooting1)
         {
@@ -307,13 +357,8 @@ public class WeaponManager : NetworkBehaviour
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateShootingClientRpc(bool mouse1, bool mouse2)
+    public void ReplicateShootingClientRpc(bool mouse1, bool mouse2, ClientRpcParams clientRpcParams = default)
     {
-        if (IsOwner || IsServer)
-        {
-            return;
-        }
-
         IsShooting1 = mouse1;
         IsShooting2 = mouse2;
     }

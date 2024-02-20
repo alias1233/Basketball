@@ -114,17 +114,6 @@ public class PlayerMovement : NetworkBehaviour
     {
         CurrentTimeStamp = timestamp;
 
-    /*
-    void FixedUpdate()
-    {
-        if(Player.GetIsDead())
-        {
-            return;
-        }
-
-        CurrentTimeStamp = Player.GetTimeStamp();
-    */
-
         switch (LocalRole)
         {
             case NetworkRole.HostOwner:
@@ -137,9 +126,9 @@ public class PlayerMovement : NetworkBehaviour
 
             case NetworkRole.HostProxy:
 
-                ServerTickForAll();
-
                 ServerTickForOtherPlayers();
+
+                ServerTickForAll();
 
                 break;
 
@@ -286,7 +275,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             LastTimeReplicatedPosition = Time.time;
             
-            ReplicatePositionClientRpc(transform.position, Velocity, Rotation);
+            ReplicatePositionClientRpc(transform.position, Velocity, Rotation, Player.GetClientRpcParamsIgnoreOwner());
         }
     }
 
@@ -588,9 +577,9 @@ public class PlayerMovement : NetworkBehaviour
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation)
+    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, ClientRpcParams clientRpcParams = default)
     {
-        if (IsOwner || IsServer || Player.GetIsDead())
+        if (Player.GetIsDead())
         {
             return;
         }

@@ -4,6 +4,7 @@ using UnityEngine;
 using Unity.Netcode;
 using TMPro;
 using Unity.VisualScripting;
+using static ConnectionNotificationManager;
 
 public enum NetworkRole
 {
@@ -24,6 +25,7 @@ public class PlayerManager : NetworkBehaviour
     [Header("Networking")]
 
     private ClientRpcParams OwningClientID;
+    private ClientRpcParams IgnoreOwnerRPCParams;
 
     private int TotalTimes;
     private int TotalTimeDifference;
@@ -69,7 +71,7 @@ public class PlayerManager : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        if (IsServer && !IsOwner)
+        if (IsServer)
         {
             TimeStamp = -ServerDelay;
 
@@ -78,6 +80,24 @@ public class PlayerManager : NetworkBehaviour
                 Send = new ClientRpcSendParams
                 {
                     TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            };
+
+            List<ulong> ClientIDList = new List<ulong>();
+
+            foreach(ulong i in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if(i != OwnerClientId && i != NetworkManager.ServerClientId)
+                {
+                    ClientIDList.Add(i);
+                }
+            }
+
+            IgnoreOwnerRPCParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = ClientIDList
                 }
             };
         }
@@ -135,6 +155,11 @@ public class PlayerManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        if(IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+        }
+
         Health.OnValueChanged += OnHealthChanged;
 
         if (IsOwner)
@@ -162,6 +187,11 @@ public class PlayerManager : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
+        if(IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+        }
+
         Health.OnValueChanged -= OnHealthChanged;
     }
 
@@ -188,9 +218,86 @@ public class PlayerManager : NetworkBehaviour
         }
     }
 
+    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
+    {
+        List<ulong> ClientIDList = new List<ulong>();
+
+        foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            if (i != OwnerClientId && i != NetworkManager.ServerClientId)
+            {
+                ClientIDList.Add(i);
+            }
+        }
+
+        IgnoreOwnerRPCParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = ClientIDList
+            }
+        };
+    }
+
+    public void OnHealthChanged(float previous, float current)
+    {
+        if (IsOwner)
+        {
+            FirstPersonHealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
+        }
+
+        else
+        {
+            ThirdPersonHealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
+        }
+
+        if (previous > 0 && current <= 0)
+        {
+            Dead = true;
+
+            if(IsOwner)
+            {
+                DeathManager.Singleton.PossessGhost(transform.position, PlayerCamera.transform.rotation);
+
+                PlayerCamera.enabled = false;
+                PlayerAudioListener.enabled = false;
+                FirstPersonPlayerUI.SetActive(false);
+            }
+
+            if (!IsServer)
+            {
+                Invoke(nameof(DieOnClient), 0.5f);
+
+                return;
+            }
+
+            transform.position = GameManager.Singleton.GetGraveyardLocation();
+
+            Invoke(nameof(Respawn), RespawnTime);
+
+            return;
+        }
+
+        if(previous <= 0 && current > 0)
+        {
+            Dead = false;
+
+            if (IsOwner)
+            {
+                DeathManager.Singleton.UnpossessGhost();
+
+                PlayerCamera.enabled = true;
+                PlayerAudioListener.enabled = true;
+                FirstPersonPlayerUI.SetActive(true);
+            }
+
+            transform.position = GameManager.Singleton.GetSpawnLocation(Team);
+        }
+    }
+
     public bool RewindToPosition(Teams team, int pingintick)
     {
-        if(Team == team)
+        if (Team == team)
         {
             return false;
         }
@@ -202,8 +309,8 @@ public class PlayerManager : NetworkBehaviour
             OriginalPosition = transform.position;
             transform.position = RewindedPosition;
 
-            print("ORIGINAL POSITION AT " + TimeStamp + ": " + OriginalPosition);
-            print("REWINDED POSITION " + TimeStamp + ": " + transform.position);
+            //print("ORIGINAL POSITION AT " + TimeStamp + ": " + OriginalPosition);
+            //print("REWINDED POSITION " + TimeStamp + ": " + transform.position);
 
             return true;
         }
@@ -213,7 +320,7 @@ public class PlayerManager : NetworkBehaviour
 
     public void ResetToOriginalPosition()
     {
-        if(Dead)
+        if (Dead)
         {
             return;
         }
@@ -277,62 +384,6 @@ public class PlayerManager : NetworkBehaviour
         Health.Value -= damage;
     }
 
-    public void OnHealthChanged(float previous, float current)
-    {
-        if (IsOwner)
-        {
-            FirstPersonHealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
-        }
-
-        else
-        {
-            ThirdPersonHealthBarText.text = current.ToString() + " / " + MaxHealth.ToString();
-        }
-
-        if (previous > 0 && current <= 0)
-        {
-            Dead = true;
-
-            if(IsOwner)
-            {
-                DeathManager.Singleton.PossessGhost(transform.position, PlayerCamera.transform.rotation);
-
-                PlayerCamera.enabled = false;
-                PlayerAudioListener.enabled = false;
-                FirstPersonPlayerUI.SetActive(false);
-            }
-
-            if (!IsServer)
-            {
-                Invoke(nameof(DieOnClient), 0.5f);
-
-                return;
-            }
-
-            transform.position = GameManager.Singleton.GetGraveyardLocation();
-
-            Invoke(nameof(Respawn), RespawnTime);
-
-            return;
-        }
-
-        if(previous <= 0 && current > 0)
-        {
-            Dead = false;
-
-            if (IsOwner)
-            {
-                DeathManager.Singleton.UnpossessGhost();
-
-                PlayerCamera.enabled = true;
-                PlayerAudioListener.enabled = true;
-                FirstPersonPlayerUI.SetActive(true);
-            }
-
-            transform.position = GameManager.Singleton.GetSpawnLocation(Team);
-        }
-    }
-
     public void DieOnClient()
     {
         transform.position = GameManager.Singleton.GetGraveyardLocation();
@@ -361,6 +412,11 @@ public class PlayerManager : NetworkBehaviour
     public ClientRpcParams GetClientRpcParamsSendToOwner()
     {
         return OwningClientID;
+    }
+
+    public ClientRpcParams GetClientRpcParamsIgnoreOwner()
+    {
+        return IgnoreOwnerRPCParams;
     }
 
     public NetworkRole GetLocalRole()
