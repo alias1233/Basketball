@@ -11,9 +11,20 @@ public class LaserBlaster : BaseWeapon
     private GameObject LaserObject;
     [SerializeField]
     private LineRenderer Laser;
+    [SerializeField]
+    private LineRenderer Laser2;
+    [SerializeField]
+    private ParticleSystem HitPointParticleSystem;
 
     [SerializeField]
     private LayerMask ObjectLayer;
+
+    public int Radius2;
+
+    private bool bIsCharging;
+    private int ChargingStartTime;
+
+    private float TimeShotLaser2;
 
     public void Start()
     {
@@ -22,40 +33,23 @@ public class LaserBlaster : BaseWeapon
 
     public override void Fire1()
     {
-        Laser.enabled = true;
-
-        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+        if(!Laser.enabled)
+        {
+            Laser.enabled = true;
+        }
 
         if (!Manager.GetHasAuthority())
         {
             return;
         }
 
-        if (!Manager.GetIsOwner())
-        {
-            RewindedPlayerList.Clear();
+        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
-            RaycastHit[] Hits = new RaycastHit[5];
-
-            int NumHits = Physics.SphereCastNonAlloc(laserRay, Manager.GetRadius(), Hits, Range, PlayerLayer);
-
-            for (int i = 0; i < NumHits; i++)
-            {
-                if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager rewind))
-                {
-                    if (rewind.RewindToPosition(Manager.GetTeam(), Manager.GetPingInTick()))
-                    {
-                        RewindedPlayerList.Add(rewind);
-                    }
-                }
-            }
-
-            Physics.SyncTransforms();
-        }
+        RewindPlayers(laserRay, Range1);
 
         RaycastHit[] Hits2 = new RaycastHit[5];
 
-        int NumHits2 = Physics.RaycastNonAlloc(laserRay, Hits2, Range, PlayerLayer);
+        int NumHits2 = Physics.RaycastNonAlloc(laserRay, Hits2, Range1, PlayerLayer);
 
         for (int i = 0; i < NumHits2; i++)
         {
@@ -65,18 +59,87 @@ public class LaserBlaster : BaseWeapon
             }
         }
 
-        if (!Manager.GetIsOwner())
-        {
-            foreach(PlayerManager i in RewindedPlayerList)
-            {
-                i.ResetToOriginalPosition();
-            }
-        }
+        ResetRewindedPlayers();
     }
 
     public override void StopFire1()
     {
-        Laser.enabled = false;
+        if (Laser.enabled)
+        {
+            Laser.enabled = false;
+            HitPointParticleSystem.Stop();
+        }
+    }
+
+    public override void Fire2()
+    {
+        if(bIsCharging)
+        {
+            return;
+        }
+
+        bIsCharging = true;
+        ChargingStartTime = Manager.GetTimeStamp();
+    }
+
+    public override void StopFire2()
+    {
+        if(!bIsCharging)
+        {
+            if(Time.time - LastTimeShot2 >= 2)
+            {
+                Laser2.enabled = false;
+            }
+
+            return;
+        }
+
+        bIsCharging = false;
+
+        Laser2.enabled = true;
+        TimeShotLaser2 = Time.time;
+
+        Laser2.SetPosition(0, LaserObject.transform.position);
+
+        Ray laserRay2 = new Ray(LaserObject.transform.position, LaserObject.transform.rotation * (Vector3.forward + Offset));
+        RaycastHit colliderInfo2;
+
+        if (Physics.Raycast(laserRay2, out colliderInfo2, Range2, ObjectLayer))
+        {
+            Laser2.SetPosition(1, colliderInfo2.point);
+
+            return;
+        }
+
+        Laser2.SetPosition(1, laserRay2.GetPoint(Range2));
+
+        if (!Manager.GetHasAuthority())
+        {
+            return;
+        }
+
+        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+
+        RewindPlayers(laserRay, Range2);
+
+        RaycastHit[] Hits2 = new RaycastHit[5];
+
+        int NumHits2 = Physics.SphereCastNonAlloc(laserRay, Radius2, Hits2, Range1, PlayerLayer);
+
+        for (int i = 0; i < NumHits2; i++)
+        {
+            if (Hits2[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            {
+                stats.Damage(Manager.GetTeam(), Damage2);
+            }
+        }
+
+        ResetRewindedPlayers();
+    }
+
+    public override void OnActivate()
+    {
+        bIsCharging = false;
     }
 
     public void LateUpdate()
@@ -91,13 +154,27 @@ public class LaserBlaster : BaseWeapon
         Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.rotation * (Vector3.forward + Offset));
         RaycastHit colliderInfo;
 
-        if (Physics.Raycast(laserRay, out colliderInfo, Range, ObjectLayer))
+        if (Physics.Raycast(laserRay, out colliderInfo, Range1, ObjectLayer))
         {
             Laser.SetPosition(1, colliderInfo.point);
+
+            if (!HitPointParticleSystem.isPlaying)
+            {
+                HitPointParticleSystem.Play();
+            }
+
+            HitPointParticleSystem.transform.position = colliderInfo.point;
 
             return;
         }
 
-        Laser.SetPosition(1, laserRay.GetPoint(100));
+        Vector3 endpointpos = laserRay.GetPoint(Range1);
+
+        Laser.SetPosition(1, endpointpos);
+
+        if (HitPointParticleSystem.isPlaying)
+        {
+            HitPointParticleSystem.Stop();
+        }
     }
 }

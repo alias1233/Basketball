@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 
 public class BaseWeapon : MonoBehaviour
@@ -19,7 +20,8 @@ public class BaseWeapon : MonoBehaviour
 
     public Vector3 Offset;
 
-    public int Range;
+    public int Range1;
+    public int Range2;
 
     public int AmmoCount;
 
@@ -32,35 +34,78 @@ public class BaseWeapon : MonoBehaviour
     public float Damage;
     public float Damage2;
 
-    public virtual void ChangeActive(bool active)
+    public void ChangeActive(bool active)
     {
         if(active)
         {
+            OnActivate();
+
             WeaponModel.SetActive(true);
 
             return;
         }
 
+        OnDeactivate();
+
         WeaponModel.SetActive(false);
     }
 
-    public virtual void Fire1()
+    public void RewindPlayers(Ray ray, int range)
     {
+        if (Manager.GetIsOwner())
+        {
+            return;
+        }
 
+        RewindedPlayerList.Clear();
+
+        RaycastHit[] Hits = new RaycastHit[5];
+
+        int NumHits = Physics.SphereCastNonAlloc(ray, Manager.GetRadius(), Hits, range, PlayerLayer);
+
+        int RewindedPlayers = 0;
+
+        for (int i = 0; i < NumHits; i++)
+        {
+            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager rewind))
+            {
+                if (rewind.RewindToPosition(Manager.GetTeam(), Manager.GetPingInTick()))
+                {
+                    RewindedPlayerList.Add(rewind);
+
+                    RewindedPlayers++;
+                }
+            }
+        }
+
+        if(RewindedPlayers > 0)
+        {
+            Physics.SyncTransforms();
+        }
     }
 
-    public virtual void Fire2()
+    public void ResetRewindedPlayers()
     {
+        if (Manager.GetIsOwner())
+        {
+            return;
+        }
 
+        foreach (PlayerManager i in RewindedPlayerList)
+        {
+            i.ResetToOriginalPosition();
+        }
     }
 
-    public virtual void StopFire1()
-    {
+    public virtual void OnActivate() { }
 
-    }
+    public virtual void OnDeactivate() { }
 
-    public virtual void StopFire2()
-    {
+    public virtual void Fire1() { }
 
-    }
+    public virtual void Fire2() { }
+
+    public virtual void StopFire1() { }
+
+    public virtual void StopFire2() { }
 }

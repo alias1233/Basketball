@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
+public enum ActiveWeaponNumber
+{
+    Laser,
+    Sword,
+    Pistol
+}
+
 public class WeaponManager : NetworkBehaviour
 {
-    public enum ActiveWeaponNumber
-    {
-        Laser,
-        Sword,
-        Pistol
-    }
-
     [Header("Components")]
 
     [SerializeField]
@@ -28,13 +28,12 @@ public class WeaponManager : NetworkBehaviour
 
     public float SendInputCooldown = 0.1f;
     private float LastTimeSentInputs;
+    private bool bReplicateInput;
 
     private Dictionary<int, WeaponInputs> InputsDictionary = new Dictionary<int, WeaponInputs>();
     private WeaponInputs CurrentInput;
 
-    private NetworkVariable<ActiveWeaponNumber> ActiveWeaponIndex = new NetworkVariable<ActiveWeaponNumber>(default,
-        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
+    private ActiveWeaponNumber ActiveWeaponIndex;
     private BaseWeapon ActiveWeapon;
 
     public float ReplicateShootingCooldown = 0.15f;
@@ -49,20 +48,26 @@ public class WeaponManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        ActiveWeaponIndex.Value = ActiveWeaponNumber.Laser;
-        ActiveWeaponIndex.OnValueChanged += OnChangeActiveWeapon;
-
+        ActiveWeaponIndex = ActiveWeaponNumber.Laser;
         ActiveWeapon = WeaponList[0];
         ActiveWeapon.ChangeActive(true);
 
         LocalRole = Player.GetLocalRole();
     }
 
-    void OnChangeActiveWeapon(ActiveWeaponNumber previous, ActiveWeaponNumber current)
+    void OnChangeActiveWeapon(ActiveWeaponNumber previous, ActiveWeaponNumber newweapon)
     {
-        ActiveWeapon.ChangeActive(false);
+        if(previous == newweapon)
+        {
+            return;
+        }
 
-        switch (current)
+        bReplicateInput = true;
+
+        ActiveWeapon.ChangeActive(false);
+        ActiveWeaponIndex = newweapon;
+
+        switch (ActiveWeaponIndex)
         {
             case ActiveWeaponNumber.Laser:
 
@@ -126,17 +131,17 @@ public class WeaponManager : NetworkBehaviour
     {
         if (Input.GetKey(KeyCode.Alpha1))
         {
-            ActiveWeaponIndex.Value = ActiveWeaponNumber.Laser;
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Laser);
         }
 
         else if (Input.GetKey(KeyCode.Alpha2))
         {
-            ActiveWeaponIndex.Value = ActiveWeaponNumber.Sword;
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
         }
 
         else if (Input.GetKey(KeyCode.Alpha3))
         {
-            ActiveWeaponIndex.Value = ActiveWeaponNumber.Pistol;
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Pistol);
         }
 
         if (Input.GetKey(KeyCode.Mouse0))
@@ -175,6 +180,8 @@ public class WeaponManager : NetworkBehaviour
         if (InputsDictionary.TryGetValue(CurrentTimeStamp, out var input))
         {
             CurrentInput = input;
+
+            OnChangeActiveWeapon(ActiveWeaponIndex, CurrentInput.ActiveWeapon);
         }
 
         if (CurrentInput.Mouse1)
@@ -212,22 +219,33 @@ public class WeaponManager : NetworkBehaviour
     {
         if (Input.GetKey(KeyCode.Alpha1))
         {
-            ActiveWeaponIndex.Value = ActiveWeaponNumber.Laser;
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Laser);
         }
 
         else if (Input.GetKey(KeyCode.Alpha2))
         {
-            ActiveWeaponIndex.Value = ActiveWeaponNumber.Sword;
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
         }
 
         else if (Input.GetKey(KeyCode.Alpha3))
         {
-            ActiveWeaponIndex.Value = ActiveWeaponNumber.Pistol;
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Pistol);
         }
 
-        if (!ActiveWeapon.ReplicateInput)
+        if (ActiveWeapon.ReplicateInput)
         {
-            if (Input.GetKey(KeyCode.Mouse0))
+            if (Time.time - LastTimeSentInputs >= SendInputCooldown || bReplicateInput)
+            {
+                bReplicateInput = false;
+
+                LastTimeSentInputs = Time.time;
+
+                CurrentInput = new WeaponInputs(CurrentTimeStamp, ActiveWeaponIndex, Input.GetKey(KeyCode.Mouse0), Input.GetKey(KeyCode.Mouse1));
+
+                SendWeaponInputsServerRpc(CurrentInput);
+            }
+
+            if (CurrentInput.Mouse1)
             {
                 if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
                 {
@@ -242,7 +260,7 @@ public class WeaponManager : NetworkBehaviour
                 ActiveWeapon.StopFire1();
             }
 
-            if (Input.GetKey(KeyCode.Mouse1))
+            if (CurrentInput.Mouse2)
             {
                 if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
                 {
@@ -256,20 +274,9 @@ public class WeaponManager : NetworkBehaviour
             {
                 ActiveWeapon.StopFire2();
             }
-
-            return;
         }
 
-        if (Time.time - LastTimeSentInputs >= SendInputCooldown)
-        {
-            LastTimeSentInputs = Time.time;
-
-            CurrentInput = new WeaponInputs(CurrentTimeStamp, Input.GetKey(KeyCode.Mouse0), Input.GetKey(KeyCode.Mouse1));
-
-            SendWeaponInputsServerRpc(CurrentInput);
-        }
-
-        if (CurrentInput.Mouse1)
+        if (Input.GetKey(KeyCode.Mouse0))
         {
             if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
             {
@@ -284,7 +291,7 @@ public class WeaponManager : NetworkBehaviour
             ActiveWeapon.StopFire1();
         }
 
-        if (CurrentInput.Mouse2)
+        if (Input.GetKey(KeyCode.Mouse1))
         {
             if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
             {
@@ -311,7 +318,7 @@ public class WeaponManager : NetworkBehaviour
         {
             LastTimReplicatedShooting = Time.time;
 
-            ReplicateShootingClientRpc(CurrentInput.Mouse1, CurrentInput.Mouse2, Player.GetClientRpcParamsIgnoreOwner());
+            ReplicateShootingClientRpc(ActiveWeaponIndex, CurrentInput.Mouse1, CurrentInput.Mouse2, Player.GetClientRpcParamsIgnoreOwner());
         }
     }
 
@@ -357,8 +364,9 @@ public class WeaponManager : NetworkBehaviour
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateShootingClientRpc(bool mouse1, bool mouse2, ClientRpcParams clientRpcParams = default)
+    public void ReplicateShootingClientRpc(ActiveWeaponNumber activeweapon, bool mouse1, bool mouse2, ClientRpcParams clientRpcParams = default)
     {
+        OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
         IsShooting1 = mouse1;
         IsShooting2 = mouse2;
     }
@@ -386,5 +394,10 @@ public class WeaponManager : NetworkBehaviour
     public int GetRadius()
     {
         return Radius;
+    }
+
+    public int GetTimeStamp()
+    {
+        return Player.GetTimeStamp();
     }
 }

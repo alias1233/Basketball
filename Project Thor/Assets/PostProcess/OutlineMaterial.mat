@@ -40,9 +40,9 @@ Material:
     m_Floats:
     - _ColorThreshold: 0
     - _DepthThreshold: 0.1
-    - _FresnelPower: 5
+    - _FresnelPower: 0
     - _GrazingAngleFactor: 1
-    - _GrazingAnglePower: 10000
+    - _GrazingAnglePower: 0
     - _MaxDistance: 50
     - _MinThickness: 0.5
     - _NormalThreshold: 0.1

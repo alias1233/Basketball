@@ -290,7 +290,7 @@ public class PlayerMovement : NetworkBehaviour
 
         Vector3 Delta = Velocity * DeltaTime;
 
-        transform.Translate(CollideAndSlide(transform.position, Delta, 0, Delta));
+        transform.Translate(CollideAndSlide(transform.position, Delta, 0));
     }
 
     void MovePlayer()
@@ -334,12 +334,12 @@ public class PlayerMovement : NetworkBehaviour
         bounds = Collider.bounds;
         bounds.Expand(-2 * SkinWidth);
 
-        transform.Translate(CollideAndSlide(transform.position, Delta, 0, Delta));
+        transform.Translate(CollideAndSlide(transform.position, Delta, 0));
 
         Velocity = (transform.position - PreviousLocation) / DeltaTime;
     }
 
-    Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth, Vector3 VelInit)
+    Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
     {
         if(depth >= MaxBounces)
         {
@@ -370,43 +370,9 @@ public class PlayerMovement : NetworkBehaviour
                 SnapToSurface = Vector3.zero;
             }
 
-            /*
-            float Angle = Vector3.Angle(Vector3.up, hit.normal);
-
-            if(Angle <= MaxSlopeAngle)
-            {
-                Leftover = ProjectAndScale(Leftover, hit.normal);
-            }
-
-            else
-            {
-                float Scale = 1 - Vector3.Dot(
-                    new Vector3(hit.normal.x, 0, hit.normal.z).normalized,
-                    -new Vector3(VelInit.x, 0, VelInit.z).normalized
-                    );
-
-                if(bIsGrounded)
-                {
-                    Leftover = ProjectAndScale(
-                        new Vector3(Leftover.x, 0, Leftover.z),
-                        new Vector3(hit.normal.x, 0, hit.normal.z)
-                        ).normalized;
-
-                    Leftover *= Scale;
-                }
-
-                else
-                {
-                    Leftover = ProjectAndScale(Leftover, hit.normal) * Scale;
-                }
-            }
-
-            Leftover = ProjectAndScale(Leftover, hit.normal);
-            */
-
             Leftover = Vector3.ProjectOnPlane(Leftover, hit.normal);
 
-            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1, VelInit);
+            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1);
         }
 
         return Vel;
@@ -620,3 +586,37 @@ public class PlayerMovement : NetworkBehaviour
         return transform.position;
     }
 }
+
+/*
+            float Angle = Vector3.Angle(Vector3.up, hit.normal);
+
+            if(Angle <= MaxSlopeAngle)
+            {
+                Leftover = ProjectAndScale(Leftover, hit.normal);
+            }
+
+            else
+            {
+                float Scale = 1 - Vector3.Dot(
+                    new Vector3(hit.normal.x, 0, hit.normal.z).normalized,
+                    -new Vector3(VelInit.x, 0, VelInit.z).normalized
+                    );
+
+                if(bIsGrounded)
+                {
+                    Leftover = ProjectAndScale(
+                        new Vector3(Leftover.x, 0, Leftover.z),
+                        new Vector3(hit.normal.x, 0, hit.normal.z)
+                        ).normalized;
+
+                    Leftover *= Scale;
+                }
+
+                else
+                {
+                    Leftover = ProjectAndScale(Leftover, hit.normal) * Scale;
+                }
+            }
+
+            Leftover = ProjectAndScale(Leftover, hit.normal);
+            */

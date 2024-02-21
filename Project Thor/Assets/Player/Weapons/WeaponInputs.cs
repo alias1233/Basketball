@@ -7,12 +7,14 @@ using UnityEngine;
 public struct WeaponInputs : INetworkSerializable
 {
     public int TimeStamp;
+    public ActiveWeaponNumber ActiveWeapon;
     public bool Mouse1;
     public bool Mouse2;
 
-    public WeaponInputs(int timestamp, bool mouse1, bool mouse2)
+    public WeaponInputs(int timestamp, ActiveWeaponNumber activeweapon, bool mouse1, bool mouse2)
     {
         TimeStamp = timestamp;
+        ActiveWeapon = activeweapon;
         Mouse1 = mouse1;
         Mouse2 = mouse2;
     }
@@ -24,6 +26,7 @@ public struct WeaponInputs : INetworkSerializable
             FastBufferWriter fastBufferWriter = serializer.GetFastBufferWriter();
 
             fastBufferWriter.WriteValueSafe(TimeStamp);
+            fastBufferWriter.WriteValueSafe(ActiveWeapon);
             fastBufferWriter.WriteValueSafe(Mouse1);
             fastBufferWriter.WriteValueSafe(Mouse2);
         }
@@ -33,10 +36,12 @@ public struct WeaponInputs : INetworkSerializable
             FastBufferReader fastBufferReader = serializer.GetFastBufferReader();
 
             fastBufferReader.ReadValueSafe(out int timestamp);
+            fastBufferReader.ReadValueSafe(out ActiveWeaponNumber activeweapon);
             fastBufferReader.ReadValueSafe(out bool mouse1);
             fastBufferReader.ReadValueSafe(out bool mouse2);
 
             TimeStamp = timestamp;
+            ActiveWeapon = activeweapon;
             Mouse1 = mouse1;
             Mouse2 = mouse2;
         }

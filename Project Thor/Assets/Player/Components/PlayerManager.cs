@@ -334,8 +334,6 @@ public class PlayerManager : NetworkBehaviour
 
         int pingintick = (int)((float)ping * 0.04f);
 
-        print("PING:" + ping);
-
         return pingintick;
     }
 
