@@ -86,7 +86,7 @@ public class LaserBlaster : BaseWeapon
     {
         if(!bIsCharging)
         {
-            if(Time.time - LastTimeShot2 >= 2)
+            if(Time.time - TimeShotLaser2 >= 2)
             {
                 Laser2.enabled = false;
             }

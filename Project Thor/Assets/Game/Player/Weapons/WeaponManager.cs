@@ -199,7 +199,7 @@ public class WeaponManager : NetworkBehaviour
             ActiveWeapon.StopFire1();
         }
 
-        if (CurrentInput.Mouse1)
+        if (CurrentInput.Mouse2)
         {
             if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
             {

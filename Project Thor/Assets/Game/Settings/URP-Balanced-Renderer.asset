@@ -15,14 +15,14 @@ MonoBehaviour:
   m_Active: 1
   m_Settings:
     AOMethod: 1
-    Downsample: 0
+    Downsample: 1
     AfterOpaque: 0
-    Source: 1
-    NormalSamples: 1
+    Source: 0
+    NormalSamples: 0
     Intensity: 0.5
     DirectLightingStrength: 0.25
     Radius: 0.25
-    Samples: 0
+    Samples: 2
     BlurQuality: 0
     Falloff: 100
     SampleCount: -1
@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
-  m_Name: URP-HighFidelity-Renderer
+  m_Name: URP-Balanced-Renderer
   m_EditorClassIdentifier: 
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7,
@@ -53,8 +53,8 @@ MonoBehaviour:
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
   m_RendererFeatures:
   - {fileID: -1878332245247344467}
-  - {fileID: 6725843995268967221}
-  m_RendererFeatureMap: adc0de57c6d2eee5356bb3887aff565d
+  - {fileID: 3501528285723017417}
+  m_RendererFeatureMap: adc0de57c6d2eee5c9c080896ced9730
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -97,7 +97,7 @@ MonoBehaviour:
   m_CopyDepthMode: 0
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
---- !u!114 &6725843995268967221
+--- !u!114 &3501528285723017417
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -109,7 +109,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d613f08f173d4dd895bb07b3230baa9, type: 3}
   m_Name: FullScreenPassRendererFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   passMaterial: {fileID: 2100000, guid: e6f07ba747a9d5948a5db6e98c73a75e, type: 2}
   injectionPoint: 600
   requirements: 4
