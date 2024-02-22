@@ -45,7 +45,13 @@ public class LaserBlaster : BaseWeapon
 
         Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
-        RewindPlayers(laserRay, Range1);
+        if(!Manager.GetIsOwner())
+        {
+            if (!RewindPlayers(laserRay, Range1))
+            {
+                return;
+            }
+        }
 
         RaycastHit[] Hits2 = new RaycastHit[5];
 
@@ -120,7 +126,13 @@ public class LaserBlaster : BaseWeapon
 
         Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
-        RewindPlayers(laserRay, Range2);
+        if (!Manager.GetIsOwner())
+        {
+            if (!RewindPlayers(laserRay, Range2))
+            {
+                return;
+            }
+        }
 
         RaycastHit[] Hits2 = new RaycastHit[5];
 

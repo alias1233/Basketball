@@ -66,11 +66,12 @@ public class PlayerMovement : NetworkBehaviour
     private float SkinWidth = 0.015f;
 
     public float WalkMoveSpeed = 3f;
-    public float SprintMoveSpeed = 6f;
+    public float SlideMoveSpeed = 6f;
     public float JumpForce = 10f;
     public LayerMask WhatIsGround;
     public int JumpCooldown = 30;
     public float GroundFriction = 8;
+    public float SlideFriction = 0.1f;
     public float AirFriction = 0.25f;
     public float Gravity = 1;
 
@@ -78,8 +79,11 @@ public class PlayerMovement : NetworkBehaviour
     private Quaternion ForwardRotation;
     private Vector3 MoveDirection;
     private bool bIsGrounded;
+    private bool bIsSliding;
 
     private bool bChangingVelocity;
+
+    public ParticleSystem SlideSmoke;
 
     /*
     * 
@@ -98,8 +102,9 @@ public class PlayerMovement : NetworkBehaviour
     public float DashSpeed;
     public float AfterDashVelocityMagnitude;
 
-    public ParticleSystem FirstPersonDashTrails;
-    public ParticleSystem ThirdPersonDashTrails;
+    public ParticleSystem FirstPersonDashParticles;
+    public ParticleSystem ThirdPersonDashParticles;
+    public TrailRenderer DashTrails;
 
     /*
     * 
@@ -192,12 +197,12 @@ public class PlayerMovement : NetworkBehaviour
 
                 if (TESTINGBOOL2)
                 {
-                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, true, false, false, false, true);
+                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, true, false, false, false, true, false);
                 }
 
                 else
                 {
-                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, false, false, true, false, true);
+                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, false, false, true, false, true, false);
                 }
             }
 
@@ -295,16 +300,34 @@ public class PlayerMovement : NetworkBehaviour
 
     void ServerTickForAll()
     {
+        if(StartDashTime == CurrentTimeStamp)
+        {
+            ReplicateDashingClientRpc(Player.GetClientRpcParamsIgnoreOwner());
+        }
+
         if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
         {
             LastTimeReplicatedPosition = Time.time;
             
-            ReplicatePositionClientRpc(transform.position, Velocity, Rotation, Player.GetClientRpcParamsIgnoreOwner());
+            ReplicatePositionClientRpc(transform.position, Velocity, Rotation, bIsSliding, Player.GetClientRpcParamsIgnoreOwner());
         }
     }
 
     void SimulatedProxyTick()
     {
+        if(ThirdPersonDashParticles.isPlaying)
+        {
+            Vector3 Offset2 = Velocity.normalized * 2;
+            ThirdPersonDashParticles.transform.position = PlayerCamera.transform.position + Offset2;
+            Quaternion NewRot2 = Quaternion.LookRotation((PlayerCamera.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+            ThirdPersonDashParticles.transform.rotation = NewRot2;
+        }
+
+        else
+        {
+            DashTrails.emitting = false;
+        }
+
         if(bUpdatedThisFrame)
         {
             bUpdatedThisFrame = false;
@@ -314,7 +337,7 @@ public class PlayerMovement : NetworkBehaviour
 
         Vector3 Delta = Velocity * DeltaTime;
 
-        transform.Translate(CollideAndSlide(transform.position, Delta, 0));
+        SafeMovePlayer(Delta);
     }
 
     void AbilityTick()
@@ -327,26 +350,29 @@ public class PlayerMovement : NetworkBehaviour
 
             bNoMovement = true;
 
-            if(!IsOwner)
+            if(IsOwner)
             {
-                Vector3 Offset2 = DashingStartRotation * Vector3.forward * 2;
-                ThirdPersonDashTrails.transform.position = PlayerCamera.transform.position + Offset2;
-                Quaternion NewRot2 = Quaternion.LookRotation((PlayerCamera.transform.position - ThirdPersonDashTrails.transform.position), Vector3.up);
-                ThirdPersonDashTrails.transform.rotation = NewRot2;
+                Vector3 Offset = DashingStartRotation * Vector3.forward * 2;
+                FirstPersonDashParticles.transform.position = PlayerCamera.transform.position + Offset;
+                Quaternion NewRot = Quaternion.LookRotation((PlayerCamera.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+                FirstPersonDashParticles.transform.rotation = NewRot;
 
-                ThirdPersonDashTrails.Play();
+                FirstPersonDashParticles.Play();
+                DashTrails.emitting = true;
 
-                return;
+                PlayerCameraScript.ChangeFOVDash();
             }
 
-            Vector3 Offset = DashingStartRotation * Vector3.forward * 2;
-            FirstPersonDashTrails.transform.position = PlayerCamera.transform.position + Offset;
-            Quaternion NewRot = Quaternion.LookRotation((PlayerCamera.transform.position - FirstPersonDashTrails.transform.position), Vector3.up);
-            FirstPersonDashTrails.transform.rotation = NewRot;
+            else
+            {
+                Vector3 Offset2 = DashingStartRotation * Vector3.forward * 2;
+                ThirdPersonDashParticles.transform.position = PlayerCamera.transform.position + Offset2;
+                Quaternion NewRot2 = Quaternion.LookRotation((PlayerCamera.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+                ThirdPersonDashParticles.transform.rotation = NewRot2;
 
-            FirstPersonDashTrails.Play();
-
-            PlayerCameraScript.ChangeFOVDash();
+                ThirdPersonDashParticles.Play();
+                DashTrails.emitting = true;
+            }
         }
 
         if(bDashing)
@@ -355,7 +381,7 @@ public class PlayerMovement : NetworkBehaviour
             {
                 Vector3 Delta = DashingStartRotation * Vector3.forward * DashSpeed * DeltaTime;
 
-                transform.Translate(CollideAndSlide(transform.position, Delta, 0));
+                SafeMovePlayer(Delta);
             }
 
             else
@@ -365,12 +391,16 @@ public class PlayerMovement : NetworkBehaviour
 
                 ChangeVelocity(Velocity * AfterDashVelocityMagnitude);
 
-                if (!IsOwner)
+                if (IsOwner)
                 {
-                    return;
+                    FirstPersonDashParticles.Stop();
+                    DashTrails.emitting = false;
                 }
 
-                FirstPersonDashTrails.Stop();
+                else
+                {
+                    DashTrails.emitting = false;
+                }
             }
         }
     }
@@ -397,21 +427,14 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         bIsGrounded = Physics.Raycast(transform.position, Vector3.down, Collider.height * 0.5f + 0.15f, WhatIsGround);
+        Vector3 Delta;
+        bIsSliding = false;
 
-        Vector3 JumpVel = Vector3.zero;
-        Vector3 GravityVel = Gravity * Vector3.down;
-        float frictionmultiplier = 1 - AirFriction * DeltaTime;
-        Vector3 InputVel = (MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime;
-
-        if (bIsGrounded)
+        if(bIsGrounded)
         {
-            GravityVel = Vector3.zero;
-
-            frictionmultiplier = 1 - GroundFriction * DeltaTime;
-
-            InputVel = (MoveDirection * WalkMoveSpeed) * (1 + GroundFriction) * DeltaTime;
-
             Velocity.y = 0;
+
+            Vector3 JumpVel = Vector3.zero;
 
             if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
             {
@@ -419,14 +442,36 @@ public class PlayerMovement : NetworkBehaviour
 
                 JumpVel = Vector3.up * JumpForce;
             }
+
+            if (CurrentInput.CTRL)
+            {
+                Delta = Velocity.magnitude >= SlideMoveSpeed ? (Velocity + JumpVel) * DeltaTime * (1 - SlideFriction * DeltaTime) : (Velocity.normalized * SlideMoveSpeed + JumpVel) * DeltaTime;
+
+                bIsSliding = true;
+
+                if(!SlideSmoke.isPlaying)
+                {
+                    SlideSmoke.Play();
+                }
+            }
+
+            else
+            {
+                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
+            }
         }
 
-        Vector3 Delta = (Velocity * frictionmultiplier + InputVel + JumpVel + GravityVel) * DeltaTime;
+        else
+        {
+            Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+        }
 
-        bounds = Collider.bounds;
-        bounds.Expand(-2 * SkinWidth);
+        if(!bIsSliding && SlideSmoke.isPlaying)
+        {
+            SlideSmoke.Stop();
+        }
 
-        transform.Translate(CollideAndSlide(transform.position, Delta, 0));
+        SafeMovePlayer(Delta);
 
         if (bChangingVelocity)
         {
@@ -437,6 +482,14 @@ public class PlayerMovement : NetworkBehaviour
         {
             Velocity = (transform.position - PreviousLocation) / DeltaTime;
         }
+    }
+
+    public void SafeMovePlayer(Vector3 delta)
+    {
+        bounds = Collider.bounds;
+        bounds.Expand(-2 * SkinWidth);
+
+        transform.Translate(CollideAndSlide(transform.position, delta, 0));
     }
 
     Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
@@ -524,7 +577,10 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SendClientCorrection()
     {
-        ClientCorrection Data = new ClientCorrection(CurrentTimeStamp, transform.position, Velocity, bNoMovement, LastTimeJumped, bDashing, StartDashTime, DashingStartRotation);
+        ClientCorrection Data = new ClientCorrection(CurrentTimeStamp, transform.position, Velocity, bNoMovement, LastTimeJumped, 
+            bDashing, 
+            StartDashTime, 
+            DashingStartRotation);
 
         ClientCorrectionClientRpc(Data, OwningClientID);
     }
@@ -599,7 +655,15 @@ public class PlayerMovement : NetworkBehaviour
 
     private Inputs CreateInput()
     {
-        Inputs input = new Inputs(CurrentTimeStamp, Rotation, Input.GetKey(KeyCode.W), Input.GetKey(KeyCode.A), Input.GetKey(KeyCode.S), Input.GetKey(KeyCode.D), Input.GetKey(KeyCode.Space), Input.GetKey(KeyCode.LeftShift));
+        Inputs input = new Inputs(CurrentTimeStamp, Rotation, 
+            Input.GetKey(KeyCode.W), 
+            Input.GetKey(KeyCode.A), 
+            Input.GetKey(KeyCode.S),
+            Input.GetKey(KeyCode.D), 
+            Input.GetKey(KeyCode.Space), 
+            Input.GetKey(KeyCode.LeftShift), 
+            Input.GetKey(KeyCode.CapsLock)
+            );
 
         return input;
     }
@@ -645,8 +709,14 @@ public class PlayerMovement : NetworkBehaviour
         Player.CheckClientTimeError(input.TimeStamp);
     }
 
+/*
+*
+* Replicating Movement
+*
+*/
+
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, ClientRpcParams clientRpcParams = default)
+    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, bool bIsSliding, ClientRpcParams clientRpcParams = default)
     {
         if (Player.GetIsDead())
         {
@@ -665,6 +735,23 @@ public class PlayerMovement : NetworkBehaviour
 
         Orientation.transform.rotation = ForwardRotation;
         CameraTransform.transform.rotation = rotation;
+
+        if (bIsSliding && !SlideSmoke.isPlaying)
+        {
+            SlideSmoke.Play();
+        }
+
+        if (!bIsSliding && SlideSmoke.isPlaying)
+        {
+            SlideSmoke.Stop();
+        }
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateDashingClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        ThirdPersonDashParticles.Play();
+        DashTrails.emitting = true;
     }
 
     public Vector3 GetVelocity()

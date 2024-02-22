@@ -55,42 +55,6 @@ public class WeaponManager : NetworkBehaviour
         LocalRole = Player.GetLocalRole();
     }
 
-    void OnChangeActiveWeapon(ActiveWeaponNumber previous, ActiveWeaponNumber newweapon)
-    {
-        if(previous == newweapon)
-        {
-            return;
-        }
-
-        bReplicateInput = true;
-
-        ActiveWeapon.ChangeActive(false);
-        ActiveWeaponIndex = newweapon;
-
-        switch (ActiveWeaponIndex)
-        {
-            case ActiveWeaponNumber.Laser:
-
-                ActiveWeapon = WeaponList[0];
-
-                break;
-
-            case ActiveWeaponNumber.Sword:
-
-                ActiveWeapon = WeaponList[1];
-
-                break;
-
-            case ActiveWeaponNumber.Pistol:
-
-                ActiveWeapon = WeaponList[2];
-
-                break;
-        }
-
-        ActiveWeapon.ChangeActive(true);
-    }
-
     public void FixedTick(int timestamp)
     {
         CurrentTimeStamp = timestamp;
@@ -274,6 +238,8 @@ public class WeaponManager : NetworkBehaviour
             {
                 ActiveWeapon.StopFire2();
             }
+
+            return;
         }
 
         if (Input.GetKey(KeyCode.Mouse0))
@@ -353,6 +319,42 @@ public class WeaponManager : NetworkBehaviour
         {
             ActiveWeapon.StopFire2();
         }
+    }
+
+    void OnChangeActiveWeapon(ActiveWeaponNumber previous, ActiveWeaponNumber newweapon)
+    {
+        if (previous == newweapon)
+        {
+            return;
+        }
+
+        bReplicateInput = true;
+
+        ActiveWeapon.ChangeActive(false);
+        ActiveWeaponIndex = newweapon;
+
+        switch (ActiveWeaponIndex)
+        {
+            case ActiveWeaponNumber.Laser:
+
+                ActiveWeapon = WeaponList[0];
+
+                break;
+
+            case ActiveWeaponNumber.Sword:
+
+                ActiveWeapon = WeaponList[1];
+
+                break;
+
+            case ActiveWeaponNumber.Pistol:
+
+                ActiveWeapon = WeaponList[2];
+
+                break;
+        }
+
+        ActiveWeapon.ChangeActive(true);
     }
 
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]

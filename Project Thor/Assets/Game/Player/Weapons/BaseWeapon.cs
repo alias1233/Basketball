@@ -50,13 +50,8 @@ public class BaseWeapon : MonoBehaviour
         WeaponModel.SetActive(false);
     }
 
-    public void RewindPlayers(Ray ray, int range)
+    public bool RewindPlayers(Ray ray, int range)
     {
-        if (Manager.GetIsOwner())
-        {
-            return;
-        }
-
         RewindedPlayerList.Clear();
 
         RaycastHit[] Hits = new RaycastHit[5];
@@ -81,7 +76,11 @@ public class BaseWeapon : MonoBehaviour
         if(RewindedPlayers > 0)
         {
             Physics.SyncTransforms();
+
+            return true;
         }
+
+        return false;
     }
 
     public void ResetRewindedPlayers()
