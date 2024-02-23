@@ -1,9 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Net.Security;
-using Unity.Burst.CompilerServices;
-using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEngine.ParticleSystem;
 
 public class LaserBlaster : BaseWeapon
 {
@@ -12,9 +10,10 @@ public class LaserBlaster : BaseWeapon
     [SerializeField]
     private LineRenderer Laser;
     [SerializeField]
-    private LineRenderer Laser2;
-    [SerializeField]
     private ParticleSystem HitPointParticleSystem;
+
+    [SerializeField]
+    ParticleSystem BigLaser2;
 
     [SerializeField]
     private LayerMask ObjectLayer;
@@ -92,32 +91,45 @@ public class LaserBlaster : BaseWeapon
     {
         if(!bIsCharging)
         {
-            if(Time.time - TimeShotLaser2 >= 2)
-            {
-                Laser2.enabled = false;
-            }
-
             return;
         }
 
         bIsCharging = false;
 
-        Laser2.enabled = true;
         TimeShotLaser2 = Time.time;
-
-        Laser2.SetPosition(0, LaserObject.transform.position);
 
         Ray laserRay2 = new Ray(LaserObject.transform.position, LaserObject.transform.rotation * (Vector3.forward + Offset));
         RaycastHit colliderInfo2;
 
         if (Physics.Raycast(laserRay2, out colliderInfo2, Range2, ObjectLayer))
         {
-            Laser2.SetPosition(1, colliderInfo2.point);
+            ParticleSystem.MainModule mainmodule = BigLaser2.main;
 
-            return;
+            mainmodule.startSizeY = colliderInfo2.distance;
+
+            Quaternion ForwardRotation = LaserObject.transform.rotation;
+
+            mainmodule.startRotationX = (ForwardRotation.eulerAngles.x + 90) * Mathf.PI / 180;
+            mainmodule.startRotationY = ForwardRotation.eulerAngles.y * Mathf.PI / 180;
+            mainmodule.startRotationZ = ForwardRotation.eulerAngles.z * Mathf.PI / 180;
+
+            BigLaser2.Play();
         }
 
-        Laser2.SetPosition(1, laserRay2.GetPoint(Range2));
+        else
+        {
+            ParticleSystem.MainModule mainmodule = BigLaser2.main;
+
+            mainmodule.startSizeY = Range2;
+
+            Quaternion ForwardRotation = LaserObject.transform.rotation;
+
+            mainmodule.startRotationX = (ForwardRotation.eulerAngles.x + 90) * Mathf.PI / 180;
+            mainmodule.startRotationY = ForwardRotation.eulerAngles.y * Mathf.PI / 180;
+            mainmodule.startRotationZ = ForwardRotation.eulerAngles.z * Mathf.PI / 180;
+
+            BigLaser2.Play();
+        }
 
         if (!Manager.GetHasAuthority())
         {

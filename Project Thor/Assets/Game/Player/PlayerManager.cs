@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using TMPro;
-using Unity.VisualScripting;
 using static ConnectionNotificationManager;
 
 public enum NetworkRole
@@ -18,7 +17,7 @@ public class PlayerManager : NetworkBehaviour
 {
     [Header("Ticking")]
 
-    public int ServerDelay = 4;
+    public int ServerDelay = 5;
 
     private int TimeStamp;
 
@@ -39,17 +38,17 @@ public class PlayerManager : NetworkBehaviour
     public List<MonoBehaviour> DisabledForOwnerScripts;
     public List<MonoBehaviour> DisabledForOthersScripts;
 
-    public Camera PlayerCamera;
-    public AudioListener PlayerAudioListener;
-
     public GameObject FirstPersonComponents;
     public GameObject ThirdPersonComponents;
 
+    public GameObject FPPlayerCamera;
+    public CameraVisualsScript CameraVisuals;
     public GameObject FirstPersonPlayerUI;
 
     [Header("Hit Registration")]
 
     private Dictionary<int, Vector3> RewindDataDictionary = new Dictionary<int, Vector3>();
+    int[] Keys = new int[100];
     private Vector3 OriginalPosition;
 
     [Header("Stats")]
@@ -87,7 +86,7 @@ public class PlayerManager : NetworkBehaviour
 
             foreach(ulong i in NetworkManager.Singleton.ConnectedClientsIds)
             {
-                if(i != OwnerClientId && i != NetworkManager.ServerClientId)
+                if(i != OwnerClientId && i != 0)
                 {
                     ClientIDList.Add(i);
                 }
@@ -180,9 +179,7 @@ public class PlayerManager : NetworkBehaviour
         }
 
         FirstPersonComponents.SetActive(false);
-
-        PlayerCamera.enabled = false;
-        PlayerAudioListener.enabled = false;
+        FPPlayerCamera.SetActive(false);
     }
 
     public override void OnNetworkDespawn()
@@ -212,6 +209,20 @@ public class PlayerManager : NetworkBehaviour
 
         RewindDataDictionary.Add(TimeStamp, transform.position);
 
+        if(TimeStamp % 40 == 0)
+        {
+            RewindDataDictionary.Keys.CopyTo(Keys, 0);
+            int Threshold = TimeStamp - 40;
+
+            foreach (int i in Keys)
+            {
+                if(i < Threshold)
+                {
+                    RewindDataDictionary.Remove(i);
+                }
+            }
+        }
+
         if(transform.position.y < -100)
         {
             Health.Value = -1;
@@ -224,7 +235,7 @@ public class PlayerManager : NetworkBehaviour
 
         foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
         {
-            if (i != OwnerClientId && i != NetworkManager.ServerClientId)
+            if (i != OwnerClientId && i != 0)
             {
                 ClientIDList.Add(i);
             }
@@ -257,10 +268,9 @@ public class PlayerManager : NetworkBehaviour
 
             if(IsOwner)
             {
-                DeathManager.Singleton.PossessGhost(transform.position, PlayerCamera.transform.rotation);
+                DeathManager.Singleton.PossessGhost(transform.position, FPPlayerCamera.transform.rotation);
 
-                PlayerCamera.enabled = false;
-                PlayerAudioListener.enabled = false;
+                FPPlayerCamera.SetActive(false);
                 FirstPersonPlayerUI.SetActive(false);
             }
 
@@ -286,8 +296,7 @@ public class PlayerManager : NetworkBehaviour
             {
                 DeathManager.Singleton.UnpossessGhost();
 
-                PlayerCamera.enabled = true;
-                PlayerAudioListener.enabled = true;
+                FPPlayerCamera.SetActive(true);
                 FirstPersonPlayerUI.SetActive(true);
             }
 
@@ -390,6 +399,20 @@ public class PlayerManager : NetworkBehaviour
     public void Respawn()
     {
         Health.Value = MaxHealth;
+    }
+
+    public void CameraChangePosition(Vector3 Offset, float duration)
+    {
+        CameraVisuals.ChangePosition(Offset, duration);
+    }
+    public void CameraResetPosition(float duration)
+    {
+        CameraVisuals.ResetPosition(duration);
+    }
+
+    public void ChangeFOV(float FOVdiff, float duration)
+    {
+        CameraVisuals.ChangeFOV(FOVdiff, duration);
     }
 
     public int GetTimeStamp()

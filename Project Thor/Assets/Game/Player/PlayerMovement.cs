@@ -9,9 +9,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private PlayerManager Player;
     public Transform Orientation;
-    public Transform CameraTransform;
-    public Camera PlayerCamera;
-    public CameraScript PlayerCameraScript;
+    public Transform FPTransform;
     private CapsuleCollider Collider;
 
     [Header("Ticking")]
@@ -57,7 +55,7 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 CorrectedPosition;
     private int CorrectionSmoothTime;
 
-    [Header("Movement")]
+    [Header("// Movement //")]
 
     public LayerMask layerMask;
 
@@ -83,6 +81,11 @@ public class PlayerMovement : NetworkBehaviour
 
     private bool bChangingVelocity;
 
+    [Header("Visuals")]
+
+    public Vector3 SlideCameraOffset;
+    public float SlideCameraDuration;
+
     public ParticleSystem SlideSmoke;
 
     /*
@@ -95,12 +98,17 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 Velocity;
     private int LastTimeJumped;
 
-    [Header("Abilities")]
+    [Header("// Abilities //")]
 
     public int DashDuration;
     public int DashCooldown;
     public float DashSpeed;
     public float AfterDashVelocityMagnitude;
+
+    [Header("Visuals")]
+
+    public float DashFOVOffset;
+    public float DashFOVDuration;
 
     public ParticleSystem FirstPersonDashParticles;
     public ParticleSystem ThirdPersonDashParticles;
@@ -116,7 +124,7 @@ public class PlayerMovement : NetworkBehaviour
     private int StartDashTime;
     private Quaternion DashingStartRotation;
 
-    //TESTING
+    [Header("TESTING")]
 
     public bool ALLOWTESTING;
     public bool TESTINGBOOL;
@@ -177,9 +185,10 @@ public class PlayerMovement : NetworkBehaviour
 
     void HostTick()
     {
+        /*
         if(ALLOWTESTING)
         {
-            Rotation = PlayerCamera.transform.rotation;
+            Rotation = FPTransform.rotation;
 
             if (Input.GetKeyDown(KeyCode.CapsLock))
             {
@@ -217,12 +226,13 @@ public class PlayerMovement : NetworkBehaviour
 
             return;
         }
+        */
 
-        Rotation = PlayerCamera.transform.rotation;
+        Rotation = FPTransform.transform.rotation;
 
-        CurrentInput = CreateInput();
+        CreateInputs(ref CurrentInput);
 
-        HandleInputs(CurrentInput);
+        HandleInputs(ref CurrentInput);
 
         MovePlayer();
     }
@@ -231,17 +241,21 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (InputsDictionary.TryGetValue(CurrentTimeStamp, out Inputs inputs))
         {
+            InputsDictionary.Remove(CurrentTimeStamp);
+
             CurrentInput = inputs;
         }
 
-        HandleInputs(CurrentInput);
-        
-        CameraTransform.transform.rotation = Rotation;
+        HandleInputs(ref CurrentInput);
+
+        FPTransform.transform.rotation = Rotation;
 
         MovePlayer();
 
         if (ClientDataDictionary.TryGetValue(CurrentTimeStamp, out Vector3 clientposition))
         {
+            ClientDataDictionary.Remove(CurrentTimeStamp);
+
             CheckClientPositionError(transform.position, clientposition);
         }
     }
@@ -265,15 +279,15 @@ public class PlayerMovement : NetworkBehaviour
             ReplayMovesAfterCorrection();
         }
 
-        Rotation = PlayerCamera.transform.rotation;
+        Rotation = FPTransform.rotation;
 
-        CurrentInput = CreateInput();
+        CreateInputs(ref CurrentInput);
 
         InputsDictionary[CurrentTimeStamp] = CurrentInput;
 
         SendInputsServerRpc(CurrentInput);
 
-        HandleInputs(CurrentInput);
+        HandleInputs(ref CurrentInput);
 
         MovePlayer();
 
@@ -287,14 +301,9 @@ public class PlayerMovement : NetworkBehaviour
         if (bSmoothingCorrection)
         {
             bSmoothingPosition = true;
-
             CorrectedPosition = transform.position;
 
-            float Alpha = (float)(CurrentTimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime;
-
-            Vector3 SmoothPosition = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, Alpha);
-
-            transform.position = SmoothPosition;
+            transform.position = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, (float)(CurrentTimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime);
         }
     }
 
@@ -317,10 +326,8 @@ public class PlayerMovement : NetworkBehaviour
     {
         if(ThirdPersonDashParticles.isPlaying)
         {
-            Vector3 Offset2 = Velocity.normalized * 2;
-            ThirdPersonDashParticles.transform.position = PlayerCamera.transform.position + Offset2;
-            Quaternion NewRot2 = Quaternion.LookRotation((PlayerCamera.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
-            ThirdPersonDashParticles.transform.rotation = NewRot2;
+            ThirdPersonDashParticles.transform.position = FPTransform.position + Velocity.normalized * 2;
+            ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPTransform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
         }
 
         else
@@ -335,9 +342,7 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        Vector3 Delta = Velocity * DeltaTime;
-
-        SafeMovePlayer(Delta);
+        SafeMovePlayer(Velocity * DeltaTime);
     }
 
     void AbilityTick()
@@ -352,23 +357,19 @@ public class PlayerMovement : NetworkBehaviour
 
             if(IsOwner)
             {
-                Vector3 Offset = DashingStartRotation * Vector3.forward * 2;
-                FirstPersonDashParticles.transform.position = PlayerCamera.transform.position + Offset;
-                Quaternion NewRot = Quaternion.LookRotation((PlayerCamera.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
-                FirstPersonDashParticles.transform.rotation = NewRot;
+                FirstPersonDashParticles.transform.position = FPTransform.transform.position + DashingStartRotation * Vector3.forward * 2;
+                FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPTransform.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
 
                 FirstPersonDashParticles.Play();
                 DashTrails.emitting = true;
 
-                PlayerCameraScript.ChangeFOVDash();
+                Player.ChangeFOV(DashFOVOffset, DashFOVDuration);
             }
 
             else
             {
-                Vector3 Offset2 = DashingStartRotation * Vector3.forward * 2;
-                ThirdPersonDashParticles.transform.position = PlayerCamera.transform.position + Offset2;
-                Quaternion NewRot2 = Quaternion.LookRotation((PlayerCamera.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
-                ThirdPersonDashParticles.transform.rotation = NewRot2;
+                ThirdPersonDashParticles.transform.position = FPTransform.position + DashingStartRotation * Vector3.forward * 2;
+                ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPTransform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
 
                 ThirdPersonDashParticles.Play();
                 DashTrails.emitting = true;
@@ -379,9 +380,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             if (CurrentTimeStamp - StartDashTime <= DashDuration)
             {
-                Vector3 Delta = DashingStartRotation * Vector3.forward * DashSpeed * DeltaTime;
-
-                SafeMovePlayer(Delta);
+                SafeMovePlayer(DashingStartRotation * Vector3.forward * DashSpeed * DeltaTime);
             }
 
             else
@@ -389,7 +388,8 @@ public class PlayerMovement : NetworkBehaviour
                 bDashing = false;
                 bNoMovement = false;
 
-                ChangeVelocity(Velocity * AfterDashVelocityMagnitude);
+                Velocity *= AfterDashVelocityMagnitude;
+                bChangingVelocity = true;
 
                 if (IsOwner)
                 {
@@ -428,7 +428,7 @@ public class PlayerMovement : NetworkBehaviour
 
         bIsGrounded = Physics.Raycast(transform.position, Vector3.down, Collider.height * 0.5f + 0.15f, WhatIsGround);
         Vector3 Delta;
-        bIsSliding = false;
+        bool bSlideThisFrame = false;
 
         if(bIsGrounded)
         {
@@ -447,7 +447,17 @@ public class PlayerMovement : NetworkBehaviour
             {
                 Delta = Velocity.magnitude >= SlideMoveSpeed ? (Velocity + JumpVel) * DeltaTime * (1 - SlideFriction * DeltaTime) : (Velocity.normalized * SlideMoveSpeed + JumpVel) * DeltaTime;
 
-                bIsSliding = true;
+                bSlideThisFrame = true;
+
+                if (!bIsSliding)
+                {
+                    bIsSliding = true;
+
+                    if (IsOwner)
+                    {
+                        Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
+                    }
+                }
 
                 if(!SlideSmoke.isPlaying)
                 {
@@ -466,9 +476,19 @@ public class PlayerMovement : NetworkBehaviour
             Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
         }
 
-        if(!bIsSliding && SlideSmoke.isPlaying)
+        if(!bSlideThisFrame)
         {
-            SlideSmoke.Stop();
+            if(bIsSliding)
+            {
+                bIsSliding = false;
+
+                Player.CameraResetPosition(SlideCameraDuration);
+            }
+
+            if(SlideSmoke.isPlaying)
+            {
+                SlideSmoke.Stop();
+            }
         }
 
         SafeMovePlayer(Delta);
@@ -489,10 +509,10 @@ public class PlayerMovement : NetworkBehaviour
         bounds = Collider.bounds;
         bounds.Expand(-2 * SkinWidth);
 
-        transform.Translate(CollideAndSlide(transform.position, delta, 0));
+        transform.Translate(CollideAndSlide(transform.position, ref delta, 0));
     }
 
-    Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
+    Vector3 CollideAndSlide(Vector3 Pos, ref Vector3 Vel, int depth)
     {
         if(depth >= MaxBounces)
         {
@@ -525,16 +545,10 @@ public class PlayerMovement : NetworkBehaviour
 
             Leftover = Vector3.ProjectOnPlane(Leftover, hit.normal);
 
-            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1);
+            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, ref Leftover, depth + 1);
         }
 
         return Vel;
-    }
-
-    private void ChangeVelocity(Vector3 newvelocity)
-    {
-        Velocity = newvelocity;
-        bChangingVelocity = true;
     }
 
 /*
@@ -546,7 +560,10 @@ public class PlayerMovement : NetworkBehaviour
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendClientDataServerRpc(int timestamp, Vector3 position)
     {
-        ClientDataDictionary.Add(timestamp, position);
+        if (timestamp > CurrentTimeStamp)
+        {
+            ClientDataDictionary.Add(timestamp, position);
+        }
 
         Player.CheckClientTimeError(timestamp);
     }
@@ -558,9 +575,7 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        float distancebetweenclientserver = (clientpos - serverpos).magnitude;
-
-        if (distancebetweenclientserver <= CorrectionDistance)
+        if ((clientpos - serverpos).magnitude <= CorrectionDistance)
         {
             transform.position = clientpos;
         }
@@ -577,12 +592,15 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SendClientCorrection()
     {
-        ClientCorrection Data = new ClientCorrection(CurrentTimeStamp, transform.position, Velocity, bNoMovement, LastTimeJumped, 
-            bDashing, 
-            StartDashTime, 
-            DashingStartRotation);
-
-        ClientCorrectionClientRpc(Data, OwningClientID);
+        ClientCorrectionClientRpc(new ClientCorrection(
+            CurrentTimeStamp,
+            transform.position,
+            Velocity,
+            bNoMovement, 
+            LastTimeJumped,
+            bDashing,
+            StartDashTime,
+            DashingStartRotation), OwningClientID);
     }
 
     void SetToServerState()
@@ -628,12 +646,14 @@ public class PlayerMovement : NetworkBehaviour
                 CurrentInput = inputs;
             }
 
-            HandleInputs(CurrentInput);
+            HandleInputs(ref CurrentInput);
 
             MovePlayer();
 
             CurrentTimeStamp++;
         }
+
+        InputsDictionary.Clear();
 
         ReplayMoves = false;
 
@@ -653,28 +673,25 @@ public class PlayerMovement : NetworkBehaviour
 *
 */
 
-    private Inputs CreateInput()
+    private void CreateInputs(ref Inputs input)
     {
-        Inputs input = new Inputs(CurrentTimeStamp, Rotation, 
-            Input.GetKey(KeyCode.W), 
-            Input.GetKey(KeyCode.A), 
-            Input.GetKey(KeyCode.S),
-            Input.GetKey(KeyCode.D), 
-            Input.GetKey(KeyCode.Space), 
-            Input.GetKey(KeyCode.LeftShift), 
-            Input.GetKey(KeyCode.CapsLock)
-            );
-
-        return input;
+        input.TimeStamp = CurrentTimeStamp;
+        input.Rotation = Rotation;
+        input.W = Input.GetKey(KeyCode.W);
+        input.A = Input.GetKey(KeyCode.A);
+        input.S = Input.GetKey(KeyCode.S);
+        input.D = Input.GetKey(KeyCode.D);
+        input.SpaceBar = Input.GetKey(KeyCode.Space);
+        input.Shift = Input.GetKey(KeyCode.LeftShift);
+        input.CTRL = Input.GetKey(KeyCode.CapsLock);
     }
 
-    private void HandleInputs(Inputs input)
+    private void HandleInputs(ref Inputs input)
     {
         MoveDirection = Vector3.zero;
         Rotation = input.Rotation;
 
-        float a = Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y));
-        ForwardRotation = new Quaternion(x: 0, y: Rotation.y, z: 0, w: Rotation.w / a);
+        ForwardRotation = new Quaternion(x: 0, y: Rotation.y, z: 0, w: Rotation.w / Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y)));
 
         Orientation.rotation = ForwardRotation;
 
@@ -704,7 +721,10 @@ public class PlayerMovement : NetworkBehaviour
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendInputsServerRpc(Inputs input)
     {
-        InputsDictionary[input.TimeStamp] = input;
+        if(input.TimeStamp > CurrentTimeStamp)
+        {
+            InputsDictionary[input.TimeStamp] = input;
+        }
 
         Player.CheckClientTimeError(input.TimeStamp);
     }
@@ -715,8 +735,8 @@ public class PlayerMovement : NetworkBehaviour
 *
 */
 
-    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, bool bIsSliding, ClientRpcParams clientRpcParams = default)
+        [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, bool issliding, ClientRpcParams clientRpcParams = default)
     {
         if (Player.GetIsDead())
         {
@@ -728,20 +748,19 @@ public class PlayerMovement : NetworkBehaviour
         transform.position = position;
         Velocity = velocity;
 
-        Quaternion quaternion = rotation;
-
-        float a = Mathf.Sqrt((quaternion.w * quaternion.w) + (quaternion.y * quaternion.y));
-        ForwardRotation = new Quaternion(x: 0, y: quaternion.y, z: 0, w: quaternion.w / a);
+        ForwardRotation = new Quaternion(x: 0, y: rotation.y, z: 0, w: rotation.w / Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y)));
 
         Orientation.transform.rotation = ForwardRotation;
-        CameraTransform.transform.rotation = rotation;
+        FPTransform.transform.rotation = rotation;
 
-        if (bIsSliding && !SlideSmoke.isPlaying)
+        bIsSliding = issliding;
+
+        if (issliding && !SlideSmoke.isPlaying)
         {
             SlideSmoke.Play();
         }
 
-        if (!bIsSliding && SlideSmoke.isPlaying)
+        if (!issliding && SlideSmoke.isPlaying)
         {
             SlideSmoke.Stop();
         }
@@ -772,6 +791,11 @@ public class PlayerMovement : NetworkBehaviour
     public Vector3 GetPosition()
     {
         return transform.position;
+    }
+
+    public bool GetIsSliding()
+    {
+        return bIsSliding;
     }
 }
 

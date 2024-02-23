@@ -2,19 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Threading.Tasks;
 using TMPro;
-using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 
 public class MainMenuScript : MonoBehaviour
 {
     [SerializeField]
     GameObject CreateAndJoinGame;
-    [SerializeField]
-    private Button ServerButton;
-    [SerializeField]
-    private Button ClientButton;
     [SerializeField]
     private Button HostButton;
     [SerializeField]
@@ -42,9 +36,10 @@ public class MainMenuScript : MonoBehaviour
     public void InitRegions(List<Region> regions)
     {
         Regions = regions;
-        List<string> RegionNames = new List<string>();
-
-        RegionNames.Add("Select Region");
+        List<string> RegionNames = new List<string>
+        {
+            "Select Region"
+        };
 
         foreach (Region region in regions)
         {

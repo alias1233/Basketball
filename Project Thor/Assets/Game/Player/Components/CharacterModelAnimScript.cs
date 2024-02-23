@@ -6,15 +6,36 @@ public class CharacterModelAnimScript : MonoBehaviour
 {
     [SerializeField]
     private PlayerMovement playermovement;
+    [SerializeField]
     private Animator anim;
+    [SerializeField]
+    private GameObject Parent;
 
-    private void Start()
-    {
-        anim = GetComponent<Animator>();
-    }
+    private bool bWasSliding;
 
     private void FixedUpdate()
     {
+        if(playermovement.GetIsSliding())
+        {
+            if(!bWasSliding)
+            {
+                anim.SetBool("bSliding", true);
+
+                bWasSliding = true;
+            }
+
+            return;
+        }
+
+        if(bWasSliding)
+        {
+            anim.SetBool("bSliding", false);
+
+            transform.rotation = Parent.transform.rotation;
+
+            bWasSliding = false;
+        }
+
         Vector3 Vel = playermovement.GetVelocity();
         float VelMagnitude = Vel.magnitude;
 
@@ -31,5 +52,13 @@ public class CharacterModelAnimScript : MonoBehaviour
         }
 
         anim.SetFloat("MoveFactor", Mag);
+    }
+
+    private void LateUpdate()
+    {
+        if (bWasSliding)
+        {
+            transform.rotation = Quaternion.LookRotation(playermovement.GetVelocity(), Vector3.up);
+        }
     }
 }

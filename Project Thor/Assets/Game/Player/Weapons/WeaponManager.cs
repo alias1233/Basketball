@@ -1,13 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 
 public enum ActiveWeaponNumber
 {
     Laser,
-    Sword,
-    Pistol
+    Pistol,
+    Sword
 }
 
 public class WeaponManager : NetworkBehaviour
@@ -100,12 +101,12 @@ public class WeaponManager : NetworkBehaviour
 
         else if (Input.GetKey(KeyCode.Alpha2))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Pistol);
         }
 
         else if (Input.GetKey(KeyCode.Alpha3))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Pistol);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
         }
 
         if (Input.GetKey(KeyCode.Mouse0))
@@ -144,8 +145,9 @@ public class WeaponManager : NetworkBehaviour
         if (InputsDictionary.TryGetValue(CurrentTimeStamp, out var input))
         {
             CurrentInput = input;
-
             OnChangeActiveWeapon(ActiveWeaponIndex, CurrentInput.ActiveWeapon);
+
+            InputsDictionary.Remove(CurrentTimeStamp);
         }
 
         if (CurrentInput.Mouse1)
@@ -188,12 +190,12 @@ public class WeaponManager : NetworkBehaviour
 
         else if (Input.GetKey(KeyCode.Alpha2))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Pistol);
         }
 
         else if (Input.GetKey(KeyCode.Alpha3))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Pistol);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
         }
 
         if (ActiveWeapon.ReplicateInput)
@@ -341,13 +343,13 @@ public class WeaponManager : NetworkBehaviour
 
                 break;
 
-            case ActiveWeaponNumber.Sword:
+            case ActiveWeaponNumber.Pistol:
 
                 ActiveWeapon = WeaponList[1];
 
                 break;
 
-            case ActiveWeaponNumber.Pistol:
+            case ActiveWeaponNumber.Sword:
 
                 ActiveWeapon = WeaponList[2];
 
@@ -360,9 +362,18 @@ public class WeaponManager : NetworkBehaviour
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendWeaponInputsServerRpc(WeaponInputs input)
     {
-        InputsDictionary[input.TimeStamp] = input;
+        if(input.TimeStamp > CurrentTimeStamp)
+        {
+            InputsDictionary[input.TimeStamp] = input;
+        }
 
         Player.CheckClientTimeError(input.TimeStamp);
+    }
+
+    [ServerRpc]
+    public void HitPlayerServerRPC(NetworkObjectReference playerGameObject)
+    {
+        
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]

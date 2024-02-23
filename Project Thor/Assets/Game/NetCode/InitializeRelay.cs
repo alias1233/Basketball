@@ -34,7 +34,6 @@ public class InitializeRelay : MonoBehaviour
         AuthenticationService.Instance.SignedIn += () =>
         {
             Debug.Log(" signed in " + AuthenticationService.Instance.PlayerId);
-
         };
 
         await AuthenticationService.Instance.SignInAnonymouslyAsync();
