@@ -40,6 +40,8 @@ public class GameManager : NetworkBehaviour
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdatePlayers;
     }
 
+
+
     private void UpdatePlayers(ulong clientId, ConnectionStatus connection)
     {
         if (!IsServer)
@@ -47,35 +49,35 @@ public class GameManager : NetworkBehaviour
             return;
         }
 
-        Teams team = Teams.Red;
-        ushort val = (ushort)(clientId % 2);
-
-        if (val == 1)
+        if(connection == ConnectionStatus.Connected)
         {
-            team = Teams.Blue;
-        }
+            Teams team = Teams.Red;
+            ushort val = (ushort)(clientId % 2);
 
-        PlayerInformation playerinfo = new PlayerInformation(clientId, team);
+            if (val == 1)
+            {
+                team = Teams.Blue;
+            }
 
-        if (connection == ConnectionStatus.Connected)
-        {
+            PlayerInformation playerinfo = new PlayerInformation(clientId, team);
+
             PlayerList.Add(playerinfo);
+
+            GameObject newPlayer = Instantiate(PlayerPrefab);
+
+            if (team == Teams.Red)
+            {
+                newPlayer.transform.position = RedTeamSpawn.position;
+            }
+
+            if (team == Teams.Blue)
+            {
+                newPlayer.transform.position = BlueTeamSpawn.position;
+            }
+
+            NetworkObject PlayerNetworkObject = newPlayer.GetComponent<NetworkObject>();
+            PlayerNetworkObject.SpawnAsPlayerObject(clientId);
         }
-
-        GameObject newPlayer = Instantiate(PlayerPrefab);
-
-        if (team == Teams.Red)
-        {
-            newPlayer.transform.position = RedTeamSpawn.position;
-        }
-
-        if (team == Teams.Blue)
-        {
-            newPlayer.transform.position = BlueTeamSpawn.position;
-        }
-
-        NetworkObject PlayerNetworkObject = newPlayer.GetComponent<NetworkObject>();
-        PlayerNetworkObject.SpawnAsPlayerObject(clientId);
     }
 
     public List<PlayerInformation> GetAllPlayerInformation()

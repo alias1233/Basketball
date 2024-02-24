@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
+using static ConnectionNotificationManager;
 
 public enum ActiveWeaponNumber
 {
@@ -21,6 +22,8 @@ public class WeaponManager : NetworkBehaviour
     private int CurrentTimeStamp;
 
     private NetworkRole LocalRole;
+    private ClientRpcParams IgnoreOwnerRPCParams;
+    private List<ulong> ClientIDList = new List<ulong>();
 
     [SerializeField]
     private List<BaseWeapon> WeaponList;
@@ -47,13 +50,69 @@ public class WeaponManager : NetworkBehaviour
 
     public int Radius;
 
+    private void Start()
+    {
+        if (IsServer)
+        {
+            foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (i != OwnerClientId && i != 0)
+                {
+                    ClientIDList.Add(i);
+                }
+            }
+
+            IgnoreOwnerRPCParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = ClientIDList
+                }
+            };
+        }
+    }
+
     public override void OnNetworkSpawn()
     {
+        LocalRole = Player.GetLocalRole();
+
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+        }
+
         ActiveWeaponIndex = ActiveWeaponNumber.Laser;
         ActiveWeapon = WeaponList[0];
         ActiveWeapon.ChangeActive(true);
+    }
 
-        LocalRole = Player.GetLocalRole();
+    public override void OnNetworkDespawn()
+    {
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+        }
+    }
+
+    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
+    {
+        if (connection == ConnectionStatus.Connected)
+        {
+            ClientIDList.Add(clientId);
+        }
+
+        else
+        {
+            ClientIDList.Remove(clientId);
+        }
+
+        IgnoreOwnerRPCParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = ClientIDList
+            }
+        };
     }
 
     public void FixedTick(int timestamp)
@@ -198,53 +257,21 @@ public class WeaponManager : NetworkBehaviour
             OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
         }
 
-        if (ActiveWeapon.ReplicateInput)
+        if (Time.time - LastTimeSentInputs >= SendInputCooldown || bReplicateInput)
         {
-            if (Time.time - LastTimeSentInputs >= SendInputCooldown || bReplicateInput)
-            {
-                bReplicateInput = false;
+            bReplicateInput = false;
 
-                LastTimeSentInputs = Time.time;
+            LastTimeSentInputs = Time.time;
 
-                CurrentInput = new WeaponInputs(CurrentTimeStamp, ActiveWeaponIndex, Input.GetKey(KeyCode.Mouse0), Input.GetKey(KeyCode.Mouse1));
+            CurrentInput.TimeStamp = CurrentTimeStamp;
+            CurrentInput.ActiveWeapon = ActiveWeaponIndex;
+            CurrentInput.Mouse1 = Input.GetKey(KeyCode.Mouse0);
+            CurrentInput.Mouse2 = Input.GetKey(KeyCode.Mouse1);
 
-                SendWeaponInputsServerRpc(CurrentInput);
-            }
-
-            if (CurrentInput.Mouse1)
-            {
-                if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
-                {
-                    ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
-
-                    ActiveWeapon.Fire1();
-                }
-            }
-
-            else
-            {
-                ActiveWeapon.StopFire1();
-            }
-
-            if (CurrentInput.Mouse2)
-            {
-                if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
-                {
-                    ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
-
-                    ActiveWeapon.Fire2();
-                }
-            }
-
-            else
-            {
-                ActiveWeapon.StopFire2();
-            }
-
-            return;
+            SendWeaponInputsServerRpc(CurrentInput);
         }
 
-        if (Input.GetKey(KeyCode.Mouse0))
+        if (CurrentInput.Mouse1)
         {
             if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
             {
@@ -259,7 +286,7 @@ public class WeaponManager : NetworkBehaviour
             ActiveWeapon.StopFire1();
         }
 
-        if (Input.GetKey(KeyCode.Mouse1))
+        if (CurrentInput.Mouse2)
         {
             if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
             {
@@ -277,16 +304,11 @@ public class WeaponManager : NetworkBehaviour
 
     void ServerTickForAll()
     {
-        if (!ActiveWeapon.ReplicateInput)
-        {
-            return;
-        }
-
         if (Time.time - LastTimReplicatedShooting >= ReplicateShootingCooldown)
         {
             LastTimReplicatedShooting = Time.time;
 
-            ReplicateShootingClientRpc(ActiveWeaponIndex, CurrentInput.Mouse1, CurrentInput.Mouse2, Player.GetClientRpcParamsIgnoreOwner());
+            ReplicateShootingClientRpc(ActiveWeaponIndex, CurrentInput.Mouse1, CurrentInput.Mouse2, IgnoreOwnerRPCParams);
         }
     }
 

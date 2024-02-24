@@ -8,6 +8,8 @@ public class Pistol : BaseWeapon
     [SerializeField]
     private GameObject PistolObject;
 
+    private RaycastHit[] Hits = new RaycastHit[1];
+
     public void Start()
     {
 
@@ -15,15 +17,15 @@ public class Pistol : BaseWeapon
 
     public override void Fire1()
     {
-        Ray laserRay = new Ray(PistolObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+        Ray HitscanRay = new Ray(PistolObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
-        RaycastHit[] Hits2 = new RaycastHit[1];
+        int NumHits2 = Physics.RaycastNonAlloc(HitscanRay, Hits, Range1, PlayerLayer);
 
-        int NumHits2 = Physics.RaycastNonAlloc(laserRay, Hits2, Range1, PlayerLayer);
+        Debug.DrawRay(PistolObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset), Color.red, 10);
 
         if(NumHits2 > 0)
         {
-            Manager.HitPlayerServerRPC(Hits2[0].transform.gameObject);
+            Manager.HitPlayerServerRPC(Hits[0].transform.gameObject);
         }
     }
 

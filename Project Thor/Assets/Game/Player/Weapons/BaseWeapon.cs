@@ -12,8 +12,6 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public PlayerMovement PlayerMovementComponent;
 
-    public bool ReplicateInput;
-
     public List<PlayerManager> RewindedPlayerList;
     public LayerMask PlayerLayer;
 
@@ -32,6 +30,8 @@ public class BaseWeapon : MonoBehaviour
 
     public float Damage;
     public float Damage2;
+
+    private RaycastHit[] Hits = new RaycastHit[5];
 
     public void ChangeActive(bool active)
     {
@@ -52,8 +52,6 @@ public class BaseWeapon : MonoBehaviour
     public bool RewindPlayers(Ray ray, int range)
     {
         RewindedPlayerList.Clear();
-
-        RaycastHit[] Hits = new RaycastHit[5];
 
         int NumHits = Physics.SphereCastNonAlloc(ray, Manager.GetRadius(), Hits, range, PlayerLayer);
 

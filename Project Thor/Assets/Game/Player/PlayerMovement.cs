@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using static ConnectionNotificationManager;
 
 public class PlayerMovement : NetworkBehaviour
 {
@@ -20,6 +21,8 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Networking")]
 
     private ClientRpcParams OwningClientID;
+    private ClientRpcParams IgnoreOwnerRPCParams;
+    private List<ulong> ClientIDList = new List<ulong>();
     private NetworkRole LocalRole;
 
     [Header("Client Data")]
@@ -144,7 +147,70 @@ public class PlayerMovement : NetworkBehaviour
         DeltaTime = Time.fixedDeltaTime;
 
         LocalRole = Player.GetLocalRole();
-        OwningClientID = Player.GetClientRpcParamsSendToOwner();
+
+        if(IsServer)
+        {
+            OwningClientID = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            };
+
+            foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (i != OwnerClientId && i != 0)
+                {
+                    ClientIDList.Add(i);
+                }
+            }
+
+            IgnoreOwnerRPCParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = ClientIDList
+                }
+            };
+        }
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+        }
+    }
+
+    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
+    {
+        if (connection == ConnectionStatus.Connected)
+        {
+            ClientIDList.Add(clientId);
+        }
+
+        else
+        {
+            ClientIDList.Remove(clientId);
+        }
+
+        IgnoreOwnerRPCParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = ClientIDList
+            }
+        };
     }
 
     public void FixedTick(int timestamp)
@@ -311,14 +377,14 @@ public class PlayerMovement : NetworkBehaviour
     {
         if(StartDashTime == CurrentTimeStamp)
         {
-            ReplicateDashingClientRpc(Player.GetClientRpcParamsIgnoreOwner());
+            ReplicateDashingClientRpc(IgnoreOwnerRPCParams);
         }
 
         if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
         {
             LastTimeReplicatedPosition = Time.time;
             
-            ReplicatePositionClientRpc(transform.position, Velocity, Rotation, bIsSliding, Player.GetClientRpcParamsIgnoreOwner());
+            ReplicatePositionClientRpc(transform.position, Velocity, Rotation, bIsSliding, IgnoreOwnerRPCParams);
         }
     }
 
@@ -519,8 +585,6 @@ public class PlayerMovement : NetworkBehaviour
             return Vector3.zero;
         }
 
-        float dist = Vel.magnitude + SkinWidth;
-
         Vector3 p1 = transform.position + Collider.center + Vector3.up * -Collider.height * 0.25F;
         Vector3 p2 = p1 + Vector3.up * Collider.height * 0.5f;
         RaycastHit hit;
@@ -531,7 +595,7 @@ public class PlayerMovement : NetworkBehaviour
             bounds.extents.x,
             Vel,
             out hit,
-            dist,
+            Vel.magnitude + SkinWidth,
             layerMask
             ))
         {

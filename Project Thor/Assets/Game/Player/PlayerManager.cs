@@ -24,7 +24,6 @@ public class PlayerManager : NetworkBehaviour
     [Header("Networking")]
 
     private ClientRpcParams OwningClientID;
-    private ClientRpcParams IgnoreOwnerRPCParams;
 
     private int TotalTimes;
     private int TotalTimeDifference;
@@ -81,24 +80,6 @@ public class PlayerManager : NetworkBehaviour
                     TargetClientIds = new ulong[] { OwnerClientId }
                 }
             };
-
-            List<ulong> ClientIDList = new List<ulong>();
-
-            foreach(ulong i in NetworkManager.Singleton.ConnectedClientsIds)
-            {
-                if(i != OwnerClientId && i != 0)
-                {
-                    ClientIDList.Add(i);
-                }
-            }
-
-            IgnoreOwnerRPCParams = new ClientRpcParams
-            {
-                Send = new ClientRpcSendParams
-                {
-                    TargetClientIds = ClientIDList
-                }
-            };
         }
 
         List<PlayerInformation> PlayerList = GameManager.Singleton.GetAllPlayerInformation();
@@ -153,12 +134,7 @@ public class PlayerManager : NetworkBehaviour
     }
 
     public override void OnNetworkSpawn()
-    {
-        if(IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
-        }
-
+    { 
         Health.OnValueChanged += OnHealthChanged;
 
         if (IsOwner)
@@ -184,11 +160,6 @@ public class PlayerManager : NetworkBehaviour
 
     public override void OnNetworkDespawn()
     {
-        if(IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
-        }
-
         Health.OnValueChanged -= OnHealthChanged;
     }
 
@@ -227,27 +198,6 @@ public class PlayerManager : NetworkBehaviour
         {
             Health.Value = -1;
         }
-    }
-
-    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
-    {
-        List<ulong> ClientIDList = new List<ulong>();
-
-        foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
-        {
-            if (i != OwnerClientId && i != 0)
-            {
-                ClientIDList.Add(i);
-            }
-        }
-
-        IgnoreOwnerRPCParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = ClientIDList
-            }
-        };
     }
 
     public void OnHealthChanged(float previous, float current)
@@ -428,16 +378,6 @@ public class PlayerManager : NetworkBehaviour
     public Teams GetTeam()
     {
         return Team;
-    }
-
-    public ClientRpcParams GetClientRpcParamsSendToOwner()
-    {
-        return OwningClientID;
-    }
-
-    public ClientRpcParams GetClientRpcParamsIgnoreOwner()
-    {
-        return IgnoreOwnerRPCParams;
     }
 
     public NetworkRole GetLocalRole()

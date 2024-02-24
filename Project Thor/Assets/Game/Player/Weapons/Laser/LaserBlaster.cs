@@ -11,9 +11,10 @@ public class LaserBlaster : BaseWeapon
     private LineRenderer Laser;
     [SerializeField]
     private ParticleSystem HitPointParticleSystem;
-
     [SerializeField]
-    ParticleSystem BigLaser2;
+    private BigLaserScript BigLaser;
+    [SerializeField]
+    private ParticleSystem ChargingLaserParticleSystem;
 
     [SerializeField]
     private LayerMask ObjectLayer;
@@ -23,7 +24,7 @@ public class LaserBlaster : BaseWeapon
     private bool bIsCharging;
     private int ChargingStartTime;
 
-    private float TimeShotLaser2;
+    private RaycastHit[] Hits = new RaycastHit[5];
 
     public void Start()
     {
@@ -52,13 +53,11 @@ public class LaserBlaster : BaseWeapon
             }
         }
 
-        RaycastHit[] Hits2 = new RaycastHit[5];
+        int NumHits = Physics.RaycastNonAlloc(laserRay, Hits, Range1, PlayerLayer);
 
-        int NumHits2 = Physics.RaycastNonAlloc(laserRay, Hits2, Range1, PlayerLayer);
-
-        for (int i = 0; i < NumHits2; i++)
+        for (int i = 0; i < NumHits; i++)
         {
-            if (Hits2[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
             {
                 stats.Damage(Manager.GetTeam(), Damage);
             }
@@ -85,6 +84,8 @@ public class LaserBlaster : BaseWeapon
 
         bIsCharging = true;
         ChargingStartTime = Manager.GetTimeStamp();
+
+        ChargingLaserParticleSystem.Play();
     }
 
     public override void StopFire2()
@@ -96,39 +97,22 @@ public class LaserBlaster : BaseWeapon
 
         bIsCharging = false;
 
-        TimeShotLaser2 = Time.time;
+        LastTimeShot2 = Manager.GetTimeStamp();
+
+        ChargingLaserParticleSystem.Clear();
+        ChargingLaserParticleSystem.Stop();
 
         Ray laserRay2 = new Ray(LaserObject.transform.position, LaserObject.transform.rotation * (Vector3.forward + Offset));
         RaycastHit colliderInfo2;
 
         if (Physics.Raycast(laserRay2, out colliderInfo2, Range2, ObjectLayer))
         {
-            ParticleSystem.MainModule mainmodule = BigLaser2.main;
-
-            mainmodule.startSizeY = colliderInfo2.distance;
-
-            Quaternion ForwardRotation = LaserObject.transform.rotation;
-
-            mainmodule.startRotationX = (ForwardRotation.eulerAngles.x + 90) * Mathf.PI / 180;
-            mainmodule.startRotationY = ForwardRotation.eulerAngles.y * Mathf.PI / 180;
-            mainmodule.startRotationZ = ForwardRotation.eulerAngles.z * Mathf.PI / 180;
-
-            BigLaser2.Play();
+            BigLaser.ShootLaser(colliderInfo2.distance / 2);
         }
 
         else
         {
-            ParticleSystem.MainModule mainmodule = BigLaser2.main;
-
-            mainmodule.startSizeY = Range2;
-
-            Quaternion ForwardRotation = LaserObject.transform.rotation;
-
-            mainmodule.startRotationX = (ForwardRotation.eulerAngles.x + 90) * Mathf.PI / 180;
-            mainmodule.startRotationY = ForwardRotation.eulerAngles.y * Mathf.PI / 180;
-            mainmodule.startRotationZ = ForwardRotation.eulerAngles.z * Mathf.PI / 180;
-
-            BigLaser2.Play();
+            BigLaser.ShootLaser(Range2 / 2);
         }
 
         if (!Manager.GetHasAuthority())
@@ -146,13 +130,11 @@ public class LaserBlaster : BaseWeapon
             }
         }
 
-        RaycastHit[] Hits2 = new RaycastHit[5];
+        int NumHits = Physics.SphereCastNonAlloc(laserRay, Radius2, Hits, Range1, PlayerLayer);
 
-        int NumHits2 = Physics.SphereCastNonAlloc(laserRay, Radius2, Hits2, Range1, PlayerLayer);
-
-        for (int i = 0; i < NumHits2; i++)
+        for (int i = 0; i < NumHits; i++)
         {
-            if (Hits2[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
             {
                 stats.Damage(Manager.GetTeam(), Damage2);
             }
@@ -164,6 +146,13 @@ public class LaserBlaster : BaseWeapon
     public override void OnActivate()
     {
         bIsCharging = false;
+    }
+    public override void OnDeactivate()
+    {
+        Laser.enabled = false;
+        HitPointParticleSystem.Stop();
+        ChargingLaserParticleSystem.Clear();
+        ChargingLaserParticleSystem.Stop();
     }
 
     public void LateUpdate()
