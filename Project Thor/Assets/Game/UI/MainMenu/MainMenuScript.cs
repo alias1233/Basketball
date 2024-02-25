@@ -66,7 +66,7 @@ public class MainMenuScript : MonoBehaviour
 
         string Text = await InitializeRelay.Instance.CreateRelay(RegionId);
 
-        JoinCode.text = Text;
+        JoinCode.text = "Join Code:<br>" + Text;
 
         CreateAndJoinGame.SetActive(false);
 

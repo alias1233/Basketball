@@ -61,10 +61,12 @@ public class PlayerMovement : NetworkBehaviour
     [Header("// Movement //")]
 
     public LayerMask layerMask;
+    public int MaxBounces = 5;
+    public float SkinWidth = 0.015f;
 
     private Bounds bounds;
-    private int MaxBounces = 5;
-    private float SkinWidth = 0.015f;
+    private Vector3 ColliderOffset1;
+    private Vector3 ColliderOffset2;
 
     public float WalkMoveSpeed = 3f;
     public float SlideMoveSpeed = 6f;
@@ -143,6 +145,11 @@ public class PlayerMovement : NetworkBehaviour
     {
         Player = GetComponent<PlayerManager>();
         Collider = GetComponent<CapsuleCollider>();
+
+        bounds = Collider.bounds;
+        bounds.Expand(-2 * SkinWidth);
+        ColliderOffset1 = Collider.center + Vector3.up * -Collider.height * 0.25f;
+        ColliderOffset2 = Vector3.up * Collider.height * 0.5f;
 
         DeltaTime = Time.fixedDeltaTime;
 
@@ -492,13 +499,16 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        bIsGrounded = Physics.Raycast(transform.position, Vector3.down, Collider.height * 0.5f + 0.15f, WhatIsGround);
+        bIsGrounded = Physics.Raycast(transform.position, Vector3.down, Collider.height * 0.5f + 0.2f, WhatIsGround);
         Vector3 Delta;
         bool bSlideThisFrame = false;
 
         if(bIsGrounded)
         {
-            Velocity.y = 0;
+            if(Velocity.y < 0)
+            {
+                Velocity.y = 0;
+            }
 
             Vector3 JumpVel = Vector3.zero;
 
@@ -572,9 +582,6 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SafeMovePlayer(Vector3 delta)
     {
-        bounds = Collider.bounds;
-        bounds.Expand(-2 * SkinWidth);
-
         transform.Translate(CollideAndSlide(transform.position, ref delta, 0));
     }
 
@@ -585,15 +592,15 @@ public class PlayerMovement : NetworkBehaviour
             return Vector3.zero;
         }
 
-        Vector3 p1 = transform.position + Collider.center + Vector3.up * -Collider.height * 0.25F;
-        Vector3 p2 = p1 + Vector3.up * Collider.height * 0.5f;
+        Vector3 p1 = Pos + ColliderOffset1;
+        Vector3 p2 = p1 + ColliderOffset2;
         RaycastHit hit;
 
         if (Physics.CapsuleCast(
             p1,
             p2,
             bounds.extents.x,
-            Vel,
+            Vel.normalized,
             out hit,
             Vel.magnitude + SkinWidth,
             layerMask
@@ -755,7 +762,8 @@ public class PlayerMovement : NetworkBehaviour
         MoveDirection = Vector3.zero;
         Rotation = input.Rotation;
 
-        ForwardRotation = new Quaternion(x: 0, y: Rotation.y, z: 0, w: Rotation.w / Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y)));
+        float a = Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y));
+        ForwardRotation = new Quaternion(0, Rotation.y / a, 0, Rotation.w / a);
 
         Orientation.rotation = ForwardRotation;
 
