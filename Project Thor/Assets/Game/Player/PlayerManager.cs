@@ -31,8 +31,8 @@ public class PlayerManager : NetworkBehaviour
 
     [Header("Components")]
 
-    public PlayerMovement Movement;
-    public WeaponManager Weapons;
+    private PlayerMovement Movement;
+    private WeaponManager Weapons;
 
     public List<MonoBehaviour> DisabledForOwnerScripts;
     public List<MonoBehaviour> DisabledForOthersScripts;
@@ -69,6 +69,9 @@ public class PlayerManager : NetworkBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Movement = GetComponent<PlayerMovement>();
+        Weapons = GetComponent<WeaponManager>();
+
         if (IsServer)
         {
             TimeStamp = -ServerDelay;

@@ -30,6 +30,9 @@ public class PlayerMovement : NetworkBehaviour
     private Dictionary<int, Inputs> InputsDictionary = new Dictionary<int, Inputs>();
     private Inputs CurrentInput;
 
+    private bool bSpaceBar;
+    private bool bShift;
+
     [Header("Replicate Movement")]
 
     public float ReplicatePositionInterval = 0.1f;
@@ -58,7 +61,7 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 CorrectedPosition;
     private int CorrectionSmoothTime;
 
-    [Header("// Movement //")]
+    [Header("// Physics //")]
 
     public LayerMask layerMask;
     public int MaxBounces = 5;
@@ -68,13 +71,22 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 ColliderOffset1;
     private Vector3 ColliderOffset2;
 
-    public float WalkMoveSpeed = 3f;
-    public float SlideMoveSpeed = 6f;
-    public float JumpForce = 10f;
+    [Header("// Movement //")]
+
     public LayerMask WhatIsGround;
+
+    public float WalkMoveSpeed = 4f;
+    public float SlideMoveSpeed = 8f;
+    public float WallRunSpeed;
+    public float MinWallRunSpeed;
+    public float SlideJumpForce;
+    public float WallWunDampen;
+    public float JumpForce = 10f;
     public int JumpCooldown = 30;
+
     public float GroundFriction = 8;
     public float SlideFriction = 0.1f;
+    public float WallRunFriction;
     public float AirFriction = 0.25f;
     public float Gravity = 1;
 
@@ -83,6 +95,10 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 MoveDirection;
     private bool bIsGrounded;
     private bool bIsSliding;
+    private bool bWallRight;
+    private bool bWallLeft;
+    private RaycastHit RightWallHit;
+    private RaycastHit LeftWallHit;
 
     private bool bChangingVelocity;
 
@@ -183,43 +199,6 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    public override void OnNetworkSpawn()
-    {
-        if (IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
-        }
-    }
-
-    public override void OnNetworkDespawn()
-    {
-        if (IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
-        }
-    }
-
-    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
-    {
-        if (connection == ConnectionStatus.Connected)
-        {
-            ClientIDList.Add(clientId);
-        }
-
-        else
-        {
-            ClientIDList.Remove(clientId);
-        }
-
-        IgnoreOwnerRPCParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = ClientIDList
-            }
-        };
-    }
-
     public void FixedTick(int timestamp)
     {
         CurrentTimeStamp = timestamp;
@@ -229,7 +208,6 @@ public class PlayerMovement : NetworkBehaviour
             case NetworkRole.HostOwner:
 
                 HostTick();
-
                 ServerTickForAll();
 
                 break;
@@ -237,7 +215,6 @@ public class PlayerMovement : NetworkBehaviour
             case NetworkRole.HostProxy:
 
                 ServerTickForOtherPlayers();
-
                 ServerTickForAll();
 
                 break;
@@ -256,13 +233,29 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
+    private void Update()
+    {
+        if(!IsOwner)
+        {
+            return;
+        }
+
+        if(Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            bShift = true;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            bSpaceBar = true;
+        }
+    }
+
     void HostTick()
     {
         /*
         if(ALLOWTESTING)
         {
-            Rotation = FPTransform.rotation;
-
             if (Input.GetKeyDown(KeyCode.CapsLock))
             {
                 TESTINGBOOL = true;
@@ -300,8 +293,6 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
         */
-
-        Rotation = FPTransform.transform.rotation;
 
         CreateInputs(ref CurrentInput);
 
@@ -352,12 +343,9 @@ public class PlayerMovement : NetworkBehaviour
             ReplayMovesAfterCorrection();
         }
 
-        Rotation = FPTransform.rotation;
-
         CreateInputs(ref CurrentInput);
 
         InputsDictionary[CurrentTimeStamp] = CurrentInput;
-
         SendInputsServerRpc(CurrentInput);
 
         HandleInputs(ref CurrentInput);
@@ -425,7 +413,6 @@ public class PlayerMovement : NetworkBehaviour
             StartDashTime = CurrentTimeStamp;
             bDashing = true;
             DashingStartRotation = Rotation;
-
             bNoMovement = true;
 
             if(IsOwner)
@@ -468,12 +455,11 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     FirstPersonDashParticles.Stop();
                     DashTrails.emitting = false;
+
+                    return;
                 }
 
-                else
-                {
-                    DashTrails.emitting = false;
-                }
+                DashTrails.emitting = false;
             }
         }
     }
@@ -549,7 +535,56 @@ public class PlayerMovement : NetworkBehaviour
 
         else
         {
-            Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+            if (CurrentInput.D && CheckForRightWall() && Velocity.magnitude >= MinWallRunSpeed)
+            {
+                Vector3 JumpVel = Vector3.zero;
+                Velocity = new Vector3(Velocity.x, Velocity.y * (1 - WallWunDampen * DeltaTime), Velocity.z);
+
+                Vector3 WallNormal = RightWallHit.normal;
+                Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+
+                if ((Orientation.transform.forward - WallForward).magnitude > (Orientation.transform.forward + WallForward).magnitude)
+                {
+                    WallForward = -WallForward;
+                }
+
+                if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
+                {
+                    LastTimeJumped = CurrentTimeStamp;
+
+                    JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
+                }
+
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+            }
+
+            else if(CurrentInput.A && CheckForLeftWall() && Velocity.magnitude >= MinWallRunSpeed)
+            {
+                Vector3 JumpVel = Vector3.zero;
+                Velocity = new Vector3(Velocity.x, Velocity.y * (1 - WallWunDampen * DeltaTime), Velocity.z);
+
+                Vector3 WallNormal = LeftWallHit.normal;
+                Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+
+                if ((Orientation.transform.forward - WallForward).magnitude > (Orientation.transform.forward + WallForward).magnitude)
+                {
+                    WallForward = -WallForward;
+                }
+
+                if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
+                {
+                    LastTimeJumped = CurrentTimeStamp;
+
+                    JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
+                }
+
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+            }
+
+            else
+            {
+                Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+            }
         }
 
         if(!bSlideThisFrame)
@@ -578,6 +613,16 @@ public class PlayerMovement : NetworkBehaviour
         {
             Velocity = (transform.position - PreviousLocation) / DeltaTime;
         }
+    }
+
+    public bool CheckForRightWall()
+    {
+        return bWallRight = Physics.Raycast(transform.position, Orientation.transform.right, out RightWallHit, 1, WhatIsGround);
+    }
+
+    public bool CheckForLeftWall()
+    {
+        return bWallLeft = Physics.Raycast(transform.position, -Orientation.transform.right, out LeftWallHit, 1, WhatIsGround);
     }
 
     public void SafeMovePlayer(Vector3 delta)
@@ -656,8 +701,6 @@ public class PlayerMovement : NetworkBehaviour
             LastTimeSentCorrection = Time.time;
 
             SendClientCorrection();
-
-            print("Client Correction Sent!");
         }
     }
 
@@ -671,7 +714,9 @@ public class PlayerMovement : NetworkBehaviour
             LastTimeJumped,
             bDashing,
             StartDashTime,
-            DashingStartRotation), OwningClientID);
+            DashingStartRotation
+            ),
+            OwningClientID);
     }
 
     void SetToServerState()
@@ -746,15 +791,20 @@ public class PlayerMovement : NetworkBehaviour
 
     private void CreateInputs(ref Inputs input)
     {
+        Rotation = FPTransform.transform.rotation;
+
         input.TimeStamp = CurrentTimeStamp;
         input.Rotation = Rotation;
         input.W = Input.GetKey(KeyCode.W);
         input.A = Input.GetKey(KeyCode.A);
         input.S = Input.GetKey(KeyCode.S);
         input.D = Input.GetKey(KeyCode.D);
-        input.SpaceBar = Input.GetKey(KeyCode.Space);
-        input.Shift = Input.GetKey(KeyCode.LeftShift);
+        input.SpaceBar = bSpaceBar;
+        input.Shift = bShift;
         input.CTRL = Input.GetKey(KeyCode.CapsLock);
+
+        bSpaceBar = false;
+        bShift = false;
     }
 
     private void HandleInputs(ref Inputs input)
@@ -820,7 +870,8 @@ public class PlayerMovement : NetworkBehaviour
         transform.position = position;
         Velocity = velocity;
 
-        ForwardRotation = new Quaternion(x: 0, y: rotation.y, z: 0, w: rotation.w / Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y)));
+        float a = Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y));
+        ForwardRotation = new Quaternion(0, Rotation.y / a, 0, Rotation.w / a);
 
         Orientation.transform.rotation = ForwardRotation;
         FPTransform.transform.rotation = rotation;
@@ -843,6 +894,43 @@ public class PlayerMovement : NetworkBehaviour
     {
         ThirdPersonDashParticles.Play();
         DashTrails.emitting = true;
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+        }
+    }
+
+    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
+    {
+        if (connection == ConnectionStatus.Connected)
+        {
+            ClientIDList.Add(clientId);
+        }
+
+        else
+        {
+            ClientIDList.Remove(clientId);
+        }
+
+        IgnoreOwnerRPCParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = ClientIDList
+            }
+        };
     }
 
     public Vector3 GetVelocity()

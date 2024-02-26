@@ -26,8 +26,10 @@ public class LaserBlaster : BaseWeapon
 
     private RaycastHit[] Hits = new RaycastHit[5];
 
-    public void Start()
+    public override void Start()
     {
+        base.Start();
+
         Laser = LaserObject.GetComponent<LineRenderer>();
     }
 

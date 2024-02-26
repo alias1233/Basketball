@@ -10,9 +10,9 @@ public class Pistol : BaseWeapon
 
     private RaycastHit[] Hits = new RaycastHit[1];
 
-    public void Start()
+    public override void Start()
     {
-
+        base.Start();
     }
 
     public override void Fire1()

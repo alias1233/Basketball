@@ -16,7 +16,6 @@ public class WeaponManager : NetworkBehaviour
 {
     [Header("Components")]
 
-    [SerializeField]
     private PlayerManager Player;
 
     private int CurrentTimeStamp;
@@ -52,6 +51,14 @@ public class WeaponManager : NetworkBehaviour
 
     private void Start()
     {
+        Player = GetComponent<PlayerManager>();
+
+        LocalRole = Player.GetLocalRole();
+
+        ActiveWeaponIndex = ActiveWeaponNumber.Laser;
+        ActiveWeapon = WeaponList[0];
+        ActiveWeapon.ChangeActive(true);
+
         if (IsServer)
         {
             foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
@@ -74,16 +81,10 @@ public class WeaponManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        LocalRole = Player.GetLocalRole();
-
         if (IsServer)
         {
             ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
         }
-
-        ActiveWeaponIndex = ActiveWeaponNumber.Laser;
-        ActiveWeapon = WeaponList[0];
-        ActiveWeapon.ChangeActive(true);
     }
 
     public override void OnNetworkDespawn()
