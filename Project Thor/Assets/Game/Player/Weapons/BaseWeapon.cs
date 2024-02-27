@@ -14,6 +14,7 @@ public class BaseWeapon : MonoBehaviour
 
     public List<PlayerManager> RewindedPlayerList;
     public LayerMask PlayerLayer;
+    public LayerMask ObjectLayer;
 
     public Vector3 Offset;
 
@@ -72,7 +73,6 @@ public class BaseWeapon : MonoBehaviour
         RewindedPlayerList.Clear();
 
         int NumHits = Physics.SphereCastNonAlloc(ray, Manager.GetRadius(), Hits, range, PlayerLayer);
-
         int RewindedPlayers = 0;
 
         for (int i = 0; i < NumHits; i++)
@@ -81,9 +81,17 @@ public class BaseWeapon : MonoBehaviour
             {
                 if (rewind.RewindToPosition(Manager.GetTeam(), Manager.GetPingInTick()))
                 {
-                    RewindedPlayerList.Add(rewind);
+                    if (!Physics.Linecast(ray.origin, Hits[i].transform.position, ObjectLayer))
+                    {
+                        RewindedPlayerList.Add(rewind);
 
-                    RewindedPlayers++;
+                        RewindedPlayers++;
+                    }
+
+                    else
+                    {
+                        rewind.ResetToOriginalPosition();
+                    }
                 }
             }
         }

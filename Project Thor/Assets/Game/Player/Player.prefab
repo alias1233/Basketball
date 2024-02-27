@@ -407,6 +407,9 @@ MonoBehaviour:
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
+  ObjectLayer:
+    serializedVersion: 2
+    m_Bits: 1
   Offset: {x: -0.01, y: 0.0025, z: 0}
   Range1: 50
   Range2: 50
@@ -422,10 +425,8 @@ MonoBehaviour:
   HitPointParticleSystem: {fileID: 3497817843169043032}
   BigLaser: {fileID: 2098984543594473315}
   ChargingLaserParticleSystem: {fileID: 5049029758643937587}
-  ObjectLayer:
-    serializedVersion: 2
-    m_Bits: 1
   Radius2: 2
+  MaxChargingTime: 40
 --- !u!1 &1167353757849688728
 GameObject:
   m_ObjectHideFlags: 0
@@ -10421,6 +10422,9 @@ MonoBehaviour:
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
+  ObjectLayer:
+    serializedVersion: 2
+    m_Bits: 0
   Offset: {x: 0, y: 0, z: 0}
   Range1: 0
   Range2: 0
@@ -11018,6 +11022,9 @@ MonoBehaviour:
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
+  ObjectLayer:
+    serializedVersion: 2
+    m_Bits: 0
   Offset: {x: -0.01, y: 0.0025, z: 0}
   Range1: 0
   Range2: 0
@@ -31917,22 +31924,22 @@ MonoBehaviour:
     m_Bits: 1
   WalkMoveSpeed: 4
   SlideMoveSpeed: 8
-  WallRunSpeed: 5
+  WallRunSpeed: 1
   MinWallRunSpeed: 2
   SlideJumpForce: 5
   WallWunDampen: 5
   JumpForce: 9
   JumpCooldown: 10
-  GroundFriction: 8
+  GroundFriction: 15
   SlideFriction: 0.1
-  WallRunFriction: 1
-  AirFriction: 0.5
+  WallRunFriction: 4
+  AirFriction: 1
   Gravity: 0.75
   SlideCameraOffset: {x: 0, y: -0.5, z: 0}
-  SlideCameraDuration: 0.15
+  SlideCameraDuration: 0.1
   SlideSmoke: {fileID: 5272365689722746257}
   DashDuration: 7
-  DashCooldown: 100
+  DashCooldown: 80
   DashSpeed: 40
   AfterDashVelocityMagnitude: 0.2
   DashFOVOffset: 10
@@ -31984,7 +31991,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.45
   m_Height: 1.75
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}

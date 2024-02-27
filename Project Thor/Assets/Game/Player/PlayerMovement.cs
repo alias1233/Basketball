@@ -67,7 +67,7 @@ public class PlayerMovement : NetworkBehaviour
     public int MaxBounces = 5;
     public float SkinWidth = 0.015f;
 
-    private Bounds bounds;
+    private float CollidingRadius;
     private Vector3 ColliderOffset1;
     private Vector3 ColliderOffset2;
 
@@ -162,10 +162,9 @@ public class PlayerMovement : NetworkBehaviour
         Player = GetComponent<PlayerManager>();
         Collider = GetComponent<CapsuleCollider>();
 
-        bounds = Collider.bounds;
-        bounds.Expand(-2 * SkinWidth);
-        ColliderOffset1 = Collider.center + Vector3.up * -Collider.height * 0.25f;
-        ColliderOffset2 = Vector3.up * Collider.height * 0.5f;
+        ColliderOffset1 = Collider.center + Vector3.up * Collider.height * 0.5f + Vector3.down * Collider.radius;
+        ColliderOffset2 = Collider.center + Vector3.down * Collider.height * 0.5f + Vector3.up * Collider.radius;
+        CollidingRadius = Collider.radius - SkinWidth;
 
         DeltaTime = Time.fixedDeltaTime;
 
@@ -240,7 +239,9 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        if(Input.GetKeyDown(KeyCode.LeftShift))
+        //if(Input.GetKeyDown(KeyCode.LeftShift))
+
+        if (Input.GetKeyDown(KeyCode.CapsLock))
         {
             bShift = true;
         }
@@ -489,7 +490,14 @@ public class PlayerMovement : NetworkBehaviour
         Vector3 Delta;
         bool bSlideThisFrame = false;
 
-        if(bIsGrounded)
+        float MoveSpeed = WalkMoveSpeed;
+
+        if (CurrentInput.CTRL)
+        {
+            MoveSpeed = SlideMoveSpeed;
+        }
+
+        if (bIsGrounded)
         {
             if(Velocity.y < 0)
             {
@@ -505,6 +513,7 @@ public class PlayerMovement : NetworkBehaviour
                 JumpVel = Vector3.up * JumpForce;
             }
 
+            /*
             if (CurrentInput.CTRL)
             {
                 Delta = Velocity.magnitude >= SlideMoveSpeed ? (Velocity + JumpVel) * DeltaTime * (1 - SlideFriction * DeltaTime) : (Velocity.normalized * SlideMoveSpeed + JumpVel) * DeltaTime;
@@ -526,10 +535,11 @@ public class PlayerMovement : NetworkBehaviour
                     SlideSmoke.Play();
                 }
             }
+            */
 
-            else
+            //else
             {
-                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * MoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
         }
 
@@ -555,7 +565,7 @@ public class PlayerMovement : NetworkBehaviour
                     JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
                 }
 
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * MoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
 
             else if(CurrentInput.A && CheckForLeftWall() && Velocity.magnitude >= MinWallRunSpeed)
@@ -578,12 +588,12 @@ public class PlayerMovement : NetworkBehaviour
                     JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
                 }
 
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * MoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
 
             else
             {
-                Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+                Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * MoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
             }
         }
 
@@ -627,24 +637,23 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SafeMovePlayer(Vector3 delta)
     {
-        transform.Translate(CollideAndSlide(transform.position, ref delta, 0));
+        transform.Translate(CollideAndSlide(transform.position, new Vector3(delta.x, 0, delta.z), 0));
+        transform.Translate(CollideAndSlide(transform.position, new Vector3(0, delta.y, 0), 0));
     }
 
-    Vector3 CollideAndSlide(Vector3 Pos, ref Vector3 Vel, int depth)
+    Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
     {
         if(depth >= MaxBounces)
         {
             return Vector3.zero;
         }
 
-        Vector3 p1 = Pos + ColliderOffset1;
-        Vector3 p2 = p1 + ColliderOffset2;
         RaycastHit hit;
 
         if (Physics.CapsuleCast(
-            p1,
-            p2,
-            bounds.extents.x,
+            Pos + ColliderOffset1,
+            Pos + ColliderOffset2,
+            CollidingRadius,
             Vel.normalized,
             out hit,
             Vel.magnitude + SkinWidth,
@@ -654,14 +663,14 @@ public class PlayerMovement : NetworkBehaviour
             Vector3 SnapToSurface = Vel.normalized * (hit.distance - SkinWidth);
             Vector3 Leftover = Vel - SnapToSurface;
 
-            if(SnapToSurface.magnitude <= SkinWidth)
+            if (SnapToSurface.magnitude <= SkinWidth)
             {
                 SnapToSurface = Vector3.zero;
             }
 
             Leftover = Vector3.ProjectOnPlane(Leftover, hit.normal);
 
-            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, ref Leftover, depth + 1);
+            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1);
         }
 
         return Vel;
@@ -801,7 +810,19 @@ public class PlayerMovement : NetworkBehaviour
         input.D = Input.GetKey(KeyCode.D);
         input.SpaceBar = bSpaceBar;
         input.Shift = bShift;
+        input.CTRL = Input.GetKey(KeyCode.LeftShift);
+
+        /*
+        input.TimeStamp = CurrentTimeStamp;
+        input.Rotation = Rotation;
+        input.W = Input.GetKey(KeyCode.W);
+        input.A = Input.GetKey(KeyCode.A);
+        input.S = Input.GetKey(KeyCode.S);
+        input.D = Input.GetKey(KeyCode.D);
+        input.SpaceBar = bSpaceBar;
+        input.Shift = bShift;
         input.CTRL = Input.GetKey(KeyCode.CapsLock);
+        */
 
         bSpaceBar = false;
         bShift = false;

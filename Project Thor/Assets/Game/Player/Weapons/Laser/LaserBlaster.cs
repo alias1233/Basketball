@@ -16,13 +16,12 @@ public class LaserBlaster : BaseWeapon
     [SerializeField]
     private ParticleSystem ChargingLaserParticleSystem;
 
-    [SerializeField]
-    private LayerMask ObjectLayer;
-
     public int Radius2;
 
+    public int MaxChargingTime;
+
     private bool bIsCharging;
-    private int ChargingStartTime;
+    private float ChargingStartTime;
 
     private RaycastHit[] Hits = new RaycastHit[5];
 
@@ -97,9 +96,9 @@ public class LaserBlaster : BaseWeapon
             return;
         }
 
-        bIsCharging = false;
-
         LastTimeShot2 = Manager.GetTimeStamp();
+
+        bIsCharging = false;
 
         ChargingLaserParticleSystem.Clear();
         ChargingLaserParticleSystem.Stop();
@@ -138,7 +137,7 @@ public class LaserBlaster : BaseWeapon
         {
             if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
             {
-                stats.Damage(Manager.GetTeam(), Damage2);
+                stats.Damage(Manager.GetTeam(), Mathf.Clamp(Damage2 * (Manager.GetTimeStamp() - ChargingStartTime) / MaxChargingTime, 0, Damage2));
             }
         }
 
