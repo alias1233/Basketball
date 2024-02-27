@@ -77,6 +77,7 @@ public class PlayerMovement : NetworkBehaviour
 
     public float WalkMoveSpeed = 4f;
     public float SlideMoveSpeed = 8f;
+    public float SlideMinSpeed = 3f;
     public float WallRunSpeed;
     public float MinWallRunSpeed;
     public float SlideJumpForce;
@@ -490,13 +491,6 @@ public class PlayerMovement : NetworkBehaviour
         Vector3 Delta;
         bool bSlideThisFrame = false;
 
-        float MoveSpeed = WalkMoveSpeed;
-
-        if (CurrentInput.CTRL)
-        {
-            MoveSpeed = SlideMoveSpeed;
-        }
-
         if (bIsGrounded)
         {
             if(Velocity.y < 0)
@@ -513,8 +507,7 @@ public class PlayerMovement : NetworkBehaviour
                 JumpVel = Vector3.up * JumpForce;
             }
 
-            /*
-            if (CurrentInput.CTRL)
+            if (CurrentInput.CTRL && Velocity.magnitude >= SlideMinSpeed)
             {
                 Delta = Velocity.magnitude >= SlideMoveSpeed ? (Velocity + JumpVel) * DeltaTime * (1 - SlideFriction * DeltaTime) : (Velocity.normalized * SlideMoveSpeed + JumpVel) * DeltaTime;
 
@@ -535,11 +528,10 @@ public class PlayerMovement : NetworkBehaviour
                     SlideSmoke.Play();
                 }
             }
-            */
 
-            //else
+            else
             {
-                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * MoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * SlideMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
         }
 
@@ -565,7 +557,7 @@ public class PlayerMovement : NetworkBehaviour
                     JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
                 }
 
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * MoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WalkMoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
 
             else if(CurrentInput.A && CheckForLeftWall() && Velocity.magnitude >= MinWallRunSpeed)
@@ -588,12 +580,12 @@ public class PlayerMovement : NetworkBehaviour
                     JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
                 }
 
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * MoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WalkMoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
 
             else
             {
-                Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * MoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+                Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
             }
         }
 
@@ -878,7 +870,7 @@ public class PlayerMovement : NetworkBehaviour
 *
 */
 
-        [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, bool issliding, ClientRpcParams clientRpcParams = default)
     {
         if (Player.GetIsDead())
@@ -891,10 +883,10 @@ public class PlayerMovement : NetworkBehaviour
         transform.position = position;
         Velocity = velocity;
 
-        float a = Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y));
-        ForwardRotation = new Quaternion(0, Rotation.y / a, 0, Rotation.w / a);
+        float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
+        ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
 
-        Orientation.transform.rotation = ForwardRotation;
+        Orientation.rotation = ForwardRotation;
         FPTransform.transform.rotation = rotation;
 
         bIsSliding = issliding;
