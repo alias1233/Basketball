@@ -136,6 +136,10 @@ public class BaseWeapon : MonoBehaviour
 
     public virtual void Fire2() { }
 
+    public virtual void Visuals1() { }
+
+    public virtual void Visuals2() { }
+
     public virtual void StopFire1() { }
 
     public virtual void StopFire2() { }

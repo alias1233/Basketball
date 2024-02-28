@@ -408,11 +408,11 @@ MonoBehaviour:
   Range1: 25
   Range2: 33
   AmmoCount: 0
-  FireCooldown1: 20
+  FireCooldown1: 25
   FireCooldown2: 80
   LastTimeShot1: 0
   LastTimeShot2: 0
-  Damage: 5
+  Damage: 7
   Damage2: 25
   PlayerLayer:
     serializedVersion: 2
@@ -425,7 +425,7 @@ MonoBehaviour:
   BigLaser: {fileID: 2098984543594473315}
   ChargingLaserParticleSystem: {fileID: 5049029758643937587}
   PelletCount: 7
-  RandomOffset: 0.1
+  RandomOffset: 0.15
   Radius2: 2
   MaxChargingTime: 40
 --- !u!1 &1167353757849688728
@@ -27087,7 +27087,6 @@ MonoBehaviour:
   - {fileID: 7591273288929528877}
   BulletPool: {fileID: 6947887084189270757}
   SendInputCooldown: 0.1
-  ReplicateShootingCooldown: 0.15
   IsShooting1: 0
   IsShooting2: 0
   Radius: 10

@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
-using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 using static ConnectionNotificationManager;
 
@@ -39,9 +38,6 @@ public class WeaponManager : NetworkBehaviour
 
     private ActiveWeaponNumber ActiveWeaponIndex;
     private BaseWeapon ActiveWeapon;
-
-    public float ReplicateShootingCooldown = 0.15f;
-    private float LastTimReplicatedShooting;
 
     public bool IsShooting1;
     public bool IsShooting2;
@@ -209,6 +205,8 @@ public class WeaponManager : NetworkBehaviour
             OnChangeActiveWeapon(ActiveWeaponIndex, CurrentInput.ActiveWeapon);
 
             InputsDictionary.Remove(CurrentTimeStamp);
+
+            bReplicateInput = true;
         }
 
         if (CurrentInput.Mouse1)
@@ -306,12 +304,7 @@ public class WeaponManager : NetworkBehaviour
 
     void ServerTickForAll()
     {
-        if (Time.time - LastTimReplicatedShooting >= ReplicateShootingCooldown)
-        {
-            LastTimReplicatedShooting = Time.time;
 
-            ReplicateShootingClientRpc(ActiveWeaponIndex, CurrentInput.Mouse1, CurrentInput.Mouse2, IgnoreOwnerRPCParams);
-        }
     }
 
     void SimulatedProxyTick()
@@ -383,6 +376,30 @@ public class WeaponManager : NetworkBehaviour
         ActiveWeapon.ChangeActive(true);
     }
 
+    public void ReplicateFire(int FireNum)
+    {
+        if(FireNum == 1)
+        {
+            ReplicateFire1ClientRpc(IgnoreOwnerRPCParams);
+
+            return;
+        }
+
+        ReplicateFire2ClientRpc(IgnoreOwnerRPCParams);
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateFire1ClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        ActiveWeapon.Visuals1();
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateFire2ClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        ActiveWeapon.Visuals2();
+    }
+
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendWeaponInputsServerRpc(WeaponInputs input)
     {
@@ -392,12 +409,6 @@ public class WeaponManager : NetworkBehaviour
         }
 
         Player.CheckClientTimeError(input.TimeStamp);
-    }
-
-    [ServerRpc]
-    public void HitPlayerServerRPC(NetworkObjectReference playerGameObject)
-    {
-        
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
