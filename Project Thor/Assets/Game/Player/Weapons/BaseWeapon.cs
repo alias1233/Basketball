@@ -4,19 +4,19 @@ using UnityEngine;
 
 public class BaseWeapon : MonoBehaviour
 {
+    [Header("Components")]
+
     [SerializeField]
     public WeaponManager Manager;
+    [SerializeField]
+    public PlayerMovement PlayerMovementComponent;
 
     [SerializeField]
     public GameObject WeaponModel;
     [SerializeField]
-    public PlayerMovement PlayerMovementComponent;
+    public GameObject MuzzlePoint;
 
-    public List<PlayerManager> RewindedPlayerList;
-    public LayerMask PlayerLayer;
-    public LayerMask ObjectLayer;
-
-    public Vector3 Offset;
+    [Header("Attributes")]
 
     public int Range1;
     public int Range2;
@@ -31,6 +31,15 @@ public class BaseWeapon : MonoBehaviour
 
     public float Damage;
     public float Damage2;
+
+    [Header("Other")]
+
+    public LayerMask PlayerLayer;
+    public LayerMask ObjectLayer;
+
+    public Vector3 Offset;
+
+    public List<PlayerManager> RewindedPlayerList;
 
     private RaycastHit[] Hits = new RaycastHit[5];
 

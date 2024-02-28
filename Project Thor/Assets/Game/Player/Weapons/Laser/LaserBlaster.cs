@@ -1,25 +1,28 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEngine.ParticleSystem;
 
 public class LaserBlaster : BaseWeapon
 {
-    [SerializeField]
-    private GameObject LaserObject;
-    [SerializeField]
-    private LineRenderer Laser;
-    [SerializeField]
-    private ParticleSystem HitPointParticleSystem;
+    [Header("// LaserBlaser //")]
+
     [SerializeField]
     private BigLaserScript BigLaser;
     [SerializeField]
     private ParticleSystem ChargingLaserParticleSystem;
 
+    [Header("Fire 1")]
+
+    public int PelletCount;
+    public float RandomOffset;
+
+    private Ray[] PelletRays;
+
+    [Header("Fire 2")]
+
     public int Radius2;
-
     public int MaxChargingTime;
-
     private bool bIsCharging;
     private float ChargingStartTime;
 
@@ -29,14 +32,36 @@ public class LaserBlaster : BaseWeapon
     {
         base.Start();
 
-        Laser = LaserObject.GetComponent<LineRenderer>();
+        PelletRays = new Ray[PelletCount];
     }
 
     public override void Fire1()
     {
-        if(!Laser.enabled)
+        for(int i = 0; i < PelletCount; i++)
         {
-            Laser.enabled = true;
+            PelletRays[i] = new Ray(MuzzlePoint.transform.position, PlayerMovementComponent.GetRotation()
+                * (Vector3.forward + Offset + Vector3.up * Random.Range(-RandomOffset, RandomOffset) + Vector3.right * Random.Range(-RandomOffset, RandomOffset)));
+
+            Vector3 HitPos = PelletRays[i].GetPoint(Range1);
+            RaycastHit hit;
+
+            if (Physics.Raycast(PelletRays[i], out hit, Range1, ObjectLayer))
+            {
+                HitPos = hit.point;
+            }
+
+            GameObject Bullet = Manager.BulletPool.GetPooledObject();
+
+            if(Bullet != null)
+            {
+                if(Bullet.TryGetComponent<LineRenderer>(out LineRenderer tracer))
+                {
+                    Bullet.SetActive(true);
+
+                    tracer.SetPosition(0, MuzzlePoint.transform.position);
+                    tracer.SetPosition(1, HitPos);
+                }
+            }
         }
 
         if (!Manager.GetHasAuthority())
@@ -44,36 +69,30 @@ public class LaserBlaster : BaseWeapon
             return;
         }
 
-        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+        Ray CenterRay = new Ray(MuzzlePoint.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
-        if(!Manager.GetIsOwner())
+        if (!Manager.GetIsOwner())
         {
-            if (!RewindPlayers(laserRay, Range1))
+            if (!RewindPlayers(CenterRay, Range1))
             {
                 return;
             }
         }
 
-        int NumHits = Physics.RaycastNonAlloc(laserRay, Hits, Range1, PlayerLayer);
-
-        for (int i = 0; i < NumHits; i++)
+        for (int i = 0; i < PelletCount; i++)
         {
-            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            RaycastHit hit;
+
+            if (Physics.Raycast(PelletRays[i], out hit, Range1, PlayerLayer))
             {
-                stats.Damage(Manager.GetTeam(), Damage);
+                if (hit.transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+                {
+                    stats.Damage(Manager.GetTeam(), Damage);
+                }
             }
         }
 
         ResetRewindedPlayers();
-    }
-
-    public override void StopFire1()
-    {
-        if (Laser.enabled)
-        {
-            Laser.enabled = false;
-            HitPointParticleSystem.Stop();
-        }
     }
 
     public override void Fire2()
@@ -103,17 +122,17 @@ public class LaserBlaster : BaseWeapon
         ChargingLaserParticleSystem.Clear();
         ChargingLaserParticleSystem.Stop();
 
-        Ray laserRay2 = new Ray(LaserObject.transform.position, LaserObject.transform.rotation * (Vector3.forward + Offset));
+        Ray laserRay2 = new Ray(MuzzlePoint.transform.position, MuzzlePoint.transform.rotation * (Vector3.forward + Offset));
         RaycastHit colliderInfo2;
 
         if (Physics.Raycast(laserRay2, out colliderInfo2, Range2, ObjectLayer))
         {
-            BigLaser.ShootLaser(colliderInfo2.distance / 2);
+            BigLaser.ShootLaser(colliderInfo2.distance / 2, MuzzlePoint.transform.rotation * (Vector3.forward + Offset));
         }
 
         else
         {
-            BigLaser.ShootLaser(Range2 / 2);
+            BigLaser.ShootLaser(Range2 / 2, MuzzlePoint.transform.rotation * (Vector3.forward + Offset));
         }
 
         if (!Manager.GetHasAuthority())
@@ -121,7 +140,7 @@ public class LaserBlaster : BaseWeapon
             return;
         }
 
-        Ray laserRay = new Ray(LaserObject.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+        Ray laserRay = new Ray(MuzzlePoint.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
         if (!Manager.GetIsOwner())
         {
@@ -150,45 +169,7 @@ public class LaserBlaster : BaseWeapon
     }
     public override void OnDeactivate()
     {
-        Laser.enabled = false;
-        HitPointParticleSystem.Stop();
         ChargingLaserParticleSystem.Clear();
         ChargingLaserParticleSystem.Stop();
-    }
-
-    public void LateUpdate()
-    {
-        if (!Laser.enabled)
-        {
-            return;
-        }
-
-        Laser.SetPosition(0, LaserObject.transform.position);
-
-        Ray laserRay = new Ray(LaserObject.transform.position, LaserObject.transform.rotation * (Vector3.forward + Offset));
-        RaycastHit colliderInfo;
-
-        if (Physics.Raycast(laserRay, out colliderInfo, Range1, ObjectLayer))
-        {
-            Laser.SetPosition(1, colliderInfo.point);
-
-            if (!HitPointParticleSystem.isPlaying)
-            {
-                HitPointParticleSystem.Play();
-            }
-
-            HitPointParticleSystem.transform.position = colliderInfo.point;
-
-            return;
-        }
-
-        Vector3 endpointpos = laserRay.GetPoint(Range1);
-
-        Laser.SetPosition(1, endpointpos);
-
-        if (HitPointParticleSystem.isPlaying)
-        {
-            HitPointParticleSystem.Stop();
-        }
     }
 }

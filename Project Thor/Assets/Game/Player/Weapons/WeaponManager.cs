@@ -18,16 +18,17 @@ public class WeaponManager : NetworkBehaviour
 
     private PlayerManager Player;
 
+    [SerializeField]
+    private List<BaseWeapon> WeaponList;
+    public ObjectPool BulletPool;
+
+    [Header("Client Data")]
+
     private int CurrentTimeStamp;
 
     private NetworkRole LocalRole;
     private ClientRpcParams IgnoreOwnerRPCParams;
     private List<ulong> ClientIDList = new List<ulong>();
-
-    [SerializeField]
-    private List<BaseWeapon> WeaponList;
-
-    [Header("Client Data")]
 
     public float SendInputCooldown = 0.1f;
     private float LastTimeSentInputs;

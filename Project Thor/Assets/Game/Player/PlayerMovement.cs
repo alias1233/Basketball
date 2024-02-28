@@ -81,7 +81,7 @@ public class PlayerMovement : NetworkBehaviour
     public float WallRunSpeed;
     public float MinWallRunSpeed;
     public float SlideJumpForce;
-    public float WallWunDampen;
+    public float WallRunDampen;
     public float JumpForce = 10f;
     public int JumpCooldown = 30;
 
@@ -531,7 +531,7 @@ public class PlayerMovement : NetworkBehaviour
 
             else
             {
-                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * SlideMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
         }
 
@@ -539,11 +539,10 @@ public class PlayerMovement : NetworkBehaviour
         {
             if (CurrentInput.D && CheckForRightWall() && Velocity.magnitude >= MinWallRunSpeed)
             {
-                Vector3 JumpVel = Vector3.zero;
-                Velocity = new Vector3(Velocity.x, Velocity.y * (1 - WallWunDampen * DeltaTime), Velocity.z);
-
                 Vector3 WallNormal = RightWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+                Vector3 JumpVel = Vector3.zero;
+                Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
                 if ((Orientation.transform.forward - WallForward).magnitude > (Orientation.transform.forward + WallForward).magnitude)
                 {
@@ -557,16 +556,15 @@ public class PlayerMovement : NetworkBehaviour
                     JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
                 }
 
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WalkMoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
 
             else if(CurrentInput.A && CheckForLeftWall() && Velocity.magnitude >= MinWallRunSpeed)
             {
-                Vector3 JumpVel = Vector3.zero;
-                Velocity = new Vector3(Velocity.x, Velocity.y * (1 - WallWunDampen * DeltaTime), Velocity.z);
-
                 Vector3 WallNormal = LeftWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+                Vector3 JumpVel = Vector3.zero;
+                Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
                 if ((Orientation.transform.forward - WallForward).magnitude > (Orientation.transform.forward + WallForward).magnitude)
                 {
@@ -580,7 +578,7 @@ public class PlayerMovement : NetworkBehaviour
                     JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
                 }
 
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WalkMoveSpeed * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
 
             else

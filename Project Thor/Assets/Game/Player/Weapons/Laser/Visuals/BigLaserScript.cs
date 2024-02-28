@@ -19,21 +19,21 @@ public class BigLaserScript : MonoBehaviour
         OuterLaserModule = OuterLaser.main;
     }
 
-    public void ShootLaser(float size)
+    public void ShootLaser(float size, Vector3 rotinvector)
     {
         BaseLaserModule.startSizeY = size;
         OuterLaserModule.startSizeY = size;
 
-        Quaternion ForwardRotation = transform.rotation;
+        Quaternion rotation = Quaternion.LookRotation(rotinvector, Vector3.up);
         const float AngleToRadianFactor = Mathf.PI / 180;
 
-        BaseLaserModule.startRotationX = (ForwardRotation.eulerAngles.x + 90) * AngleToRadianFactor;
-        BaseLaserModule.startRotationY = ForwardRotation.eulerAngles.y * AngleToRadianFactor;
-        BaseLaserModule.startRotationZ = ForwardRotation.eulerAngles.z * AngleToRadianFactor;
+        BaseLaserModule.startRotationX = (rotation.eulerAngles.x + 90) * AngleToRadianFactor;
+        BaseLaserModule.startRotationY = rotation.eulerAngles.y * AngleToRadianFactor;
+        BaseLaserModule.startRotationZ = rotation.eulerAngles.z * AngleToRadianFactor;
 
-        OuterLaserModule.startRotationX = (ForwardRotation.eulerAngles.x + 90) * AngleToRadianFactor;
-        OuterLaserModule.startRotationY = ForwardRotation.eulerAngles.y * AngleToRadianFactor;
-        OuterLaserModule.startRotationZ = ForwardRotation.eulerAngles.z * AngleToRadianFactor;
+        OuterLaserModule.startRotationX = (rotation.eulerAngles.x + 90) * AngleToRadianFactor;
+        OuterLaserModule.startRotationY = rotation.eulerAngles.y * AngleToRadianFactor;
+        OuterLaserModule.startRotationZ = rotation.eulerAngles.z * AngleToRadianFactor;
 
         BaseLaser.Play();
         OuterLaser.Play();
