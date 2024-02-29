@@ -404,7 +404,7 @@ MonoBehaviour:
   Manager: {fileID: 7615932657460978550}
   PlayerMovementComponent: {fileID: 1582057334220984081}
   WeaponModel: {fileID: 6450711723351282781}
-  MuzzlePoint: {fileID: 7071755324937994329}
+  MuzzlePoint: {fileID: 4048527505604877560}
   Range1: 25
   Range2: 33
   AmmoCount: 0
@@ -420,8 +420,7 @@ MonoBehaviour:
   ObjectLayer:
     serializedVersion: 2
     m_Bits: 1
-  Offset: {x: -0.025, y: 0.0025, z: 0}
-  RewindedPlayerList: []
+  Offset: {x: -0.025, y: 0.0035, z: 0}
   BigLaser: {fileID: 2098984543594473315}
   ChargingLaserParticleSystem: {fileID: 5049029758643937587}
   PelletCount: 7
@@ -10436,7 +10435,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   Offset: {x: 0, y: 0, z: 0}
-  RewindedPlayerList: []
 --- !u!1 &2461330802764253361
 GameObject:
   m_ObjectHideFlags: 0
@@ -11037,7 +11035,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   Offset: {x: -0.01, y: 0.0025, z: 0}
-  RewindedPlayerList: []
   PistolObject: {fileID: 1589560710090686395}
 --- !u!1 &3817810368320610195
 GameObject:
@@ -21722,7 +21719,7 @@ Transform:
   m_GameObject: {fileID: 6623393761367380853}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.11900003, y: 0.148, z: -0.36619988}
+  m_LocalPosition: {x: -0.11900003, y: 0.08000001, z: -0.3451999}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -21788,7 +21785,7 @@ Transform:
   m_GameObject: {fileID: 7071755324937994329}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.569, y: -0.105, z: 0.776}
+  m_LocalPosition: {x: 0.569, y: -0.173, z: 0.797}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -27008,9 +27005,9 @@ MonoBehaviour:
   CameraVisuals: {fileID: 4863658588513074839}
   FirstPersonPlayerUI: {fileID: 5984778461918668308}
   MaxHealth: 100
+  RespawnTime: 7
   FirstPersonHealthBarText: {fileID: 5408985262634759504}
   ThirdPersonHealthBarText: {fileID: 5873698487589161670}
-  RespawnTime: 7
 --- !u!114 &1582057334220984081
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27023,8 +27020,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 058a047dd5e7ae646aa53d3355716b4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Orientation: {fileID: 2328282342131481982}
-  FPTransform: {fileID: 245901753364132158}
+  TPOrientation: {fileID: 2328282342131481982}
+  FPOrientation: {fileID: 245901753364132158}
   ReplicatePositionInterval: 0.075
   CorrectionDistance: 0.5
   MinTimeBetweenCorrections: 1
@@ -27065,10 +27062,6 @@ MonoBehaviour:
   FirstPersonDashParticles: {fileID: 7429191906427250410}
   ThirdPersonDashParticles: {fileID: 7142454795173292616}
   DashTrails: {fileID: 3087438247527566822}
-  ALLOWTESTING: 0
-  TESTINGBOOL: 0
-  TESTINGBOOL2: 0
-  TESTINGINT: 0
 --- !u!114 &7615932657460978550
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27081,6 +27074,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f044e46372ef69143ab7889d67b40ca8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  TPOrientation: {fileID: 2328282342131481982}
+  FPOrientation: {fileID: 245901753364132158}
   WeaponList:
   - {fileID: 2916724919434419935}
   - {fileID: 8659476585469238600}
@@ -27089,7 +27084,8 @@ MonoBehaviour:
   SendInputCooldown: 0.1
   IsShooting1: 0
   IsShooting2: 0
-  Radius: 10
+  RadiusOfRewindCheck: 10
+  ReplicateWeaponSwitchCooldown: 0.5
 --- !u!136 &5985029051314000624
 CapsuleCollider:
   m_ObjectHideFlags: 0

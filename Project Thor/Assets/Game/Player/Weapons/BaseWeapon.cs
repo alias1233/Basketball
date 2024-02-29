@@ -14,7 +14,7 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public GameObject WeaponModel;
     [SerializeField]
-    public GameObject MuzzlePoint;
+    public Transform MuzzlePoint;
 
     [Header("Attributes")]
 
@@ -39,7 +39,7 @@ public class BaseWeapon : MonoBehaviour
 
     public Vector3 Offset;
 
-    public List<PlayerManager> RewindedPlayerList;
+    private List<PlayerManager> RewindedPlayerList;
 
     private RaycastHit[] Hits = new RaycastHit[5];
 

@@ -46,7 +46,7 @@ public class LaserBlaster : BaseWeapon
 
         Manager.ReplicateFire(1);
 
-        Ray CenterRay = new Ray(MuzzlePoint.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+        Ray CenterRay = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
         if (!Manager.GetIsOwner())
         {
@@ -76,8 +76,16 @@ public class LaserBlaster : BaseWeapon
     {
         for (int i = 0; i < PelletCount; i++)
         {
-            PelletRays[i] = new Ray(MuzzlePoint.transform.position, PlayerMovementComponent.GetRotation()
+            if(i == 0)
+            {
+                PelletRays[i] = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+            }
+
+            else
+            {
+                PelletRays[i] = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation()
                 * (Vector3.forward + Offset + Vector3.up * Random.Range(-RandomOffset, RandomOffset) + Vector3.right * Random.Range(-RandomOffset, RandomOffset)));
+            }
 
             Vector3 HitPos = PelletRays[i].GetPoint(Range1);
             RaycastHit hit;
@@ -95,7 +103,7 @@ public class LaserBlaster : BaseWeapon
                 {
                     Bullet.SetActive(true);
 
-                    tracer.SetPosition(0, MuzzlePoint.transform.position);
+                    tracer.SetPosition(0, MuzzlePoint.position);
                     tracer.SetPosition(1, HitPos);
                 }
             }
@@ -138,7 +146,7 @@ public class LaserBlaster : BaseWeapon
 
         Manager.ReplicateFire(2);
 
-        Ray laserRay = new Ray(MuzzlePoint.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+        Ray laserRay = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
 
         if (!Manager.GetIsOwner())
         {
@@ -163,17 +171,17 @@ public class LaserBlaster : BaseWeapon
 
     public override void Visuals2()
     {
-        Ray laserRay2 = new Ray(MuzzlePoint.transform.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
+        Ray laserRay2 = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * (Vector3.forward + Offset));
         RaycastHit colliderInfo2;
 
         if (Physics.Raycast(laserRay2, out colliderInfo2, Range2, ObjectLayer))
         {
-            BigLaser.ShootLaser(colliderInfo2.distance / 2, MuzzlePoint.transform.rotation * (Vector3.forward + Offset));
+            BigLaser.ShootLaser(colliderInfo2.distance / 2, MuzzlePoint.rotation * (Vector3.forward + Offset));
         }
 
         else
         {
-            BigLaser.ShootLaser(Range2 / 2, MuzzlePoint.transform.rotation * (Vector3.forward + Offset));
+            BigLaser.ShootLaser(Range2 / 2, MuzzlePoint.rotation * (Vector3.forward + Offset));
         }
     }
 

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 using static ConnectionNotificationManager;
 
 public enum ActiveWeaponNumber
@@ -16,6 +17,8 @@ public class WeaponManager : NetworkBehaviour
     [Header("Components")]
 
     private PlayerManager Player;
+    public Transform TPOrientation;
+    public Transform FPOrientation;
 
     [SerializeField]
     private List<BaseWeapon> WeaponList;
@@ -42,9 +45,12 @@ public class WeaponManager : NetworkBehaviour
     public bool IsShooting1;
     public bool IsShooting2;
 
-    [Header("Client Data")]
+    public int RadiusOfRewindCheck;
 
-    public int Radius;
+    [Header("Replicate Firing")]
+
+    public float ReplicateWeaponSwitchCooldown = 0.5f;
+    private float LastTimeReplicatedWeaponSwitch;
 
     private void Start()
     {
@@ -143,7 +149,7 @@ public class WeaponManager : NetworkBehaviour
 
             case NetworkRole.SimulatedProxy:
 
-                SimulatedProxyTick();
+
 
                 break;
         }
@@ -257,6 +263,15 @@ public class WeaponManager : NetworkBehaviour
             OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
         }
 
+        if(!bReplicateInput)
+        {
+            bReplicateInput =
+                !(
+                CurrentInput.Mouse1 == Input.GetKey(KeyCode.Mouse0) &&
+                CurrentInput.Mouse2 == Input.GetKey(KeyCode.Mouse1)
+                );
+        }
+
         if (Time.time - LastTimeSentInputs >= SendInputCooldown || bReplicateInput)
         {
             bReplicateInput = false;
@@ -304,39 +319,16 @@ public class WeaponManager : NetworkBehaviour
 
     void ServerTickForAll()
     {
-
-    }
-
-    void SimulatedProxyTick()
-    {
-        if (IsShooting1)
+        if(bReplicateInput)
         {
-            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot1 >= ActiveWeapon.FireCooldown1)
+            if (Time.time - LastTimeReplicatedWeaponSwitch >= ReplicateWeaponSwitchCooldown)
             {
-                ActiveWeapon.LastTimeShot1 = CurrentTimeStamp;
+                LastTimeReplicatedWeaponSwitch = Time.time;
 
-                ActiveWeapon.Fire1();
+                bReplicateInput = false;
+
+                ReplicateWeaponSwitchClientRpc(ActiveWeaponIndex, IgnoreOwnerRPCParams);
             }
-        }
-
-        else
-        {
-            ActiveWeapon.StopFire1();
-        }
-
-        if (IsShooting2)
-        {
-            if (CurrentTimeStamp - ActiveWeapon.LastTimeShot2 >= ActiveWeapon.FireCooldown2)
-            {
-                ActiveWeapon.LastTimeShot2 = CurrentTimeStamp;
-
-                ActiveWeapon.Fire2();
-            }
-        }
-
-        else
-        {
-            ActiveWeapon.StopFire2();
         }
     }
 
@@ -376,30 +368,6 @@ public class WeaponManager : NetworkBehaviour
         ActiveWeapon.ChangeActive(true);
     }
 
-    public void ReplicateFire(int FireNum)
-    {
-        if(FireNum == 1)
-        {
-            ReplicateFire1ClientRpc(IgnoreOwnerRPCParams);
-
-            return;
-        }
-
-        ReplicateFire2ClientRpc(IgnoreOwnerRPCParams);
-    }
-
-    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateFire1ClientRpc(ClientRpcParams clientRpcParams = default)
-    {
-        ActiveWeapon.Visuals1();
-    }
-
-    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateFire2ClientRpc(ClientRpcParams clientRpcParams = default)
-    {
-        ActiveWeapon.Visuals2();
-    }
-
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
     public void SendWeaponInputsServerRpc(WeaponInputs input)
     {
@@ -411,12 +379,48 @@ public class WeaponManager : NetworkBehaviour
         Player.CheckClientTimeError(input.TimeStamp);
     }
 
+    public void ReplicateFire(int FireNum)
+    {
+        LastTimeReplicatedWeaponSwitch = Time.time;
+
+        if (FireNum == 1)
+        {
+            ReplicateFire1ClientRpc(ActiveWeaponIndex, FPOrientation.transform.rotation, IgnoreOwnerRPCParams);
+
+            return;
+        }
+        
+        ReplicateFire2ClientRpc(ActiveWeaponIndex, FPOrientation.transform.rotation, IgnoreOwnerRPCParams);
+    }
+
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateShootingClientRpc(ActiveWeaponNumber activeweapon, bool mouse1, bool mouse2, ClientRpcParams clientRpcParams = default)
+    public void ReplicateFire1ClientRpc(ActiveWeaponNumber activeweapon, Quaternion rotation, ClientRpcParams clientRpcParams = default)
+    {
+        FPOrientation.rotation = rotation;
+        float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
+        TPOrientation.rotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
+
+        OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
+
+        ActiveWeapon.Visuals1();
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateFire2ClientRpc(ActiveWeaponNumber activeweapon, Quaternion rotation, ClientRpcParams clientRpcParams = default)
+    {
+        FPOrientation.rotation = rotation;
+        float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
+        TPOrientation.rotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
+
+        OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
+
+        ActiveWeapon.Visuals2();
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateWeaponSwitchClientRpc(ActiveWeaponNumber activeweapon, ClientRpcParams clientRpcParams = default)
     {
         OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
-        IsShooting1 = mouse1;
-        IsShooting2 = mouse2;
     }
 
     public bool GetIsOwner()
@@ -441,7 +445,7 @@ public class WeaponManager : NetworkBehaviour
 
     public int GetRadius()
     {
-        return Radius;
+        return RadiusOfRewindCheck;
     }
 
     public int GetTimeStamp()

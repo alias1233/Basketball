@@ -9,8 +9,8 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Components")]
 
     private PlayerManager Player;
-    public Transform Orientation;
-    public Transform FPTransform;
+    public Transform TPOrientation;
+    public Transform FPOrientation;
     private CapsuleCollider Collider;
 
     [Header("Ticking")]
@@ -146,17 +146,6 @@ public class PlayerMovement : NetworkBehaviour
     private int StartDashTime;
     private Quaternion DashingStartRotation;
 
-    [Header("TESTING")]
-
-    public bool ALLOWTESTING;
-    public bool TESTINGBOOL;
-    public bool TESTINGBOOL2;
-    public int TESTINGINT;
-
-    /*
-    public float MaxSlopeAngle = 55;
-    */
-
     // Start is called before the first frame update
     void Start()
     {
@@ -233,69 +222,8 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    private void Update()
-    {
-        if(!IsOwner)
-        {
-            return;
-        }
-
-        //if(Input.GetKeyDown(KeyCode.LeftShift))
-
-        if (Input.GetKeyDown(KeyCode.CapsLock))
-        {
-            bShift = true;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            bSpaceBar = true;
-        }
-    }
-
     void HostTick()
     {
-        /*
-        if(ALLOWTESTING)
-        {
-            if (Input.GetKeyDown(KeyCode.CapsLock))
-            {
-                TESTINGBOOL = true;
-            }
-
-            if (TESTINGBOOL)
-            {
-                if (CurrentTimeStamp - TESTINGINT >= 120)
-                {
-                    TESTINGINT = CurrentTimeStamp;
-
-                    TESTINGBOOL2 = !TESTINGBOOL2;
-                }
-
-                if (TESTINGBOOL2)
-                {
-                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, true, false, false, false, true, false);
-                }
-
-                else
-                {
-                    CurrentInput = new Inputs(CurrentTimeStamp, Rotation, false, false, false, true, false, true, false);
-                }
-            }
-
-            else
-            {
-                CurrentInput = CreateInput();
-            }
-
-            HandleInputs(CurrentInput);
-
-            MovePlayer();
-
-            return;
-        }
-        */
-
         CreateInputs(ref CurrentInput);
 
         HandleInputs(ref CurrentInput);
@@ -314,7 +242,7 @@ public class PlayerMovement : NetworkBehaviour
 
         HandleInputs(ref CurrentInput);
 
-        FPTransform.transform.rotation = Rotation;
+        FPOrientation.transform.rotation = Rotation;
 
         MovePlayer();
 
@@ -389,8 +317,8 @@ public class PlayerMovement : NetworkBehaviour
     {
         if(ThirdPersonDashParticles.isPlaying)
         {
-            ThirdPersonDashParticles.transform.position = FPTransform.position + Velocity.normalized * 2;
-            ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPTransform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+            ThirdPersonDashParticles.transform.position = FPOrientation.position + Velocity.normalized * 2;
+            ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - ThirdPersonDashParticles.transform.position), Vector3.up);
         }
 
         else
@@ -419,8 +347,8 @@ public class PlayerMovement : NetworkBehaviour
 
             if(IsOwner)
             {
-                FirstPersonDashParticles.transform.position = FPTransform.transform.position + DashingStartRotation * Vector3.forward * 2;
-                FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPTransform.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+                FirstPersonDashParticles.transform.position = FPOrientation.transform.position + DashingStartRotation * Vector3.forward * 2;
+                FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.transform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
 
                 FirstPersonDashParticles.Play();
                 DashTrails.emitting = true;
@@ -430,8 +358,8 @@ public class PlayerMovement : NetworkBehaviour
 
             else
             {
-                ThirdPersonDashParticles.transform.position = FPTransform.position + DashingStartRotation * Vector3.forward * 2;
-                ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPTransform.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+                ThirdPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * Vector3.forward * 2;
+                ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - ThirdPersonDashParticles.transform.position), Vector3.up);
 
                 ThirdPersonDashParticles.Play();
                 DashTrails.emitting = true;
@@ -544,7 +472,7 @@ public class PlayerMovement : NetworkBehaviour
                 Vector3 JumpVel = Vector3.zero;
                 Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
-                if ((Orientation.transform.forward - WallForward).magnitude > (Orientation.transform.forward + WallForward).magnitude)
+                if ((TPOrientation.transform.forward - WallForward).magnitude > (TPOrientation.transform.forward + WallForward).magnitude)
                 {
                     WallForward = -WallForward;
                 }
@@ -566,7 +494,7 @@ public class PlayerMovement : NetworkBehaviour
                 Vector3 JumpVel = Vector3.zero;
                 Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
-                if ((Orientation.transform.forward - WallForward).magnitude > (Orientation.transform.forward + WallForward).magnitude)
+                if ((TPOrientation.transform.forward - WallForward).magnitude > (TPOrientation.transform.forward + WallForward).magnitude)
                 {
                     WallForward = -WallForward;
                 }
@@ -617,12 +545,12 @@ public class PlayerMovement : NetworkBehaviour
 
     public bool CheckForRightWall()
     {
-        return bWallRight = Physics.Raycast(transform.position, Orientation.transform.right, out RightWallHit, 1, WhatIsGround);
+        return bWallRight = Physics.Raycast(transform.position, TPOrientation.transform.right, out RightWallHit, 1, WhatIsGround);
     }
 
     public bool CheckForLeftWall()
     {
-        return bWallLeft = Physics.Raycast(transform.position, -Orientation.transform.right, out LeftWallHit, 1, WhatIsGround);
+        return bWallLeft = Physics.Raycast(transform.position, -TPOrientation.transform.right, out LeftWallHit, 1, WhatIsGround);
     }
 
     public void SafeMovePlayer(Vector3 delta)
@@ -782,15 +710,33 @@ public class PlayerMovement : NetworkBehaviour
         CorrectionSmoothTime = DefaultCorrectionSmoothTime;
     }
 
-/*
-*
-* Inputs
-*
-*/
+    /*
+    *
+    * Inputs
+    *
+    */
+
+    private void Update()
+    {
+        if (!IsOwner)
+        {
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.CapsLock))
+        {
+            bShift = true;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            bSpaceBar = true;
+        }
+    }
 
     private void CreateInputs(ref Inputs input)
     {
-        Rotation = FPTransform.transform.rotation;
+        Rotation = FPOrientation.transform.rotation;
 
         input.TimeStamp = CurrentTimeStamp;
         input.Rotation = Rotation;
@@ -801,18 +747,6 @@ public class PlayerMovement : NetworkBehaviour
         input.SpaceBar = bSpaceBar;
         input.Shift = bShift;
         input.CTRL = Input.GetKey(KeyCode.LeftShift);
-
-        /*
-        input.TimeStamp = CurrentTimeStamp;
-        input.Rotation = Rotation;
-        input.W = Input.GetKey(KeyCode.W);
-        input.A = Input.GetKey(KeyCode.A);
-        input.S = Input.GetKey(KeyCode.S);
-        input.D = Input.GetKey(KeyCode.D);
-        input.SpaceBar = bSpaceBar;
-        input.Shift = bShift;
-        input.CTRL = Input.GetKey(KeyCode.CapsLock);
-        */
 
         bSpaceBar = false;
         bShift = false;
@@ -826,26 +760,26 @@ public class PlayerMovement : NetworkBehaviour
         float a = Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y));
         ForwardRotation = new Quaternion(0, Rotation.y / a, 0, Rotation.w / a);
 
-        Orientation.rotation = ForwardRotation;
+        TPOrientation.rotation = ForwardRotation;
 
         if (input.W)
         {
-            MoveDirection += Orientation.transform.forward;
+            MoveDirection += TPOrientation.transform.forward;
         }
 
         if (input.A)
         {
-            MoveDirection -= Orientation.transform.right;
+            MoveDirection -= TPOrientation.transform.right;
         }
 
         if (input.S)
         {
-            MoveDirection -= Orientation.transform.forward;
+            MoveDirection -= TPOrientation.transform.forward;
         }
 
         if (input.D)
         {
-            MoveDirection += Orientation.transform.right;
+            MoveDirection += TPOrientation.transform.right;
         }
 
         MoveDirection.Normalize();
@@ -884,8 +818,8 @@ public class PlayerMovement : NetworkBehaviour
         float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
         ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
 
-        Orientation.rotation = ForwardRotation;
-        FPTransform.transform.rotation = rotation;
+        TPOrientation.rotation = ForwardRotation;
+        FPOrientation.transform.rotation = rotation;
 
         bIsSliding = issliding;
 
@@ -969,37 +903,3 @@ public class PlayerMovement : NetworkBehaviour
         return bIsSliding;
     }
 }
-
-/*
-            float Angle = Vector3.Angle(Vector3.up, hit.normal);
-
-            if(Angle <= MaxSlopeAngle)
-            {
-                Leftover = ProjectAndScale(Leftover, hit.normal);
-            }
-
-            else
-            {
-                float Scale = 1 - Vector3.Dot(
-                    new Vector3(hit.normal.x, 0, hit.normal.z).normalized,
-                    -new Vector3(VelInit.x, 0, VelInit.z).normalized
-                    );
-
-                if(bIsGrounded)
-                {
-                    Leftover = ProjectAndScale(
-                        new Vector3(Leftover.x, 0, Leftover.z),
-                        new Vector3(hit.normal.x, 0, hit.normal.z)
-                        ).normalized;
-
-                    Leftover *= Scale;
-                }
-
-                else
-                {
-                    Leftover = ProjectAndScale(Leftover, hit.normal) * Scale;
-                }
-            }
-
-            Leftover = ProjectAndScale(Leftover, hit.normal);
-            */

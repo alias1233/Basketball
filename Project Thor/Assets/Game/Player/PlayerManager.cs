@@ -52,19 +52,19 @@ public class PlayerManager : NetworkBehaviour
 
     [Header("Stats")]
 
+    private Teams Team;
+
     public int MaxHealth;
     private NetworkVariable<float> Health = new NetworkVariable<float>();
+
+    public int RespawnTime;
+
+    private bool Dead;
 
     [SerializeField]
     private TMP_Text FirstPersonHealthBarText;
     [SerializeField]
     private TMP_Text ThirdPersonHealthBarText;
-
-    private Teams Team;
-
-    private bool Dead;
-
-    public int RespawnTime;
 
     // Start is called before the first frame update
     void Start()
