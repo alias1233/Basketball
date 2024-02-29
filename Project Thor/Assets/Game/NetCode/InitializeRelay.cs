@@ -54,6 +54,8 @@ public class InitializeRelay : MonoBehaviour
             unityTransport.SetRelayServerData(new RelayServerData(allocation, "wss"));
             unityTransport.UseWebSockets = true;
 
+            //unityTransport.SetRelayServerData(new RelayServerData(allocation, "udp"));
+
             NetworkManager.Singleton.StartHost();
             return joincode;
         }
@@ -76,6 +78,8 @@ public class InitializeRelay : MonoBehaviour
 
             unityTransport.SetRelayServerData(new RelayServerData(joinAllocation, "wss"));
             unityTransport.UseWebSockets = true;
+
+            //unityTransport.SetRelayServerData(new RelayServerData(joinAllocation, "udp"));
 
             NetworkManager.Singleton.StartClient();
         }
