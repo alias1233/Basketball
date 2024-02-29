@@ -49,7 +49,7 @@ Material:
     - _Overlay: 0
     - _SteepAngleMultiplier: 0
     - _SteepAngleThreshold: -0.69
-    - _Thickness: 1
+    - _Thickness: 100
     m_Colors:
     - _OutLineColor: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
