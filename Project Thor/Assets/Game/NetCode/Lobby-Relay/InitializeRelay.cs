@@ -15,7 +15,7 @@ public class InitializeRelay : MonoBehaviour
     public static InitializeRelay Instance { get; private set; }
 
     [SerializeField]
-    MainMenuScript mainmenuscript;
+    LobbyUI lobbyUI;
 
     private void Awake()
     {
@@ -27,20 +27,11 @@ public class InitializeRelay : MonoBehaviour
         joinrelay(joinCode);
     }
 
-    private async void Start()
+    public async void GetRegions()
     {
-        await UnityServices.InitializeAsync();
-
-        AuthenticationService.Instance.SignedIn += () =>
-        {
-            Debug.Log(" signed in " + AuthenticationService.Instance.PlayerId);
-        };
-
-        await AuthenticationService.Instance.SignInAnonymouslyAsync();
-
         var regionsTask = await Relay.Instance.ListRegionsAsync();
 
-        mainmenuscript.InitRegions(regionsTask);
+        lobbyUI.InitRegions(regionsTask);
     }
 
     public async Task<string> CreateRelay(string region)
@@ -53,8 +44,6 @@ public class InitializeRelay : MonoBehaviour
             var unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             unityTransport.SetRelayServerData(new RelayServerData(allocation, "wss"));
             unityTransport.UseWebSockets = true;
-
-            //unityTransport.SetRelayServerData(new RelayServerData(allocation, "udp"));
 
             NetworkManager.Singleton.StartHost();
             return joincode;
@@ -78,8 +67,6 @@ public class InitializeRelay : MonoBehaviour
 
             unityTransport.SetRelayServerData(new RelayServerData(joinAllocation, "wss"));
             unityTransport.UseWebSockets = true;
-
-            //unityTransport.SetRelayServerData(new RelayServerData(joinAllocation, "udp"));
 
             NetworkManager.Singleton.StartClient();
         }

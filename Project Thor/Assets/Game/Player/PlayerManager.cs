@@ -183,18 +183,9 @@ public class PlayerManager : NetworkBehaviour
 
         RewindDataDictionary.Add(TimeStamp, transform.position);
 
-        if(TimeStamp % 40 == 0)
+        if(TimeStamp >= 40)
         {
-            RewindDataDictionary.Keys.CopyTo(Keys, 0);
-            int Threshold = TimeStamp - 40;
-
-            foreach (int i in Keys)
-            {
-                if(i < Threshold)
-                {
-                    RewindDataDictionary.Remove(i);
-                }
-            }
+            RewindDataDictionary.Remove(TimeStamp - 40);
         }
 
         if(transform.position.y < -100)

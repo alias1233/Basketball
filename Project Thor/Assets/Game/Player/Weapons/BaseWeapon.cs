@@ -39,7 +39,7 @@ public class BaseWeapon : MonoBehaviour
 
     public Vector3 Offset;
 
-    private List<PlayerManager> RewindedPlayerList;
+    private List<PlayerManager> RewindedPlayerList = new List<PlayerManager>();
 
     private RaycastHit[] Hits = new RaycastHit[5];
 
