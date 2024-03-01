@@ -185,7 +185,8 @@ public class LobbyManager : MonoBehaviour {
         }
     }
 
-    public async void CreateLobby(string lobbyName, int maxPlayers, bool isPrivate, GameMode gameMode) {
+    public async void CreateLobby(string lobbyName, int maxPlayers, bool isPrivate, GameMode gameMode) 
+    {
         Player player = GetPlayer();
 
         CreateLobbyOptions options = new CreateLobbyOptions {
@@ -211,7 +212,8 @@ public class LobbyManager : MonoBehaviour {
         Debug.Log("Created Lobby " + lobby.Name);
     }
 
-    public async void RefreshLobbyList() {
+    public async void RefreshLobbyList()
+    {
         try {
             QueryLobbiesOptions options = new QueryLobbiesOptions();
             options.Count = 25;
