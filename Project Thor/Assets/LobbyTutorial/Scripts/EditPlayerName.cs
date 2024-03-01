@@ -5,22 +5,15 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class EditPlayerName : MonoBehaviour {
-
-
+public class EditPlayerName : MonoBehaviour 
+{
     public static EditPlayerName Instance { get; private set; }
-
-
     public event EventHandler OnNameChanged;
-
-
     [SerializeField] private TextMeshProUGUI playerNameText;
-
-
     private string playerName = "Name";
 
-
-    private void Awake() {
+    private void Awake() 
+    {
         Instance = this;
 
         GetComponent<Button>().onClick.AddListener(() => {
@@ -29,9 +22,7 @@ public class EditPlayerName : MonoBehaviour {
             },
             (string newName) => {
                 playerName = newName;
-
                 playerNameText.text = playerName;
-
                 OnNameChanged?.Invoke(this, EventArgs.Empty);
             });
         });
@@ -39,17 +30,18 @@ public class EditPlayerName : MonoBehaviour {
         playerNameText.text = playerName;
     }
 
-    private void Start() {
+    private void Start() 
+    {
         OnNameChanged += EditPlayerName_OnNameChanged;
     }
 
-    private void EditPlayerName_OnNameChanged(object sender, EventArgs e) {
+    private void EditPlayerName_OnNameChanged(object sender, EventArgs e) 
+    {
         LobbyManager.Instance.UpdatePlayerName(GetPlayerName());
     }
 
-    public string GetPlayerName() {
+    public string GetPlayerName() 
+    {
         return playerName;
     }
-
-
 }
