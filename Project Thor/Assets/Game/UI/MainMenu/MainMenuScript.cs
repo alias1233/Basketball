@@ -75,7 +75,7 @@ public class MainMenuScript : MonoBehaviour
 
     public void StartClient(string joinCode)
     {
-        InitializeRelay.Instance.StartClient(joinCode);
+        //InitializeRelay.Instance.StartClient(joinCode);
 
         JoinCode.text = joinCode;
 

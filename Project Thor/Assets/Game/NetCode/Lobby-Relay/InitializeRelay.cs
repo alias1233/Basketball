@@ -22,11 +22,6 @@ public class InitializeRelay : MonoBehaviour
         Instance = this;
     }
 
-    public void StartClient(string joinCode)
-    {
-        joinrelay(joinCode);
-    }
-
     public async void GetRegions()
     {
         var regionsTask = await Relay.Instance.ListRegionsAsync();
@@ -60,8 +55,6 @@ public class InitializeRelay : MonoBehaviour
     {
         try
         {
-            Debug.Log("join relay " + joincode);
-
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joincode);
             var unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
 

@@ -5,12 +5,12 @@ using UnityEngine.UI;
 
 public class AuthenticateUI : MonoBehaviour 
 {
-    [SerializeField] private Button authenticateButton;
-
+    [SerializeField] 
+    private Button authenticateButton;
     private void Awake() 
     {
         authenticateButton.onClick.AddListener(() => {
-            LobbyManager.Instance.Authenticate(EditPlayerName.Instance.GetPlayerName());
+            //LobbyManager.Instance.Authenticate(EditPlayerName.Instance.GetPlayerName());
             Hide();
         });
     }

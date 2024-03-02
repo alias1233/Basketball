@@ -48,24 +48,38 @@ public class LobbyManager : MonoBehaviour {
     private float lobbyPollTimer;
     private float refreshLobbyListTimer = 5f;
     private Lobby joinedLobby;
-    private string playerName;
+    private string PlayerName;
 
     public GameObject LobbyJoinUI;
 
-    private void Awake() {
+    private void Awake() 
+    {
         Instance = this;
     }
 
-    private void Update() {
+    private async void Start()
+    {
+        await UnityServices.InitializeAsync();
+
+        AuthenticationService.Instance.SignedIn += () => {
+            RefreshLobbyList();
+        };
+
+        await AuthenticationService.Instance.SignInAnonymouslyAsync();
+    }
+
+    private void Update()
+    {
         //HandleRefreshLobbyList(); // Disabled Auto Refresh for testing with multiple builds
         HandleLobbyHeartbeat();
         HandleLobbyPolling();
     }
 
-    public async void Authenticate(string playerName) {
-        this.playerName = playerName;
+    public async void Authenticate(string playerName) 
+    {
+        PlayerName = playerName;
         InitializationOptions initializationOptions = new InitializationOptions();
-        initializationOptions.SetProfile(playerName);
+        initializationOptions.SetProfile(PlayerName);
 
         await UnityServices.InitializeAsync(initializationOptions);
 
@@ -76,10 +90,14 @@ public class LobbyManager : MonoBehaviour {
         await AuthenticationService.Instance.SignInAnonymouslyAsync();
     }
 
-    private void HandleRefreshLobbyList() {
-        if (UnityServices.State == ServicesInitializationState.Initialized && AuthenticationService.Instance.IsSignedIn) {
+    private void HandleRefreshLobbyList() 
+    {
+        if (UnityServices.State == ServicesInitializationState.Initialized && AuthenticationService.Instance.IsSignedIn) 
+        {
             refreshLobbyListTimer -= Time.deltaTime;
-            if (refreshLobbyListTimer < 0f) {
+
+            if (refreshLobbyListTimer < 0f) 
+            {
                 float refreshLobbyListTimerMax = 5f;
                 refreshLobbyListTimer = refreshLobbyListTimerMax;
 
@@ -88,10 +106,14 @@ public class LobbyManager : MonoBehaviour {
         }
     }
 
-    private async void HandleLobbyHeartbeat() {
-        if (IsLobbyHost()) {
+    private async void HandleLobbyHeartbeat() 
+    {
+        if (IsLobbyHost()) 
+        {
             heartbeatTimer -= Time.deltaTime;
-            if (heartbeatTimer < 0f) {
+
+            if (heartbeatTimer < 0f) 
+            {
                 float heartbeatTimerMax = 15f;
                 heartbeatTimer = heartbeatTimerMax;
 
@@ -105,6 +127,7 @@ public class LobbyManager : MonoBehaviour {
         if (joinedLobby != null) 
         {
             lobbyPollTimer -= Time.deltaTime;
+
             if (lobbyPollTimer < 0f) 
             {
                 float lobbyPollTimerMax = 1.1f;
@@ -166,7 +189,7 @@ public class LobbyManager : MonoBehaviour {
     {
         return new Player(AuthenticationService.Instance.PlayerId, null, new Dictionary<string, PlayerDataObject> 
         {
-            { KEY_PLAYER_NAME, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, playerName) },
+            { KEY_PLAYER_NAME, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, PlayerName) },
             { KEY_PLAYER_CHARACTER, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Public, PlayerCharacter.Marine.ToString()) }
         });
     }
@@ -281,7 +304,7 @@ public class LobbyManager : MonoBehaviour {
 
     public async void UpdatePlayerName(string playerName) 
     {
-        this.playerName = playerName;
+        PlayerName = playerName;
 
         if (joinedLobby != null) {
             try {

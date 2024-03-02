@@ -20,6 +20,8 @@ public class WeaponManager : NetworkBehaviour
     public Transform TPOrientation;
     public Transform FPOrientation;
 
+    public Transform AimPoint;
+
     [SerializeField]
     private List<BaseWeapon> WeaponList;
     public ObjectPool BulletPool;
@@ -421,6 +423,11 @@ public class WeaponManager : NetworkBehaviour
     public void ReplicateWeaponSwitchClientRpc(ActiveWeaponNumber activeweapon, ClientRpcParams clientRpcParams = default)
     {
         OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
+    }
+
+    public Vector3 GetAimPointLocation()
+    {
+        return AimPoint.position;
     }
 
     public bool GetIsOwner()
