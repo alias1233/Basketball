@@ -80,7 +80,7 @@ public class BaseWeapon : MonoBehaviour
         RewindedPlayerList.Clear();
 
         int NumHits = Physics.SphereCastNonAlloc(ray, Manager.GetRadius(), Hits, range, PlayerLayer);
-        int RewindedPlayers = 0;
+        bool bRewindedPlayers = false;
 
         for (int i = 0; i < NumHits; i++)
         {
@@ -92,7 +92,7 @@ public class BaseWeapon : MonoBehaviour
                     {
                         RewindedPlayerList.Add(rewind);
 
-                        RewindedPlayers++;
+                        bRewindedPlayers = true;
                     }
 
                     else
@@ -103,7 +103,7 @@ public class BaseWeapon : MonoBehaviour
             }
         }
 
-        if(RewindedPlayers > 0)
+        if(bRewindedPlayers)
         {
             Physics.SyncTransforms();
 

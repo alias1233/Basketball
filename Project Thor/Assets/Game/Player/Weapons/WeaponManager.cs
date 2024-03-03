@@ -243,11 +243,10 @@ public class WeaponManager : NetworkBehaviour
     {
         if (InputsDictionary.TryGetValue(CurrentTimeStamp, out var input))
         {
-            CurrentInput = input;
-            OnChangeActiveWeapon(ActiveWeaponIndex, CurrentInput.ActiveWeapon);
-
             InputsDictionary.Remove(CurrentTimeStamp);
+            CurrentInput = input;
 
+            OnChangeActiveWeapon(ActiveWeaponIndex, CurrentInput.ActiveWeapon);
             bReplicateInput = true;
         }
 
@@ -377,16 +376,18 @@ public class WeaponManager : NetworkBehaviour
 
     void ServerTickForAll()
     {
-        if(bReplicateInput)
+        if(!bReplicateInput)
         {
-            if (Time.time - LastTimeReplicatedWeaponSwitch >= ReplicateWeaponSwitchCooldown)
-            {
-                LastTimeReplicatedWeaponSwitch = Time.time;
+            return;
+        }
 
-                bReplicateInput = false;
+        if (Time.time - LastTimeReplicatedWeaponSwitch >= ReplicateWeaponSwitchCooldown)
+        {
+            LastTimeReplicatedWeaponSwitch = Time.time;
 
-                ReplicateWeaponSwitchClientRpc(ActiveWeaponIndex, IgnoreOwnerRPCParams);
-            }
+            bReplicateInput = false;
+
+            ReplicateWeaponSwitchClientRpc(ActiveWeaponIndex, IgnoreOwnerRPCParams);
         }
     }
 

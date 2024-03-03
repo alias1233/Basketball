@@ -456,11 +456,12 @@ public class PlayerMovement : NetworkBehaviour
             {
                 Vector3 WallNormal = RightWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+                Vector3 ForwardVector = ForwardRotation * Vector3.forward;
                 Vector3 JumpVel = Vector3.zero;
 
                 Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
-                if ((TPOrientation.transform.forward - WallForward).magnitude > (TPOrientation.transform.forward + WallForward).magnitude)
+                if ((ForwardVector - WallForward).magnitude > (ForwardVector + WallForward).magnitude)
                 {
                     WallForward = -WallForward;
                 }
@@ -478,11 +479,12 @@ public class PlayerMovement : NetworkBehaviour
             {
                 Vector3 WallNormal = LeftWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+                Vector3 ForwardVector = ForwardRotation * Vector3.forward;
                 Vector3 JumpVel = Vector3.zero;
 
                 Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
-                if ((TPOrientation.transform.forward - WallForward).magnitude > (TPOrientation.transform.forward + WallForward).magnitude)
+                if ((ForwardVector - WallForward).magnitude > (ForwardVector + WallForward).magnitude)
                 {
                     WallForward = -WallForward;
                 }
@@ -531,12 +533,12 @@ public class PlayerMovement : NetworkBehaviour
 
     public bool CheckForRightWall()
     {
-        return bWallRight = Physics.Raycast(transform.position, TPOrientation.transform.right, out RightWallHit, 1, WhatIsGround);
+        return bWallRight = Physics.Raycast(transform.position, ForwardRotation * Vector3.right, out RightWallHit, 1, WhatIsGround);
     }
 
     public bool CheckForLeftWall()
     {
-        return bWallLeft = Physics.Raycast(transform.position, -TPOrientation.transform.right, out LeftWallHit, 1, WhatIsGround);
+        return bWallLeft = Physics.Raycast(transform.position, -(ForwardRotation * Vector3.right), out LeftWallHit, 1, WhatIsGround);
     }
 
     public void SafeMovePlayer(Vector3 delta)
@@ -689,6 +691,7 @@ public class PlayerMovement : NetworkBehaviour
         if ((transform.position - StartCorrectionPosition).magnitude < SmallCorrectionThreshold)
         {
             CorrectionSmoothTime = SmallCorrectionSmoothTime;
+
             return;
         }
 
@@ -749,22 +752,22 @@ public class PlayerMovement : NetworkBehaviour
 
         if (input.W)
         {
-            MoveDirection += TPOrientation.transform.forward;
+            MoveDirection += ForwardRotation * Vector3.forward;
         }
 
         if (input.A)
         {
-            MoveDirection -= TPOrientation.transform.right;
+            MoveDirection -= ForwardRotation * Vector3.right;
         }
 
         if (input.S)
         {
-            MoveDirection -= TPOrientation.transform.forward;
+            MoveDirection -= ForwardRotation * Vector3.forward;
         }
 
         if (input.D)
         {
-            MoveDirection += TPOrientation.transform.right;
+            MoveDirection += ForwardRotation * Vector3.right;
         }
 
         MoveDirection.Normalize();

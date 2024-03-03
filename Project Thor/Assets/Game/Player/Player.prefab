@@ -27249,7 +27249,7 @@ MonoBehaviour:
   SlideCameraDuration: 0.1
   SlideSmoke: {fileID: 5272365689722746257}
   DashDuration: 10
-  DashCooldown: 100
+  DashCooldown: 125
   DashSpeed: 40
   AfterDashVelocityMagnitude: 0.25
   DashFOVOffset: 10

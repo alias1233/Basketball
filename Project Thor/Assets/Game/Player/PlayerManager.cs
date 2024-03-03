@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using TMPro;
-using static ConnectionNotificationManager;
 
 public enum NetworkRole
 {
@@ -47,7 +46,6 @@ public class PlayerManager : NetworkBehaviour
     [Header("Hit Registration")]
 
     private Dictionary<int, Vector3> RewindDataDictionary = new Dictionary<int, Vector3>();
-    int[] Keys = new int[100];
     private Vector3 OriginalPosition;
 
     [Header("Stats")]
@@ -182,13 +180,9 @@ public class PlayerManager : NetworkBehaviour
         }
 
         RewindDataDictionary.Add(TimeStamp, transform.position);
+        RewindDataDictionary.Remove(TimeStamp - 40);
 
-        if(TimeStamp >= 40)
-        {
-            RewindDataDictionary.Remove(TimeStamp - 40);
-        }
-
-        if(transform.position.y < -100)
+        if(transform.position.y < -10)
         {
             Health.Value = -1;
         }
@@ -262,9 +256,6 @@ public class PlayerManager : NetworkBehaviour
             OriginalPosition = transform.position;
             transform.position = RewindedPosition;
 
-            //print("ORIGINAL POSITION AT " + TimeStamp + ": " + OriginalPosition);
-            //print("REWINDED POSITION " + TimeStamp + ": " + transform.position);
-
             return true;
         }
 
@@ -283,11 +274,7 @@ public class PlayerManager : NetworkBehaviour
 
     public int GetPingInTick()
     {
-        ulong ping = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(OwnerClientId);
-
-        int pingintick = (int)((float)ping * 0.04f);
-
-        return pingintick;
+        return (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(OwnerClientId) * 0.05f);
     }
 
     public void CheckClientTimeError(int clienttime)
@@ -299,9 +286,7 @@ public class PlayerManager : NetworkBehaviour
 
         TotalTimes++;
 
-        int CorrectTime = TimeStamp + ServerDelay;
-
-        TotalTimeDifference = TotalTimeDifference + CorrectTime - clienttime;
+        TotalTimeDifference = TotalTimeDifference + TimeStamp + ServerDelay - clienttime;
 
         if (Time.time - LastTimeSentClientTimeCorrection > 5)
         {
@@ -327,7 +312,7 @@ public class PlayerManager : NetworkBehaviour
 
     public void Damage(Teams team, float damage)
     {
-        if (!IsServer || Team == team)
+        if (Team == team || !IsServer)
         {
             return;
         }

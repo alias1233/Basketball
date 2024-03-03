@@ -46,11 +46,9 @@ public class LaserBlaster : BaseWeapon
 
         Manager.ReplicateFire(1);
 
-        Ray CenterRay = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
-
         if (!Manager.GetIsOwner())
         {
-            if (!RewindPlayers(CenterRay, Range1))
+            if (!RewindPlayers(new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward), Range1))
             {
                 return;
             }
