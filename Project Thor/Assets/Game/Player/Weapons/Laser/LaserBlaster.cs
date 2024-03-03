@@ -97,13 +97,11 @@ public class LaserBlaster : BaseWeapon
 
             if (Bullet != null)
             {
-                if (Bullet.TryGetComponent<LineRenderer>(out LineRenderer tracer))
-                {
-                    Bullet.SetActive(true);
+                LineRenderer tracer = Bullet.GetComponent<LineRenderer>();
 
-                    tracer.SetPosition(0, MuzzlePoint.position);
-                    tracer.SetPosition(1, HitPos);
-                }
+                Bullet.SetActive(true);
+                tracer.SetPosition(0, MuzzlePoint.position);
+                tracer.SetPosition(1, HitPos);
             }
         }
     }

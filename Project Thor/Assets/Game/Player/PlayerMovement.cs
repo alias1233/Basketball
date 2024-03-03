@@ -803,6 +803,7 @@ public class PlayerMovement : NetworkBehaviour
         transform.position = position;
         Velocity = velocity;
 
+        Rotation = rotation;
         float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
         ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
 
@@ -881,6 +882,11 @@ public class PlayerMovement : NetworkBehaviour
         return Rotation;
     }
 
+    public void SetRotation(Quaternion newrot)
+    {
+        Rotation = newrot;
+    }
+
     public Vector3 GetPosition()
     {
         return transform.position;
@@ -889,5 +895,10 @@ public class PlayerMovement : NetworkBehaviour
     public bool GetIsSliding()
     {
         return bIsSliding;
+    }
+
+    public float GetLastTimeDash()
+    {
+        return StartDashTime;
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 public class TESTING : MonoBehaviour
@@ -7,6 +8,8 @@ public class TESTING : MonoBehaviour
     public int Times = 1000000;
 
     public bool FIRST = true;
+    public bool SECOND;
+    private bool THIRD;
     public int wow;
 
     public Vector3 MoveDirection;
@@ -15,26 +18,32 @@ public class TESTING : MonoBehaviour
 
     public Transform TPOrientation;
 
+    RaycastHit[] Hits = new RaycastHit[5];
+
+    Collider[] Colliders = new Collider[5];
+
     // Update is called once per frame
     void Update()
     {
         if (FIRST)
         {
-            Inputs bruh = new Inputs(Times, transform.rotation, true, false, false, false, false, false, false);
-
             for (int i = 0; i < Times; i++)
             {
-                Test(bruh);
+                if(SECOND)
+                {
+                    THIRD = !THIRD;
+                }
             }
 
             return;
         }
 
-        Inputs bruh1 = new Inputs(Times, transform.rotation, true, false, false, false, false, false, false);
-
         for (int i = 0; i < Times; i++)
         {
-            Test2(bruh1);
+            if (SECOND)
+            {
+                THIRD = !THIRD;
+            }
         }
     }
 

@@ -25,7 +25,9 @@ public class WeaponManager : NetworkBehaviour
 
     [SerializeField]
     private List<BaseWeapon> WeaponList;
+
     public ObjectPool BulletPool;
+    public ObjectPool RocketPool;
 
     [Header("Client Data")]
 
@@ -108,43 +110,6 @@ public class WeaponManager : NetworkBehaviour
         {
             Fist.layer = 6;
         }
-    }
-
-    public override void OnNetworkSpawn()
-    {
-        if (IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
-        }
-    }
-
-    public override void OnNetworkDespawn()
-    {
-        if (IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
-        }
-    }
-
-    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
-    {
-        if (connection == ConnectionStatus.Connected)
-        {
-            ClientIDList.Add(clientId);
-        }
-
-        else
-        {
-            ClientIDList.Remove(clientId);
-        }
-
-        IgnoreOwnerRPCParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = ClientIDList
-            }
-        };
     }
 
     public void FixedTick(int timestamp)
@@ -484,14 +449,14 @@ public class WeaponManager : NetworkBehaviour
 
         if (FireNum == 1)
         {
-            ReplicateFire1ClientRpc(ActiveWeaponIndex, FPOrientation.transform.rotation, IgnoreOwnerRPCParams);
+            ReplicateFire1ClientRpc(ActiveWeaponIndex, PlayerMovementComponent.GetRotation(), IgnoreOwnerRPCParams);
 
             return;
         }
 
         if(FireNum == 2)
         {
-            ReplicateFire2ClientRpc(ActiveWeaponIndex, FPOrientation.transform.rotation, IgnoreOwnerRPCParams);
+            ReplicateFire2ClientRpc(ActiveWeaponIndex, PlayerMovementComponent.GetRotation(), IgnoreOwnerRPCParams);
 
             return;
         }
@@ -502,6 +467,8 @@ public class WeaponManager : NetworkBehaviour
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void ReplicateFire1ClientRpc(ActiveWeaponNumber activeweapon, Quaternion rotation, ClientRpcParams clientRpcParams = default)
     {
+        PlayerMovementComponent.SetRotation(rotation);
+
         FPOrientation.rotation = rotation;
         float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
         TPOrientation.rotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
@@ -514,6 +481,8 @@ public class WeaponManager : NetworkBehaviour
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void ReplicateFire2ClientRpc(ActiveWeaponNumber activeweapon, Quaternion rotation, ClientRpcParams clientRpcParams = default)
     {
+        PlayerMovementComponent.SetRotation(rotation);
+
         FPOrientation.rotation = rotation;
         float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
         TPOrientation.rotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
@@ -535,6 +504,43 @@ public class WeaponManager : NetworkBehaviour
     public void ReplicateWeaponSwitchClientRpc(ActiveWeaponNumber activeweapon, ClientRpcParams clientRpcParams = default)
     {
         OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (IsServer)
+        {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+        }
+    }
+
+    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
+    {
+        if (connection == ConnectionStatus.Connected)
+        {
+            ClientIDList.Add(clientId);
+        }
+
+        else
+        {
+            ClientIDList.Remove(clientId);
+        }
+
+        IgnoreOwnerRPCParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = ClientIDList
+            }
+        };
     }
 
     public Vector3 GetAimPointLocation()

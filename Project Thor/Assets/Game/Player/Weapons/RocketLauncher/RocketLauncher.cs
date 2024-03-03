@@ -4,9 +4,7 @@ using UnityEngine;
 
 public class RocketLauncher : BaseWeapon
 {
-    [Header("// RocketLauncher //")]
-
-    GameObject Rocket;
+    //[Header("// RocketLauncher //")]
 
     public override void Start()
     {
@@ -22,7 +20,13 @@ public class RocketLauncher : BaseWeapon
             return;
         }
 
+        GameObject Rocket = Manager.RocketPool.GetPooledObject();
 
+        if(Rocket != null)
+        {
+            Rocket.GetComponent<RocketScript>().Init(Manager.GetTeam(), MuzzlePoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
+            Rocket.SetActive(true);
+        }
     }
 
     public override void Visuals1()

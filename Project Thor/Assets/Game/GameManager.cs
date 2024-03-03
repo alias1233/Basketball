@@ -10,7 +10,6 @@ public enum Teams
     Blue
 }
 
-
 public class GameManager : NetworkBehaviour
 {
     public static GameManager Singleton { get; internal set; }
@@ -59,9 +58,7 @@ public class GameManager : NetworkBehaviour
                 team = Teams.Blue;
             }
 
-            PlayerInformation playerinfo = new PlayerInformation(clientId, team);
-
-            PlayerList.Add(playerinfo);
+            PlayerList.Add(new PlayerInformation(clientId, team));
 
             GameObject newPlayer = Instantiate(PlayerPrefab);
 
@@ -75,8 +72,7 @@ public class GameManager : NetworkBehaviour
                 newPlayer.transform.position = BlueTeamSpawn.position;
             }
 
-            NetworkObject PlayerNetworkObject = newPlayer.GetComponent<NetworkObject>();
-            PlayerNetworkObject.SpawnAsPlayerObject(clientId);
+            newPlayer.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
         }
     }
 
