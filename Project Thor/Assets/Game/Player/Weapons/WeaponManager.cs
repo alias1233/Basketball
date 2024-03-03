@@ -9,7 +9,7 @@ public enum ActiveWeaponNumber
 {
     Laser,
     Pistol,
-    Sword
+    RocketLauncher
 }
 
 public class WeaponManager : NetworkBehaviour
@@ -17,6 +17,7 @@ public class WeaponManager : NetworkBehaviour
     [Header("Components")]
 
     private PlayerManager Player;
+    private PlayerMovement PlayerMovementComponent;
     public Transform TPOrientation;
     public Transform FPOrientation;
 
@@ -54,9 +55,29 @@ public class WeaponManager : NetworkBehaviour
     public float ReplicateWeaponSwitchCooldown = 0.5f;
     private float LastTimeReplicatedWeaponSwitch;
 
+    [Header("Melee")]
+
+    public GameObject Fist;
+
+    public LayerMask PlayerLayer;
+
+    [SerializeField]
+    private MeleeAnimScript meleeanimation;
+
+    public int MeleeCooldown;
+    public int MeleeRange;
+    public int MeleeDamage;
+
+    private int LastTimeMelee;
+
+    public float Radius;
+
+    private RaycastHit[] Hits = new RaycastHit[5];
+
     private void Start()
     {
         Player = GetComponent<PlayerManager>();
+        PlayerMovementComponent = GetComponent<PlayerMovement>();
 
         LocalRole = Player.GetLocalRole();
 
@@ -81,6 +102,11 @@ public class WeaponManager : NetworkBehaviour
                     TargetClientIds = ClientIDList
                 }
             };
+        }
+
+        if(IsOwner)
+        {
+            Fist.layer = 6;
         }
     }
 
@@ -130,7 +156,6 @@ public class WeaponManager : NetworkBehaviour
             case NetworkRole.HostOwner:
 
                 HostTick();
-
                 ServerTickForAll();
 
                 break;
@@ -138,7 +163,6 @@ public class WeaponManager : NetworkBehaviour
             case NetworkRole.HostProxy:
 
                 ServerTickForOtherPlayers();
-
                 ServerTickForAll();
 
                 break;
@@ -171,7 +195,17 @@ public class WeaponManager : NetworkBehaviour
 
         else if (Input.GetKey(KeyCode.Alpha3))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.RocketLauncher);
+        }
+
+        if (Input.GetKey(KeyCode.F))
+        {
+            if (CurrentTimeStamp - LastTimeMelee >= MeleeCooldown)
+            {
+                LastTimeMelee = CurrentTimeStamp;
+
+                Melee();
+            }
         }
 
         if (Input.GetKey(KeyCode.Mouse0))
@@ -215,6 +249,16 @@ public class WeaponManager : NetworkBehaviour
             InputsDictionary.Remove(CurrentTimeStamp);
 
             bReplicateInput = true;
+        }
+
+        if (CurrentInput.F)
+        {
+            if (CurrentTimeStamp - LastTimeMelee >= MeleeCooldown)
+            {
+                LastTimeMelee = CurrentTimeStamp;
+
+                Melee();
+            }
         }
 
         if (CurrentInput.Mouse1)
@@ -262,7 +306,7 @@ public class WeaponManager : NetworkBehaviour
 
         else if (Input.GetKey(KeyCode.Alpha3))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Sword);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.RocketLauncher);
         }
 
         if(!bReplicateInput)
@@ -270,7 +314,8 @@ public class WeaponManager : NetworkBehaviour
             bReplicateInput =
                 !(
                 CurrentInput.Mouse1 == Input.GetKey(KeyCode.Mouse0) &&
-                CurrentInput.Mouse2 == Input.GetKey(KeyCode.Mouse1)
+                CurrentInput.Mouse2 == Input.GetKey(KeyCode.Mouse1) && 
+                CurrentInput.F == Input.GetKey(KeyCode.F)
                 );
         }
 
@@ -284,8 +329,19 @@ public class WeaponManager : NetworkBehaviour
             CurrentInput.ActiveWeapon = ActiveWeaponIndex;
             CurrentInput.Mouse1 = Input.GetKey(KeyCode.Mouse0);
             CurrentInput.Mouse2 = Input.GetKey(KeyCode.Mouse1);
+            CurrentInput.F = Input.GetKey(KeyCode.F);
 
             SendWeaponInputsServerRpc(CurrentInput);
+        }
+
+        if (CurrentInput.F)
+        {
+            if (CurrentTimeStamp - LastTimeMelee >= MeleeCooldown)
+            {
+                LastTimeMelee = CurrentTimeStamp;
+
+                Melee();
+            }
         }
 
         if (CurrentInput.Mouse1)
@@ -360,7 +416,7 @@ public class WeaponManager : NetworkBehaviour
 
                 break;
 
-            case ActiveWeaponNumber.Sword:
+            case ActiveWeaponNumber.RocketLauncher:
 
                 ActiveWeapon = WeaponList[2];
 
@@ -368,6 +424,46 @@ public class WeaponManager : NetworkBehaviour
         }
 
         ActiveWeapon.ChangeActive(true);
+    }
+
+    private void Melee()
+    {
+        MeleeVisual();
+
+        if (!IsServer)
+        {
+            return;
+        }
+
+        ReplicateFire(3);
+
+        Ray CenterRay = new Ray(GetAimPointLocation(), PlayerMovementComponent.GetRotation() * Vector3.forward);
+
+        if (!IsOwner)
+        {
+            if (!ActiveWeapon.RewindPlayers(CenterRay, MeleeRange))
+            {
+                return;
+            }
+        }
+
+        int NumHits = Physics.SphereCastNonAlloc(CenterRay, Radius, Hits, MeleeRange, PlayerLayer);
+
+        for (int i = 0; i < NumHits; i++)
+        {
+            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            {
+                stats.Damage(GetTeam(), MeleeDamage);
+            }
+        }
+
+        ActiveWeapon.ResetRewindedPlayers();
+    }
+
+    private void MeleeVisual()
+    {
+        Fist.SetActive(true);
+        meleeanimation.PunchAnim();
     }
 
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
@@ -391,8 +487,15 @@ public class WeaponManager : NetworkBehaviour
 
             return;
         }
-        
-        ReplicateFire2ClientRpc(ActiveWeaponIndex, FPOrientation.transform.rotation, IgnoreOwnerRPCParams);
+
+        if(FireNum == 2)
+        {
+            ReplicateFire2ClientRpc(ActiveWeaponIndex, FPOrientation.transform.rotation, IgnoreOwnerRPCParams);
+
+            return;
+        }
+
+        ReplicateMeleeClientRpc(ActiveWeaponIndex, IgnoreOwnerRPCParams);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -417,6 +520,14 @@ public class WeaponManager : NetworkBehaviour
         OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
 
         ActiveWeapon.Visuals2();
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateMeleeClientRpc(ActiveWeaponNumber activeweapon, ClientRpcParams clientRpcParams = default)
+    {
+        OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
+
+        MeleeVisual();
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]

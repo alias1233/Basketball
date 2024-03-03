@@ -689,7 +689,6 @@ public class PlayerMovement : NetworkBehaviour
         if ((transform.position - StartCorrectionPosition).magnitude < SmallCorrectionThreshold)
         {
             CorrectionSmoothTime = SmallCorrectionSmoothTime;
-
             return;
         }
 

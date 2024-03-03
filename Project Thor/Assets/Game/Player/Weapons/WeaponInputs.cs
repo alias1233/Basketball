@@ -10,13 +10,15 @@ public struct WeaponInputs : INetworkSerializable
     public ActiveWeaponNumber ActiveWeapon;
     public bool Mouse1;
     public bool Mouse2;
+    public bool F;
 
-    public WeaponInputs(int timestamp, ActiveWeaponNumber activeweapon, bool mouse1, bool mouse2)
+    public WeaponInputs(int timestamp, ActiveWeaponNumber activeweapon, bool mouse1, bool mouse2, bool f)
     {
         TimeStamp = timestamp;
         ActiveWeapon = activeweapon;
         Mouse1 = mouse1;
         Mouse2 = mouse2;
+        F = f;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -29,6 +31,7 @@ public struct WeaponInputs : INetworkSerializable
             fastBufferWriter.WriteValueSafe(ActiveWeapon);
             fastBufferWriter.WriteValueSafe(Mouse1);
             fastBufferWriter.WriteValueSafe(Mouse2);
+            fastBufferWriter.WriteValueSafe(F);
         }
 
         if (serializer.IsReader)
@@ -39,11 +42,13 @@ public struct WeaponInputs : INetworkSerializable
             fastBufferReader.ReadValueSafe(out ActiveWeaponNumber activeweapon);
             fastBufferReader.ReadValueSafe(out bool mouse1);
             fastBufferReader.ReadValueSafe(out bool mouse2);
+            fastBufferReader.ReadValueSafe(out bool f);
 
             TimeStamp = timestamp;
             ActiveWeapon = activeweapon;
             Mouse1 = mouse1;
             Mouse2 = mouse2;
+            F = f;
         }
     }
 }
