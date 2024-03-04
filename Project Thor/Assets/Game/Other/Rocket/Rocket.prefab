@@ -84,6 +84,8 @@ MonoBehaviour:
     m_Bits: 8
   Explosion: {fileID: 2156937033313898048}
   Radius: 5
+  Impulse: 50
+  Offset: {x: 0, y: 0.6, z: 0}
 --- !u!135 &927925702825796876
 SphereCollider:
   m_ObjectHideFlags: 0

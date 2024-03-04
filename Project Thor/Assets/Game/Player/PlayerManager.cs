@@ -359,6 +359,11 @@ public class PlayerManager : NetworkBehaviour
         return Team;
     }
 
+    public ulong GetClientID()
+    {
+        return OwnerClientId;
+    }
+
     public NetworkRole GetLocalRole()
     {
         if (IsServer)

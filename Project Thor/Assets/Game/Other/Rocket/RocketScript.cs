@@ -10,6 +10,10 @@ public class RocketScript : BaseProjectile
 
     public float Radius;
 
+    public float Impulse;
+
+    public Vector3 Offset;
+
     Collider[] Hits = new Collider[5];
 
     public override void OnHitGround()
@@ -34,7 +38,13 @@ public class RocketScript : BaseProjectile
 
         for(int i = 0; i < NumHits; i++)
         {
-            Hits[i].GetComponent<PlayerManager>().Damage(OwningPlayerTeam, Mathf.Clamp(Damage * (1 - (Hits[i].transform.position - transform.position).magnitude / Radius), 0, Damage));
+            float DistanceFactor = 1 - (Hits[i].transform.position - transform.position).magnitude / Radius;
+
+            Hits[i].GetComponent<PlayerManager>().Damage(OwningPlayerTeam, Mathf.Clamp(Damage * DistanceFactor, 0, Damage));
+
+            PlayerMovement playermovement = Hits[i].GetComponent<PlayerMovement>();
+            playermovement.AddVelocity((Hits[i].transform.position + Offset - transform.position).normalized * Impulse * DistanceFactor);
+            playermovement.SendClientCorrection();
         }
     }
 

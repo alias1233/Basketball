@@ -599,7 +599,7 @@ public class PlayerMovement : NetworkBehaviour
         Player.CheckClientTimeError(timestamp);
     }
 
-    public void CheckClientPositionError(Vector3 serverpos, Vector3 clientpos)
+    private void CheckClientPositionError(Vector3 serverpos, Vector3 clientpos)
     {
         if(Time.time - LastTimeSentCorrection < MinTimeBetweenCorrections)
         {
@@ -613,14 +613,19 @@ public class PlayerMovement : NetworkBehaviour
 
         else
         {
-            LastTimeSentCorrection = Time.time;
-
             SendClientCorrection();
         }
     }
 
     public void SendClientCorrection()
     {
+        if(IsOwner)
+        {
+            return;
+        }
+
+        LastTimeSentCorrection = Time.time;
+
         ClientCorrectionClientRpc(new ClientCorrection(
             CurrentTimeStamp,
             transform.position,
@@ -634,7 +639,7 @@ public class PlayerMovement : NetworkBehaviour
             OwningClientID);
     }
 
-    void SetToServerState()
+    private void SetToServerState()
     {
         transform.position = ServerState.Position;
         Velocity = ServerState.Velocity;
@@ -865,6 +870,11 @@ public class PlayerMovement : NetworkBehaviour
                 TargetClientIds = ClientIDList
             }
         };
+    }
+
+    public void AddVelocity(Vector3 Impulse)
+    {
+        Velocity += Impulse;
     }
 
     public Vector3 GetVelocity()
