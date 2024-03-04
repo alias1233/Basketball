@@ -192,12 +192,12 @@ public class PlayerManager : NetworkBehaviour
     {
         if (IsOwner)
         {
-            FirstPersonHealthBarText.text = ((int)(current)).ToString() + " / " + MaxHealth.ToString();
+            FirstPersonHealthBarText.text = ((int)(current)).ToString();
         }
 
         else
         {
-            ThirdPersonHealthBarText.text = ((int)(current)).ToString() + " / " + MaxHealth.ToString();
+            ThirdPersonHealthBarText.text = ((int)(current)).ToString();
         }
 
         if (previous > 0 && current <= 0)
