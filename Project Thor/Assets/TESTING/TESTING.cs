@@ -29,10 +29,8 @@ public class TESTING : MonoBehaviour
         {
             for (int i = 0; i < Times; i++)
             {
-                if(SECOND)
-                {
-                    THIRD = !THIRD;
-                }
+                transform.Translate(Vector3.forward);
+                transform.Translate(Vector3.back);
             }
 
             return;
@@ -40,10 +38,8 @@ public class TESTING : MonoBehaviour
 
         for (int i = 0; i < Times; i++)
         {
-            if (SECOND)
-            {
-                THIRD = !THIRD;
-            }
+            transform.position += Vector3.forward;
+            transform.position += Vector3.back;
         }
     }
 

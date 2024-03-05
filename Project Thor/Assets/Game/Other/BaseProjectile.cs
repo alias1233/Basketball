@@ -41,7 +41,7 @@ public class BaseProjectile : NetworkBehaviour
 
         if (IsServer)
         {
-            transform.Translate(Velocity * Time.deltaTime);
+            transform.position += Velocity * Time.deltaTime;
 
             if(Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
             {
@@ -66,7 +66,7 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        transform.Translate(Velocity * Time.deltaTime);
+        transform.position += Velocity * Time.deltaTime;
     }
 
     public virtual void OnHitGround() { }
@@ -101,7 +101,7 @@ public class BaseProjectile : NetworkBehaviour
         gameObject.SetActive(false);
     }
 
-    public void Init(Teams team, Vector3 pos, Vector3 dir)
+    public void Init(Teams team, Vector3 pos, Quaternion dir)
     {
         Model.SetActive(true);
 
@@ -111,7 +111,8 @@ public class BaseProjectile : NetworkBehaviour
 
         OwningPlayerTeam = team;
         transform.position = pos;
-        Velocity = dir * InitialSpeed;
+        Velocity = dir * Vector3.forward * InitialSpeed;
+        transform.rotation = dir;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -144,7 +145,7 @@ public class BaseProjectile : NetworkBehaviour
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    private void InitClientRpc(Teams team, Vector3 pos, Vector3 dir)
+    private void InitClientRpc(Teams team, Vector3 pos, Quaternion dir)
     {
         if (IsServer)
         {
@@ -160,6 +161,7 @@ public class BaseProjectile : NetworkBehaviour
 
         OwningPlayerTeam = team;
         transform.position = pos;
-        Velocity = dir * InitialSpeed;
+        Velocity = dir * Vector3.forward * InitialSpeed;
+        transform.rotation = dir;
     }
 }

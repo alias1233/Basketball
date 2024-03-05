@@ -4,6 +4,13 @@ using UnityEngine;
 using Unity.Netcode;
 using static ConnectionNotificationManager;
 
+struct ExternalMoveCorrection
+{
+    public Vector3 Position;
+    public Vector3 Velocity;
+    public int LastTimeJumped;
+}
+
 public class PlayerMovement : NetworkBehaviour
 {
     [Header("Components")]
@@ -50,6 +57,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private Dictionary<int, Vector3> ClientDataDictionary = new Dictionary<int, Vector3>();
     private ClientCorrection ServerState;
+    private bool bRewindingClientCorrection;
     private float LastTimeSentCorrection;
     private float LastTimeSentClientData;
     private bool ReplayMoves;
@@ -103,13 +111,6 @@ public class PlayerMovement : NetworkBehaviour
 
     private bool bChangingVelocity;
 
-    [Header("Visuals")]
-
-    public Vector3 SlideCameraOffset;
-    public float SlideCameraDuration;
-
-    public ParticleSystem SlideSmoke;
-
     /*
     * 
     * Variables That Need To Be Sent For Client Corrections
@@ -120,21 +121,19 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 Velocity;
     private int LastTimeJumped;
 
+    [Header("Visuals")]
+
+    public Vector3 SlideCameraOffset;
+    public float SlideCameraDuration;
+
+    public ParticleSystem SlideSmoke;
+
     [Header("// Abilities //")]
 
     public int DashDuration;
     public int DashCooldown;
     public float DashSpeed;
     public float AfterDashVelocityMagnitude;
-
-    [Header("Visuals")]
-
-    public float DashFOVOffset;
-    public float DashFOVDuration;
-
-    public ParticleSystem FirstPersonDashParticles;
-    public ParticleSystem ThirdPersonDashParticles;
-    public TrailRenderer DashTrails;
 
     /*
     * 
@@ -145,6 +144,19 @@ public class PlayerMovement : NetworkBehaviour
     private bool bDashing;
     private int StartDashTime;
     private Quaternion DashingStartRotation;
+
+    [Header("Visuals")]
+
+    public float DashFOVOffset;
+    public float DashFOVDuration;
+
+    public ParticleSystem FirstPersonDashParticles;
+    public ParticleSystem ThirdPersonDashParticles;
+    public TrailRenderer DashTrails;
+
+    [Header("External Movement")]
+
+    private ExternalMoveCorrection ExternalMoveServerState;
 
     // Start is called before the first frame update
     void Start()
@@ -543,8 +555,8 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SafeMovePlayer(Vector3 delta)
     {
-        transform.Translate(CollideAndSlide(transform.position, new Vector3(delta.x, 0, delta.z), 0));
-        transform.Translate(CollideAndSlide(transform.position, new Vector3(0, delta.y, 0), 0));
+        transform.position += CollideAndSlide(transform.position, new Vector3(delta.x, 0, delta.z), 0);
+        transform.position += CollideAndSlide(transform.position, new Vector3(0, delta.y, 0), 0);
     }
 
     Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
@@ -619,11 +631,6 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SendClientCorrection()
     {
-        if(IsOwner)
-        {
-            return;
-        }
-
         LastTimeSentCorrection = Time.time;
 
         ClientCorrectionClientRpc(new ClientCorrection(
@@ -653,6 +660,8 @@ public class PlayerMovement : NetworkBehaviour
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
     public void ClientCorrectionClientRpc(ClientCorrection Data, ClientRpcParams clientRpcParams = default)
     {
+        bRewindingClientCorrection = true;
+
         AfterCorrectionReceived(Data.TimeStamp);
 
         ServerState = Data;
@@ -670,7 +679,17 @@ public class PlayerMovement : NetworkBehaviour
 
     void ReplayMovesAfterCorrection()
     {
-        SetToServerState();
+        if(bRewindingClientCorrection)
+        {
+            bRewindingClientCorrection = false;
+
+            SetToServerState();
+        }
+
+        else
+        {
+            SetToExternaMoveState();
+        }
 
         int currentTime = CurrentTimeStamp;
         CurrentTimeStamp = SimulateTimeStamp + 1;
@@ -872,9 +891,43 @@ public class PlayerMovement : NetworkBehaviour
         };
     }
 
-    public void AddVelocity(Vector3 Impulse)
+    public void AddVelocity(Vector3 Impulse, bool bExternalSource)
     {
         Velocity += Impulse;
+
+        if (IsOwner)
+        {
+            return;
+        }
+
+        if(bExternalSource && !bNoMovement)
+        {
+            ReplicateExternalMovement();
+        }
+    }
+
+    private void ReplicateExternalMovement()
+    {
+        LastTimeSentCorrection = Time.time;
+
+        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, transform.position, Velocity, LastTimeJumped, OwningClientID);
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateReplicateExternalMovementClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel, int lasttimejumped, ClientRpcParams clientRpcParams = default)
+    {
+        AfterCorrectionReceived(replaytimestamp);
+
+        ExternalMoveServerState.Position = pos;
+        ExternalMoveServerState.Velocity = vel;
+        ExternalMoveServerState.LastTimeJumped = lasttimejumped;
+    }
+
+    private void SetToExternaMoveState()
+    {
+        transform.position = ExternalMoveServerState.Position;
+        Velocity = ExternalMoveServerState.Velocity;
+        LastTimeJumped = ExternalMoveServerState.LastTimeJumped;
     }
 
     public Vector3 GetVelocity()

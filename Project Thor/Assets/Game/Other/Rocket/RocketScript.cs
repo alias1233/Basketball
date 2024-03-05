@@ -18,13 +18,13 @@ public class RocketScript : BaseProjectile
 
     public override void OnHitGround()
     {
-        ExplodeClientRpc();
+        ExplodeClientRpc(transform.position);
         Explode();
     }
 
     public override void OnHitPlayer()
     {
-        ExplodeClientRpc();
+        ExplodeClientRpc(transform.position);
         Explode();
     }
 
@@ -38,13 +38,10 @@ public class RocketScript : BaseProjectile
 
         for(int i = 0; i < NumHits; i++)
         {
-            float DistanceFactor = 1 - (Hits[i].transform.position - transform.position).magnitude / Radius;
+            float DistanceFactor = Mathf.Clamp(1 - (Hits[i].transform.position - transform.position).magnitude / Radius, 0.25f, 0.5f);
 
-            Hits[i].GetComponent<PlayerManager>().Damage(OwningPlayerTeam, Mathf.Clamp(Damage * DistanceFactor, 0, Damage));
-
-            PlayerMovement playermovement = Hits[i].GetComponent<PlayerMovement>();
-            playermovement.AddVelocity((Hits[i].transform.position + Offset - transform.position).normalized * Impulse * DistanceFactor);
-            playermovement.SendClientCorrection();
+            Hits[i].GetComponent<PlayerManager>().Damage(OwningPlayerTeam, Damage * DistanceFactor);
+            Hits[i].GetComponent<PlayerMovement>().AddVelocity((Hits[i].transform.position + Offset - transform.position).normalized * Impulse * DistanceFactor, true);
         }
     }
 
@@ -54,13 +51,14 @@ public class RocketScript : BaseProjectile
     }
 
     [ClientRpc]
-    private void ExplodeClientRpc()
+    private void ExplodeClientRpc(Vector3 pos)
     {
         if (IsServer)
         {
             return;
         }
 
+        transform.position = pos;
         ExplodeVisuals();
         Model.SetActive(false);
     }

@@ -26,8 +26,8 @@ public class RocketLauncher : BaseWeapon
 
         if(Rocket != null)
         {
-            Vector3 Dir = PlayerMovementComponent.GetRotation() * Vector3.forward;
-            Rocket.GetComponent<RocketScript>().Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir * Offset, Dir);
+            Quaternion Dir = PlayerMovementComponent.GetRotation();
+            Rocket.GetComponent<RocketScript>().Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir * Vector3.forward * Offset, Dir);
             Rocket.SetActive(true);
         }
     }
