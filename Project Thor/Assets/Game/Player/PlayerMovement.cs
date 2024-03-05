@@ -573,14 +573,12 @@ public class PlayerMovement : NetworkBehaviour
             return Vector3.zero;
         }
 
-        RaycastHit hit;
-
         if (Physics.CapsuleCast(
             Pos + ColliderOffset1,
             Pos + ColliderOffset2,
             CollidingRadius,
             Vel,
-            out hit,
+            out RaycastHit hit,
             Vel.magnitude + SkinWidth,
             layerMask
             ))
