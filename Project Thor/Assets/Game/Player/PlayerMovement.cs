@@ -555,8 +555,11 @@ public class PlayerMovement : NetworkBehaviour
 
     public void SafeMovePlayer(Vector3 delta)
     {
-        transform.position += CollideAndSlide(transform.position, new Vector3(delta.x, 0, delta.z), 0);
+        // This is dumb, but it fixes being able to clip through walls. God help us all -- TODO: FIND FIX AND DON'T CALL METHOD 3 TIMES
+
+        transform.position += CollideAndSlide(transform.position, new Vector3(delta.x, 0, 0), 0);
         transform.position += CollideAndSlide(transform.position, new Vector3(0, delta.y, 0), 0);
+        transform.position += CollideAndSlide(transform.position, new Vector3(0, 0, delta.z), 0);
     }
 
     Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
