@@ -159,7 +159,7 @@ public class PlayerMovement : NetworkBehaviour
     private ExternalMoveCorrection ExternalMoveServerState;
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         Player = GetComponent<PlayerManager>();
         Collider = GetComponent<CapsuleCollider>();
@@ -234,7 +234,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    void HostTick()
+    private void HostTick()
     {
         CreateInputs(ref CurrentInput);
         HandleInputs(ref CurrentInput);
@@ -242,7 +242,7 @@ public class PlayerMovement : NetworkBehaviour
         MovePlayer();
     }
 
-    void ServerTickForOtherPlayers()
+    private void ServerTickForOtherPlayers()
     {
         if (InputsDictionary.TryGetValue(CurrentTimeStamp, out Inputs inputs))
         {
@@ -262,7 +262,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    void AutonomousProxyTick()
+    private void AutonomousProxyTick()
     {
         if (bSmoothingPosition)
         {
@@ -301,7 +301,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    void ServerTickForAll()
+    private void ServerTickForAll()
     {
         if(StartDashTime == CurrentTimeStamp)
         {
@@ -315,7 +315,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    void SimulatedProxyTick()
+    private void SimulatedProxyTick()
     {
         if(ThirdPersonDashParticles.isPlaying)
         {
@@ -338,7 +338,7 @@ public class PlayerMovement : NetworkBehaviour
         SafeMovePlayer(Velocity * DeltaTime);
     }
 
-    void AbilityTick()
+    private void AbilityTick()
     {
         if(CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown)
         {
@@ -393,7 +393,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    void MovePlayer()
+    private void MovePlayer()
     {
         Vector3 PreviousLocation = transform.position;
 
@@ -543,28 +543,32 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    public bool CheckForRightWall()
+    private bool CheckForRightWall()
     {
         return bWallRight = Physics.Raycast(transform.position, ForwardRotation * Vector3.right, out RightWallHit, 1, WhatIsGround);
     }
 
-    public bool CheckForLeftWall()
+    private bool CheckForLeftWall()
     {
         return bWallLeft = Physics.Raycast(transform.position, -(ForwardRotation * Vector3.right), out LeftWallHit, 1, WhatIsGround);
     }
 
-    public void SafeMovePlayer(Vector3 delta)
+    private void SafeMovePlayer(Vector3 delta)
     {
-        // This is dumb, but it fixes being able to clip through walls. God help us all -- TODO: FIND FIX AND DON'T CALL METHOD 3 TIMES
+        // This is dumb, but it fixes being able to clip through walls. -- TODO: FIND FIX AND DON'T CALL METHOD 3 TIMES
 
+        ///*
         transform.position += CollideAndSlide(transform.position, new Vector3(delta.x, 0, 0), 0);
         transform.position += CollideAndSlide(transform.position, new Vector3(0, delta.y, 0), 0);
         transform.position += CollideAndSlide(transform.position, new Vector3(0, 0, delta.z), 0);
+        //*/
+
+        //transform.position += CollideAndSlide(transform.position, delta, 0);
     }
 
-    Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
+    private Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
     {
-        if(depth >= MaxBounces)
+        if (depth >= MaxBounces)
         {
             return Vector3.zero;
         }
@@ -575,7 +579,7 @@ public class PlayerMovement : NetworkBehaviour
             Pos + ColliderOffset1,
             Pos + ColliderOffset2,
             CollidingRadius,
-            Vel.normalized,
+            Vel,
             out hit,
             Vel.magnitude + SkinWidth,
             layerMask
@@ -670,7 +674,7 @@ public class PlayerMovement : NetworkBehaviour
         ServerState = Data;
     }
 
-    void AfterCorrectionReceived(int replaytimestamp)
+    private void AfterCorrectionReceived(int replaytimestamp)
     {
         ReplayMoves = true;
         SimulateTimeStamp = replaytimestamp;
@@ -680,7 +684,7 @@ public class PlayerMovement : NetworkBehaviour
         StartCorrectionPosition = transform.position;
     }
 
-    void ReplayMovesAfterCorrection()
+    private void ReplayMovesAfterCorrection()
     {
         if(bRewindingClientCorrection)
         {
