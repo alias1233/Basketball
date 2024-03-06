@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using static ConnectionNotificationManager;
-using System;
-using System.Runtime.CompilerServices;
 
 struct ExternalMoveCorrection
 {
@@ -81,6 +79,8 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 ColliderOffset1;
     private Vector3 ColliderOffset2;
 
+    private Collider[] Penetrations = new Collider[1];
+
     [Header("// Movement //")]
 
     public LayerMask WhatIsGround;
@@ -101,6 +101,7 @@ public class PlayerMovement : NetworkBehaviour
     public float AirFriction = 0.25f;
     public float Gravity = 1;
 
+    private Vector3 PreviousPosition;
     private Quaternion Rotation;
     private Quaternion ForwardRotation;
     private Vector3 MoveDirection;
@@ -403,7 +404,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void MovePlayer()
     {
-        Vector3 PreviousLocation = transform.position;
+        PreviousPosition = transform.position;
 
         AbilityTick();
 
@@ -416,7 +417,7 @@ public class PlayerMovement : NetworkBehaviour
 
             else
             {
-                Velocity = (transform.position - PreviousLocation) / DeltaTime;
+                Velocity = (transform.position - PreviousPosition) / DeltaTime;
             }
 
             return;
@@ -549,7 +550,7 @@ public class PlayerMovement : NetworkBehaviour
 
         else
         {
-            Velocity = (transform.position - PreviousLocation) / DeltaTime;
+            Velocity = (transform.position - PreviousPosition) / DeltaTime;
         }
     }
 
@@ -592,6 +593,21 @@ public class PlayerMovement : NetworkBehaviour
             Vector3 Leftover = Vector3.ProjectOnPlane(Vel - SnapToSurface, hit.normal);
 
             return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1);
+        }
+
+        if (Physics.OverlapCapsuleNonAlloc(
+            Pos + ColliderOffset1,
+            Pos + ColliderOffset2,
+            CollidingRadius,
+            Penetrations,
+            layerMask
+            ) == 1)
+        {
+            Vector3 ResolvePenetration = (Pos - Penetrations[0].transform.position).normalized * SkinWidth;
+
+            PreviousPosition -= ResolvePenetration;
+
+            return ResolvePenetration + CollideAndSlide(Pos + ResolvePenetration, Vel, depth + 1);;
         }
 
         return Vel;
