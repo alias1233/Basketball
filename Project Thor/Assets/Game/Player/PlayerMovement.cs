@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using static ConnectionNotificationManager;
+using System;
 
 struct ExternalMoveCorrection
 {
@@ -128,6 +129,8 @@ public class PlayerMovement : NetworkBehaviour
 
     public ParticleSystem SlideSmoke;
 
+    public AudioSource SlideSound;
+
     [Header("// Abilities //")]
 
     public int DashDuration;
@@ -153,6 +156,8 @@ public class PlayerMovement : NetworkBehaviour
     public ParticleSystem FirstPersonDashParticles;
     public ParticleSystem ThirdPersonDashParticles;
     public TrailRenderer DashTrails;
+
+    public AudioSource DashSound;
 
     [Header("External Movement")]
 
@@ -366,6 +371,8 @@ public class PlayerMovement : NetworkBehaviour
 
                 DashTrails.emitting = true;
             }
+
+            DashSound.Play();
         }
 
         if(bDashing)
@@ -453,6 +460,7 @@ public class PlayerMovement : NetworkBehaviour
                 if(!SlideSmoke.isPlaying)
                 {
                     SlideSmoke.Play();
+                    SlideSound.Play();
                 }
             }
 
@@ -527,6 +535,7 @@ public class PlayerMovement : NetworkBehaviour
             if(SlideSmoke.isPlaying)
             {
                 SlideSmoke.Stop();
+                SlideSound.Stop();
             }
         }
 
@@ -555,15 +564,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void SafeMovePlayer(Vector3 delta)
     {
-        // This is dumb, but it fixes being able to clip through walls. -- TODO: FIND FIX AND DON'T CALL METHOD 3 TIMES
-
-        ///*
-        transform.position += CollideAndSlide(transform.position, new Vector3(delta.x, 0, 0), 0);
-        transform.position += CollideAndSlide(transform.position, new Vector3(0, delta.y, 0), 0);
-        transform.position += CollideAndSlide(transform.position, new Vector3(0, 0, delta.z), 0);
-        //*/
-
-        //transform.position += CollideAndSlide(transform.position, delta, 0);
+        transform.position += CollideAndSlide(transform.position, delta, 0);
     }
 
     private Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
@@ -583,15 +584,9 @@ public class PlayerMovement : NetworkBehaviour
             layerMask
             ))
         {
-            Vector3 SnapToSurface = Vel.normalized * (hit.distance - SkinWidth);
-            Vector3 Leftover = Vel - SnapToSurface;
 
-            if (SnapToSurface.magnitude <= SkinWidth)
-            {
-                SnapToSurface = Vector3.zero;
-            }
-
-            Leftover = Vector3.ProjectOnPlane(Leftover, hit.normal);
+            Vector3 SnapToSurface = Vel.normalized * (hit.distance + SkinWidth / Mathf.Cos(Vector3.Angle(Vel, hit.normal) * Mathf.PI / 180));
+            Vector3 Leftover = Vector3.ProjectOnPlane(Vel - SnapToSurface, hit.normal);
 
             return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1);
         }
@@ -844,11 +839,13 @@ public class PlayerMovement : NetworkBehaviour
         if (issliding && !SlideSmoke.isPlaying)
         {
             SlideSmoke.Play();
+            SlideSound.Play();
         }
 
         if (!issliding && SlideSmoke.isPlaying)
         {
             SlideSmoke.Stop();
+            SlideSound.Stop();
         }
     }
 
@@ -857,6 +854,8 @@ public class PlayerMovement : NetworkBehaviour
     {
         ThirdPersonDashParticles.Play();
         DashTrails.emitting = true;
+
+        DashSound.Play();
     }
 
     public override void OnNetworkSpawn()

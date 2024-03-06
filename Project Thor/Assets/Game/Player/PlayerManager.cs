@@ -64,6 +64,8 @@ public class PlayerManager : NetworkBehaviour
     [SerializeField]
     private TMP_Text ThirdPersonHealthBarText;
 
+    public AudioSource DeathSound;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -192,19 +194,21 @@ public class PlayerManager : NetworkBehaviour
     {
         if (IsOwner)
         {
-            FirstPersonHealthBarText.text = ((int)(current)).ToString();
+            FirstPersonHealthBarText.text = ((int)current).ToString();
         }
 
         else
         {
-            ThirdPersonHealthBarText.text = ((int)(current)).ToString();
+            ThirdPersonHealthBarText.text = ((int)current).ToString();
         }
 
         if (previous > 0 && current <= 0)
         {
             Dead = true;
 
-            if(IsOwner)
+            DeathSound.Play();
+
+            if (IsOwner)
             {
                 DeathManager.Singleton.PossessGhost(transform.position, FPPlayerCamera.transform.rotation);
 
@@ -310,14 +314,21 @@ public class PlayerManager : NetworkBehaviour
         TimeStamp += timediff;
     }
 
-    public void Damage(Teams team, float damage)
+    public bool Damage(Teams team, float damage)
     {
         if (Team == team || !IsServer)
         {
-            return;
+            return false;
         }
 
         Health.Value -= damage;
+
+        return true;
+    }
+
+    public bool IsSameTeam(Teams team)
+    {
+        return Team == team;
     }
 
     public void DieOnClient()

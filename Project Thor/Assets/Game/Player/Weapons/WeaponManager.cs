@@ -66,6 +66,9 @@ public class WeaponManager : NetworkBehaviour
     [SerializeField]
     private MeleeAnimScript meleeanimation;
 
+    public AudioSource PunchSwooshSound;
+    public AudioSource PunchHitSound;
+
     public int MeleeCooldown;
     public int MeleeRange;
     public int MeleeDamage;
@@ -398,6 +401,25 @@ public class WeaponManager : NetworkBehaviour
 
         if (!IsServer)
         {
+            int NumHits2 = Physics.SphereCastNonAlloc(new Ray(GetAimPointLocation(), PlayerMovementComponent.GetRotation() * Vector3.forward), Radius, Hits, MeleeRange, PlayerLayer);
+            bool bHit2 = false;
+
+            for (int i = 0; i < NumHits2; i++)
+            {
+                if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+                {
+                    if (!stats.IsSameTeam(GetTeam()))
+                    {
+                        bHit2 = true;
+                    }
+                }
+            }
+
+            if (bHit2)
+            {
+                PunchHitSound.Play();
+            }
+
             return;
         }
 
@@ -414,13 +436,22 @@ public class WeaponManager : NetworkBehaviour
         }
 
         int NumHits = Physics.SphereCastNonAlloc(CenterRay, Radius, Hits, MeleeRange, PlayerLayer);
+        bool bHit = false;
 
         for (int i = 0; i < NumHits; i++)
         {
             if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
             {
-                stats.Damage(GetTeam(), MeleeDamage);
+                if (stats.Damage(GetTeam(), MeleeDamage))
+                {
+                    bHit = true;
+                }
             }
+        }
+
+        if(bHit)
+        {
+            PunchHitSound.Play();
         }
 
         ActiveWeapon.ResetRewindedPlayers();
@@ -430,6 +461,8 @@ public class WeaponManager : NetworkBehaviour
     {
         Fist.SetActive(true);
         meleeanimation.PunchAnim();
+
+        PunchSwooshSound.Play();
     }
 
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]
