@@ -4,6 +4,7 @@ using UnityEngine;
 using Unity.Netcode;
 using static ConnectionNotificationManager;
 using System;
+using System.Runtime.CompilerServices;
 
 struct ExternalMoveCorrection
 {
@@ -565,6 +566,8 @@ public class PlayerMovement : NetworkBehaviour
     private void SafeMovePlayer(Vector3 delta)
     {
         transform.position += CollideAndSlide(transform.position, delta, 0);
+
+        transform.position += HandleCollisionOverlaps();
     }
 
     private Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
@@ -592,6 +595,11 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         return Vel;
+    }
+
+    private Vector3 HandleCollisionOverlaps()
+    {
+        return Vector3.zero;
     }
 
 /*
