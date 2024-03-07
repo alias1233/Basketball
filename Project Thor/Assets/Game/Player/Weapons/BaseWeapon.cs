@@ -16,6 +16,9 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public Transform MuzzlePoint;
 
+    public AudioSource ShootSound1;
+    public AudioSource ShootSound2;
+
     [Header("Attributes")]
 
     public int Range1;

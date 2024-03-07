@@ -18,13 +18,13 @@ public class RocketScript : BaseProjectile
 
     public override void OnHitGround()
     {
-        ExplodeClientRpc(transform.position);
+        ExplodeClientRpc(SelfTransform.position);
         Explode();
     }
 
     public override void OnHitPlayer()
     {
-        ExplodeClientRpc(transform.position);
+        ExplodeClientRpc(SelfTransform.position);
         Explode();
     }
 
@@ -34,14 +34,14 @@ public class RocketScript : BaseProjectile
         Model.SetActive(false);
         Invoke(nameof(DisableGameObject), 0.5f);
 
-        int NumHits = Physics.OverlapSphereNonAlloc(transform.position, Radius, Hits, PlayerLayer);
+        int NumHits = Physics.OverlapSphereNonAlloc(SelfTransform.position, Radius, Hits, PlayerLayer);
 
         for(int i = 0; i < NumHits; i++)
         {
-            float DistanceFactor = Mathf.Clamp(1 - (Hits[i].transform.position - transform.position).magnitude / Radius, 0.25f, 0.5f);
+            float DistanceFactor = Mathf.Clamp(1 - (Hits[i].transform.position - SelfTransform.position).magnitude / Radius, 0.25f, 0.5f);
 
             Hits[i].GetComponent<PlayerManager>().Damage(OwningPlayerTeam, Damage * DistanceFactor);
-            Hits[i].GetComponent<PlayerMovement>().AddVelocity((Hits[i].transform.position + Offset - transform.position).normalized * Impulse * DistanceFactor, true);
+            Hits[i].GetComponent<PlayerMovement>().AddVelocity((Hits[i].transform.position + Offset - SelfTransform.position).normalized * Impulse * DistanceFactor, true);
         }
     }
 
@@ -58,7 +58,7 @@ public class RocketScript : BaseProjectile
             return;
         }
 
-        transform.position = pos;
+        SelfTransform.position = pos;
         ExplodeVisuals();
         Model.SetActive(false);
     }

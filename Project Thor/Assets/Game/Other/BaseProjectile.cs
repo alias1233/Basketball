@@ -1,11 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class BaseProjectile : NetworkBehaviour
 {
+    [Header("Cached Components")]
+
+    public Transform SelfTransform;
+
     public GameObject Model;
 
     public float InitialSpeed;
@@ -31,6 +34,11 @@ public class BaseProjectile : NetworkBehaviour
     public float Damage;
     public LayerMask PlayerLayer;
 
+    public virtual void Awake()
+    {
+        SelfTransform = transform;
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -41,13 +49,13 @@ public class BaseProjectile : NetworkBehaviour
 
         if (IsServer)
         {
-            transform.position += Velocity * Time.deltaTime;
+            SelfTransform.position += Velocity * Time.deltaTime;
 
             if(Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
             {
                 LastTimeReplicatedPosition = Time.time;
 
-                ReplicatePositionClientRpc(transform.position);
+                ReplicatePositionClientRpc(SelfTransform.position);
             }
 
             if(Time.time - StartTime >= Lifetime)
@@ -66,7 +74,7 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        transform.position += Velocity * Time.deltaTime;
+        SelfTransform.position += Velocity * Time.deltaTime;
     }
 
     public virtual void OnHitGround() { }
@@ -110,9 +118,9 @@ public class BaseProjectile : NetworkBehaviour
         StartTime = Time.time;
 
         OwningPlayerTeam = team;
-        transform.position = pos;
+        SelfTransform.position = pos;
         Velocity = dir * Vector3.forward * InitialSpeed;
-        transform.rotation = dir;
+        SelfTransform.rotation = dir;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -141,7 +149,7 @@ public class BaseProjectile : NetworkBehaviour
 
         bUpdatedThisFrame = true;
 
-        transform.position = pos;
+        SelfTransform.position = pos;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -160,8 +168,8 @@ public class BaseProjectile : NetworkBehaviour
         bUpdatedThisFrame = true;
 
         OwningPlayerTeam = team;
-        transform.position = pos;
+        SelfTransform.position = pos;
         Velocity = dir * Vector3.forward * InitialSpeed;
-        transform.rotation = dir;
+        SelfTransform.rotation = dir;
     }
 }

@@ -22,6 +22,13 @@ public class TESTING : MonoBehaviour
 
     Collider[] Colliders = new Collider[5];
 
+    private Transform SelfTransform;
+
+    private void Start()
+    {
+        SelfTransform = transform;
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -29,8 +36,8 @@ public class TESTING : MonoBehaviour
         {
             for (int i = 0; i < Times; i++)
             {
-                transform.Translate(Vector3.forward);
-                transform.Translate(Vector3.back);
+                SelfTransform.position += Vector3.forward;
+                SelfTransform.position += Vector3.back;
             }
 
             return;

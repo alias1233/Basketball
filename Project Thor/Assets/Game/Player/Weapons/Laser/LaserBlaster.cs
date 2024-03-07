@@ -72,6 +72,8 @@ public class LaserBlaster : BaseWeapon
 
     public override void Visuals1()
     {
+        ShootSound1.Play();
+
         for (int i = 0; i < PelletCount; i++)
         {
             if(i == 0)

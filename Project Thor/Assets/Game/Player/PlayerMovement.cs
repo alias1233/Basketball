@@ -13,6 +13,10 @@ struct ExternalMoveCorrection
 
 public class PlayerMovement : NetworkBehaviour
 {
+    [Header("Cached Components")]
+
+    private Transform SelfTransform;
+
     [Header("Components")]
 
     private PlayerManager Player;
@@ -79,6 +83,8 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 ColliderOffset1;
     private Vector3 ColliderOffset2;
 
+    public int MaxResolvePenetrationAttempts = 3;
+    public float ResolvePenetrationDistance = 0.1f;
     private Collider[] Penetrations = new Collider[1];
 
     [Header("// Movement //")]
@@ -126,12 +132,18 @@ public class PlayerMovement : NetworkBehaviour
 
     [Header("Visuals")]
 
+    public AudioSource LandAudio;
+    public float LandAudioCooldown;
+    private float LastTimePlayedLandAudio;
+
     public Vector3 SlideCameraOffset;
     public float SlideCameraDuration;
 
     public ParticleSystem SlideSmoke;
 
     public AudioSource SlideSound;
+    public AudioSource SlideExitSound;
+    private float LastTimePlayedSlideExitAudio;
 
     [Header("// Abilities //")]
 
@@ -165,18 +177,23 @@ public class PlayerMovement : NetworkBehaviour
 
     private ExternalMoveCorrection ExternalMoveServerState;
 
-    // Start is called before the first frame update
-    private void Start()
+    private void Awake()
     {
         Player = GetComponent<PlayerManager>();
         Collider = GetComponent<CapsuleCollider>();
+
+        SelfTransform = transform;
 
         ColliderOffset1 = Collider.center + Vector3.up * Collider.height * 0.5f + Vector3.down * Collider.radius;
         ColliderOffset2 = Collider.center + Vector3.down * Collider.height * 0.5f + Vector3.up * Collider.radius;
         CollidingRadius = Collider.radius - SkinWidth;
 
         DeltaTime = Time.fixedDeltaTime;
+    }
 
+    // Start is called before the first frame update
+    private void Start()
+    {
         LocalRole = Player.GetLocalRole();
 
         if(IsServer)
@@ -258,14 +275,14 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         HandleInputs(ref CurrentInput);
-        FPOrientation.transform.rotation = Rotation;
+        FPOrientation.rotation = Rotation;
 
         MovePlayer();
 
         if (ClientDataDictionary.TryGetValue(CurrentTimeStamp, out Vector3 clientposition))
         {
             ClientDataDictionary.Remove(CurrentTimeStamp);
-            CheckClientPositionError(transform.position, clientposition);
+            CheckClientPositionError(SelfTransform.position, clientposition);
         }
     }
 
@@ -274,7 +291,7 @@ public class PlayerMovement : NetworkBehaviour
         if (bSmoothingPosition)
         {
             bSmoothingPosition = false;
-            transform.position = CorrectedPosition;
+            SelfTransform.position = CorrectedPosition;
 
             if (CurrentTimeStamp - StartSmoothingCorrectionTime >= CorrectionSmoothTime)
             {
@@ -297,14 +314,14 @@ public class PlayerMovement : NetworkBehaviour
         if (Time.time - LastTimeSentClientData > 0.33)
         {
             LastTimeSentClientData = Time.time;
-            SendClientDataServerRpc(CurrentTimeStamp, transform.position);
+            SendClientDataServerRpc(CurrentTimeStamp, SelfTransform.position);
         }
 
         if (bSmoothingCorrection)
         {
             bSmoothingPosition = true;
-            CorrectedPosition = transform.position;
-            transform.position = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, (float)(CurrentTimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime);
+            CorrectedPosition = SelfTransform.position;
+            SelfTransform.position = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, (float)(CurrentTimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime);
         }
     }
 
@@ -318,7 +335,7 @@ public class PlayerMovement : NetworkBehaviour
         if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
         {
             LastTimeReplicatedPosition = Time.time;
-            ReplicatePositionClientRpc(transform.position, Velocity, Rotation, bIsSliding, IgnoreOwnerRPCParams);
+            ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bIsSliding, IgnoreOwnerRPCParams);
         }
     }
 
@@ -356,8 +373,8 @@ public class PlayerMovement : NetworkBehaviour
 
             if(IsOwner)
             {
-                FirstPersonDashParticles.transform.position = FPOrientation.transform.position + DashingStartRotation * Vector3.forward * 2;
-                FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.transform.position - FirstPersonDashParticles.transform.position), Vector3.up);
+                FirstPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * Vector3.forward * 2;
+                FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
                 FirstPersonDashParticles.Play();
 
                 DashTrails.emitting = true;
@@ -404,7 +421,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void MovePlayer()
     {
-        PreviousPosition = transform.position;
+        PreviousPosition = SelfTransform.position;
 
         AbilityTick();
 
@@ -417,13 +434,34 @@ public class PlayerMovement : NetworkBehaviour
 
             else
             {
-                Velocity = (transform.position - PreviousPosition) / DeltaTime;
+                Velocity = (SelfTransform.position - PreviousPosition) / DeltaTime;
             }
 
             return;
         }
 
-        bIsGrounded = Physics.Raycast(transform.position, Vector3.down, Collider.height * 0.5f + 0.2f, WhatIsGround);
+        if(Physics.Raycast(SelfTransform.position, Vector3.down, Collider.height * 0.5f + 0.2f, WhatIsGround))
+        {
+            if(!bIsGrounded)
+            {
+                bIsGrounded = true;
+
+                if(Time.time - LastTimePlayedLandAudio >= LandAudioCooldown)
+                {
+                    LastTimePlayedLandAudio = Time.time;
+                    LandAudio.Play();
+                }
+            }
+        }
+
+        else
+        {
+            if(bIsGrounded)
+            {
+                bIsGrounded = false;
+            }
+        }
+
         Vector3 Delta;
         bool bSlideThisFrame = false;
 
@@ -453,10 +491,7 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     bIsSliding = true;
 
-                    if (IsOwner)
-                    {
-                        Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
-                    }
+                    Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
                 }
 
                 if(!SlideSmoke.isPlaying)
@@ -477,7 +512,7 @@ public class PlayerMovement : NetworkBehaviour
             if (CurrentInput.D && CheckForRightWall() && Velocity.magnitude >= MinWallRunSpeed)
             {
                 Vector3 WallNormal = RightWallHit.normal;
-                Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+                Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
                 Vector3 ForwardVector = ForwardRotation * Vector3.forward;
                 Vector3 JumpVel = Vector3.zero;
 
@@ -500,7 +535,7 @@ public class PlayerMovement : NetworkBehaviour
             else if(CurrentInput.A && CheckForLeftWall() && Velocity.magnitude >= MinWallRunSpeed)
             {
                 Vector3 WallNormal = LeftWallHit.normal;
-                Vector3 WallForward = Vector3.Cross(WallNormal, transform.up);
+                Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
                 Vector3 ForwardVector = ForwardRotation * Vector3.forward;
                 Vector3 JumpVel = Vector3.zero;
 
@@ -532,6 +567,12 @@ public class PlayerMovement : NetworkBehaviour
             {
                 bIsSliding = false;
                 Player.CameraResetPosition(SlideCameraDuration);
+
+                if (Time.time - LastTimePlayedSlideExitAudio >= LandAudioCooldown)
+                {
+                    LastTimePlayedSlideExitAudio = Time.time;
+                    SlideExitSound.Play();
+                }
             }
 
             if(SlideSmoke.isPlaying)
@@ -550,25 +591,23 @@ public class PlayerMovement : NetworkBehaviour
 
         else
         {
-            Velocity = (transform.position - PreviousPosition) / DeltaTime;
+            Velocity = (SelfTransform.position - PreviousPosition) / DeltaTime;
         }
     }
 
     private bool CheckForRightWall()
     {
-        return bWallRight = Physics.Raycast(transform.position, ForwardRotation * Vector3.right, out RightWallHit, 1, WhatIsGround);
+        return bWallRight = Physics.Raycast(SelfTransform.position, ForwardRotation * Vector3.right, out RightWallHit, 1, WhatIsGround);
     }
 
     private bool CheckForLeftWall()
     {
-        return bWallLeft = Physics.Raycast(transform.position, -(ForwardRotation * Vector3.right), out LeftWallHit, 1, WhatIsGround);
+        return bWallLeft = Physics.Raycast(SelfTransform.position, -(ForwardRotation * Vector3.right), out LeftWallHit, 1, WhatIsGround);
     }
 
     private void SafeMovePlayer(Vector3 delta)
     {
-        transform.position += CollideAndSlide(transform.position, delta, 0);
-
-        transform.position += HandleCollisionOverlaps();
+        SelfTransform.position += CollideAndSlide(SelfTransform.position, delta, 0);
     }
 
     private Vector3 CollideAndSlide(Vector3 Pos, Vector3 Vel, int depth)
@@ -590,32 +629,36 @@ public class PlayerMovement : NetworkBehaviour
         {
 
             Vector3 SnapToSurface = Vel.normalized * (hit.distance + SkinWidth / Mathf.Cos(Vector3.Angle(Vel, hit.normal) * Mathf.PI / 180));
-            Vector3 Leftover = Vector3.ProjectOnPlane(Vel - SnapToSurface, hit.normal);
 
-            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Leftover, depth + 1);
+            return SnapToSurface + CollideAndSlide(Pos + SnapToSurface, Vector3.ProjectOnPlane(Vel - SnapToSurface, hit.normal), depth + 1);
         }
 
-        if (Physics.OverlapCapsuleNonAlloc(
+        int PenetrationAttempts = 1;
+
+        while (Physics.OverlapCapsuleNonAlloc(
             Pos + ColliderOffset1,
             Pos + ColliderOffset2,
             CollidingRadius,
             Penetrations,
             layerMask
-            ) == 1)
+            )
+            == 1 && PenetrationAttempts <= MaxResolvePenetrationAttempts + 1)
         {
-            Vector3 ResolvePenetration = (Pos - Penetrations[0].transform.position).normalized * SkinWidth;
+            Vector3 ResolvePenetration = (Pos - Penetrations[0].ClosestPoint(Pos)).normalized * ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts;
 
-            PreviousPosition -= ResolvePenetration;
+            if (ResolvePenetration == Vector3.zero)
+            {
+                ResolvePenetration = (Pos - Penetrations[0].bounds.center).normalized * ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts;
+            }
 
-            return ResolvePenetration + CollideAndSlide(Pos + ResolvePenetration, Vel, depth + 1);;
+            Vel += ResolvePenetration;
+            Pos += ResolvePenetration;
+            PreviousPosition += ResolvePenetration;
+
+            PenetrationAttempts++;
         }
 
         return Vel;
-    }
-
-    private Vector3 HandleCollisionOverlaps()
-    {
-        return Vector3.zero;
     }
 
 /*
@@ -644,7 +687,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if ((clientpos - serverpos).magnitude <= CorrectionDistance)
         {
-            transform.position = clientpos;
+            SelfTransform.position = clientpos;
         }
 
         else
@@ -659,7 +702,7 @@ public class PlayerMovement : NetworkBehaviour
 
         ClientCorrectionClientRpc(new ClientCorrection(
             CurrentTimeStamp,
-            transform.position,
+            SelfTransform.position,
             Velocity,
             bNoMovement, 
             LastTimeJumped,
@@ -672,7 +715,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void SetToServerState()
     {
-        transform.position = ServerState.Position;
+        SelfTransform.position = ServerState.Position;
         Velocity = ServerState.Velocity;
         bNoMovement = ServerState.bNoMovement;
         LastTimeJumped = ServerState.LastTimeJumped;
@@ -698,7 +741,7 @@ public class PlayerMovement : NetworkBehaviour
 
         bSmoothingCorrection = true;
         StartSmoothingCorrectionTime = CurrentTimeStamp;
-        StartCorrectionPosition = transform.position;
+        StartCorrectionPosition = SelfTransform.position;
     }
 
     private void ReplayMovesAfterCorrection()
@@ -736,7 +779,7 @@ public class PlayerMovement : NetworkBehaviour
 
         ReplayMoves = false;
 
-        if ((transform.position - StartCorrectionPosition).magnitude < SmallCorrectionThreshold)
+        if ((SelfTransform.position - StartCorrectionPosition).magnitude < SmallCorrectionThreshold)
         {
             CorrectionSmoothTime = SmallCorrectionSmoothTime;
 
@@ -768,11 +811,16 @@ public class PlayerMovement : NetworkBehaviour
         {
             bSpaceBar = true;
         }
+
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            //SelfTransform.position += Vector3.down * 0.5f;
+        }
     }
 
     private void CreateInputs(ref Inputs input)
     {
-        Rotation = FPOrientation.transform.rotation;
+        Rotation = FPOrientation.rotation;
 
         input.TimeStamp = CurrentTimeStamp;
         input.Rotation = Rotation;
@@ -848,7 +896,7 @@ public class PlayerMovement : NetworkBehaviour
 
         bUpdatedThisFrame = true;
 
-        transform.position = position;
+        SelfTransform.position = position;
         Velocity = velocity;
 
         Rotation = rotation;
@@ -856,20 +904,25 @@ public class PlayerMovement : NetworkBehaviour
         ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
 
         TPOrientation.rotation = ForwardRotation;
-        FPOrientation.transform.rotation = rotation;
+        FPOrientation.rotation = rotation;
 
-        bIsSliding = issliding;
-
-        if (issliding && !SlideSmoke.isPlaying)
+        if (issliding && !bIsSliding)
         {
+            bIsSliding = true;
+
+            Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
             SlideSmoke.Play();
             SlideSound.Play();
         }
 
-        if (!issliding && SlideSmoke.isPlaying)
+        if (!issliding && bIsSliding)
         {
+            bIsSliding = false;
+
+            Player.CameraResetPosition(SlideCameraDuration);
             SlideSmoke.Stop();
             SlideSound.Stop();
+
         }
     }
 
@@ -938,7 +991,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         LastTimeSentCorrection = Time.time;
 
-        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, transform.position, Velocity, LastTimeJumped, OwningClientID);
+        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity, LastTimeJumped, OwningClientID);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -953,7 +1006,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void SetToExternaMoveState()
     {
-        transform.position = ExternalMoveServerState.Position;
+        SelfTransform.position = ExternalMoveServerState.Position;
         Velocity = ExternalMoveServerState.Velocity;
         LastTimeJumped = ExternalMoveServerState.LastTimeJumped;
     }
@@ -980,7 +1033,7 @@ public class PlayerMovement : NetworkBehaviour
 
     public Vector3 GetPosition()
     {
-        return transform.position;
+        return SelfTransform.position;
     }
 
     public bool GetIsSliding()

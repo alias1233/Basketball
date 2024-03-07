@@ -5,9 +5,11 @@ using UnityEngine;
 public class CameraVisualsScript : MonoBehaviour
 {
     [SerializeField]
-    private Transform ParentTransform;
-
+    private Transform CameraTransform;
+    [SerializeField]
     private Camera PlayerCamera;
+    [SerializeField]
+    private Transform FPAllTransform;
 
     private float DashFOVDuration;
 
@@ -25,8 +27,6 @@ public class CameraVisualsScript : MonoBehaviour
 
     private void Start()
     {
-        PlayerCamera = GetComponent<Camera>();
-
         OriginalFOV = PlayerCamera.fieldOfView;
     }
 
@@ -54,12 +54,15 @@ public class CameraVisualsScript : MonoBehaviour
             if (Time.time - StartMoveCammeraTime >= MoveCammeraDuration)
             {
                 bMoveCammera = false;
-                transform.position = ParentTransform.position + ChangingPos;
+                CameraTransform.position = transform.position + ChangingPos;
+                FPAllTransform.position = transform.position + ChangingPos;
             }
 
             else
             {
-                transform.position = Vector3.Lerp(ParentTransform.position + OriginalPos, ParentTransform.position + ChangingPos, (Time.time - StartMoveCammeraTime) / MoveCammeraDuration);
+                Vector3 Pos = Vector3.Lerp(transform.position + OriginalPos, transform.position + ChangingPos, (Time.time - StartMoveCammeraTime) / MoveCammeraDuration);
+                CameraTransform.position = Pos;
+                FPAllTransform.position = Pos;
             }
         }
     }
@@ -68,7 +71,7 @@ public class CameraVisualsScript : MonoBehaviour
     {
         bMoveCammera = true;
         MoveCammeraDuration = duration;
-        OriginalPos = transform.position - ParentTransform.position;
+        OriginalPos = CameraTransform.position - transform.position;
         ChangingPos = offset;
         StartMoveCammeraTime = Time.time;
     }
@@ -77,7 +80,7 @@ public class CameraVisualsScript : MonoBehaviour
     {
         bMoveCammera = true;
         MoveCammeraDuration = duration;
-        OriginalPos = transform.position - ParentTransform.position;
+        OriginalPos = CameraTransform.position - transform.position;
         ChangingPos = Vector3.zero;
         StartMoveCammeraTime = Time.time;
     }
