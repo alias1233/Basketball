@@ -28750,7 +28750,7 @@ MonoBehaviour:
   AirFriction: 1
   Gravity: 0.75
   LandAudio: {fileID: 8070140050174576484}
-  LandAudioCooldown: 1
+  LandAudioCooldown: 0.5
   SlideCameraOffset: {x: 0, y: -0.75, z: 0}
   SlideCameraDuration: 0.05
   SlideSmoke: {fileID: 5272365689722746257}
