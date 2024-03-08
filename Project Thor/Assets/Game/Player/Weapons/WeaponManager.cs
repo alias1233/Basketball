@@ -2,12 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UIElements;
 using static ConnectionNotificationManager;
 
 public enum ActiveWeaponNumber
 {
-    Laser,
+    Shotgun,
     Pistol,
     RocketLauncher
 }
@@ -86,7 +85,7 @@ public class WeaponManager : NetworkBehaviour
 
         LocalRole = Player.GetLocalRole();
 
-        ActiveWeaponIndex = ActiveWeaponNumber.Laser;
+        ActiveWeaponIndex = ActiveWeaponNumber.Shotgun;
         ActiveWeapon = WeaponList[0];
         ActiveWeapon.ChangeActive(true);
 
@@ -153,7 +152,7 @@ public class WeaponManager : NetworkBehaviour
     {
         if (Input.GetKey(KeyCode.Alpha1))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Laser);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Shotgun);
         }
 
         else if (Input.GetKey(KeyCode.Alpha2))
@@ -263,7 +262,7 @@ public class WeaponManager : NetworkBehaviour
     {
         if (Input.GetKey(KeyCode.Alpha1))
         {
-            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Laser);
+            OnChangeActiveWeapon(ActiveWeaponIndex, ActiveWeaponNumber.Shotgun);
         }
 
         else if (Input.GetKey(KeyCode.Alpha2))
@@ -373,7 +372,7 @@ public class WeaponManager : NetworkBehaviour
 
         switch (ActiveWeaponIndex)
         {
-            case ActiveWeaponNumber.Laser:
+            case ActiveWeaponNumber.Shotgun:
 
                 ActiveWeapon = WeaponList[0];
 
