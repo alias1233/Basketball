@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class RocketScript : BaseProjectile
 {
+    [Header("Components")]
+
     [SerializeField]
     ParticleSystem Explosion;
 

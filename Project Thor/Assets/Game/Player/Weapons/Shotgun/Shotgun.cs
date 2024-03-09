@@ -20,10 +20,11 @@ public class Shotgun : BaseWeapon
 
     public float Offset;
 
-    public int Radius2;
     public int MaxChargingTime;
     private bool bIsCharging;
     private float ChargingStartTime;
+
+    public float RocketSpeedFactor;
 
     public override void Start()
     {
@@ -141,8 +142,9 @@ public class Shotgun : BaseWeapon
 
         if (Rocket != null)
         {
-            Quaternion Dir = PlayerMovementComponent.GetRotation();
-            Rocket.GetComponent<RocketScript>().Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir * Vector3.forward * Offset, Dir);
+            Vector3 Dir = PlayerMovementComponent.GetRotation() * Vector3.forward;
+            Rocket.GetComponent<RocketScript>().Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir * Offset, Dir
+                * Mathf.Clamp(RocketSpeedFactor * (Manager.GetTimeStamp() - ChargingStartTime) / MaxChargingTime, 1, RocketSpeedFactor));
             Rocket.SetActive(true);
         }
     }

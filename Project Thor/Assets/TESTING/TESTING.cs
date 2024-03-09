@@ -12,6 +12,11 @@ public class TESTING : MonoBehaviour
     private bool THIRD;
     public int wow;
 
+    public Vector3 Velocity;
+    public Vector3 Velocity2;
+
+    private float DeltaTime;
+
     public Vector3 MoveDirection;
     public Quaternion Rotation;
     public Quaternion ForwardRotation;
@@ -27,6 +32,7 @@ public class TESTING : MonoBehaviour
     private void Start()
     {
         SelfTransform = transform;
+        DeltaTime = Time.fixedDeltaTime;
     }
 
     // Update is called once per frame
@@ -36,8 +42,7 @@ public class TESTING : MonoBehaviour
         {
             for (int i = 0; i < Times; i++)
             {
-                SelfTransform.position += Vector3.forward;
-                SelfTransform.position += Vector3.back;
+                MoveDirection = Velocity * DeltaTime;
             }
 
             return;
@@ -45,8 +50,7 @@ public class TESTING : MonoBehaviour
 
         for (int i = 0; i < Times; i++)
         {
-            transform.position += Vector3.forward;
-            transform.position += Vector3.back;
+            MoveDirection = Velocity2;
         }
     }
 

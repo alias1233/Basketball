@@ -488,14 +488,14 @@ MonoBehaviour:
   ShootSound1: {fileID: 8093693275509930407}
   ShootSound2: {fileID: 0}
   Range1: 25
-  Range2: 33
+  Range2: 0
   AmmoCount: 0
   FireCooldown1: 50
-  FireCooldown2: 100
+  FireCooldown2: 150
   LastTimeShot1: 0
   LastTimeShot2: 0
-  Damage: 10
-  Damage2: 25
+  Damage: 7
+  Damage2: 0
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -505,9 +505,9 @@ MonoBehaviour:
   ChargingRocketParticleSystem: {fileID: 6378776556742038811}
   PelletCount: 7
   RandomOffset: 0.125
-  Offset: 0.5
-  Radius2: 2
-  MaxChargingTime: 40
+  Offset: -0.5
+  MaxChargingTime: 50
+  RocketSpeedFactor: 3
 --- !u!1 &853308879579404576
 GameObject:
   m_ObjectHideFlags: 0
@@ -11745,7 +11745,7 @@ MonoBehaviour:
   ShootSound1: {fileID: 0}
   ShootSound2: {fileID: 0}
   Range1: 0
-  Range2: 0
+  Range2: 33
   AmmoCount: 6
   FireCooldown1: 40
   FireCooldown2: 100
@@ -33699,16 +33699,17 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   WalkMoveSpeed: 4
+  JumpForce: 12
+  JumpCooldown: 10
   SlideMoveSpeed: 8
   SlideMinSpeed: 3
+  SlideCooldown: 10
   WallRunSpeed: 7
+  WallJumpForce: 6
   MinWallRunSpeed: 2
-  SlideJumpForce: 5
   WallRunDampen: 15
-  JumpForce: 12
-  JumpCooldown: 12
   GroundFriction: 15
-  SlideFriction: 0.12
+  SlideFriction: 0.25
   WallRunFriction: 10
   AirFriction: 1
   Gravity: 0.75

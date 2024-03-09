@@ -9,6 +9,7 @@ struct ExternalMoveCorrection
     public Vector3 Position;
     public Vector3 Velocity;
     public int LastTimeJumped;
+    public bool bWasSliding;
 }
 
 public class PlayerMovement : NetworkBehaviour
@@ -40,6 +41,8 @@ public class PlayerMovement : NetworkBehaviour
 
     private Dictionary<int, Inputs> InputsDictionary = new Dictionary<int, Inputs>();
     private Inputs CurrentInput;
+
+    private int SaveRecentDataTime = 50;
 
     private bool bSpaceBar;
     private bool bShift;
@@ -92,14 +95,18 @@ public class PlayerMovement : NetworkBehaviour
     public LayerMask WhatIsGround;
 
     public float WalkMoveSpeed = 4f;
-    public float SlideMoveSpeed = 8f;
-    public float SlideMinSpeed = 3f;
-    public float WallRunSpeed;
-    public float MinWallRunSpeed;
-    public float SlideJumpForce;
-    public float WallRunDampen;
+    
     public float JumpForce = 10f;
     public int JumpCooldown = 30;
+
+    public float SlideMoveSpeed = 8f;
+    public float SlideMinSpeed = 3f;
+    public int SlideCooldown;
+
+    public float WallRunSpeed;
+    public int WallJumpForce;
+    public float MinWallRunSpeed;
+    public float WallRunDampen;
 
     public float GroundFriction = 8;
     public float SlideFriction = 0.1f;
@@ -112,7 +119,6 @@ public class PlayerMovement : NetworkBehaviour
     private Quaternion ForwardRotation;
     private Vector3 MoveDirection;
     private bool bIsGrounded;
-    private bool bIsSliding;
     private bool bWallRight;
     private bool bWallLeft;
     private RaycastHit RightWallHit;
@@ -129,6 +135,10 @@ public class PlayerMovement : NetworkBehaviour
     private bool bNoMovement;
     private Vector3 Velocity;
     private int LastTimeJumped;
+
+    private bool bSliding;
+    private Vector3 SlideDirection;
+    private int LastTimeSlide;
 
     [Header("Visuals")]
 
@@ -224,6 +234,7 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
+    // Called a fixed amount every second from PlayerManager with the current Timestamp
     public void FixedTick(int timestamp)
     {
         CurrentTimeStamp = timestamp;
@@ -306,6 +317,7 @@ public class PlayerMovement : NetworkBehaviour
 
         CreateInputs(ref CurrentInput);
         InputsDictionary[CurrentTimeStamp] = CurrentInput;
+        InputsDictionary.Remove(CurrentTimeStamp - SaveRecentDataTime);
         SendInputsServerRpc(CurrentInput);
         HandleInputs(ref CurrentInput);
 
@@ -327,15 +339,10 @@ public class PlayerMovement : NetworkBehaviour
 
     private void ServerTickForAll()
     {
-        if(StartDashTime == CurrentTimeStamp)
-        {
-            ReplicateDashingClientRpc(IgnoreOwnerRPCParams);
-        }
-
         if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
         {
             LastTimeReplicatedPosition = Time.time;
-            ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bIsSliding, IgnoreOwnerRPCParams);
+            ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bSliding, IgnoreOwnerRPCParams);
         }
     }
 
@@ -371,7 +378,16 @@ public class PlayerMovement : NetworkBehaviour
             DashingStartRotation = Rotation;
             bNoMovement = true;
 
-            if(IsOwner)
+            ExitSlide();
+
+            if (IsServer)
+            {
+                ReplicateDashingClientRpc(IgnoreOwnerRPCParams);
+            }
+
+            DashSound.Play();
+
+            if (IsOwner)
             {
                 FirstPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * Vector3.forward * 2;
                 FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
@@ -390,8 +406,6 @@ public class PlayerMovement : NetworkBehaviour
 
                 DashTrails.emitting = true;
             }
-
-            DashSound.Play();
         }
 
         if(bDashing)
@@ -463,7 +477,28 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         Vector3 Delta;
-        bool bSlideThisFrame = false;
+
+        if (!bSliding)
+        {
+            if (CurrentInput.CTRL && Velocity.magnitude >= SlideMinSpeed && bIsGrounded && CurrentTimeStamp - LastTimeSlide >= SlideCooldown)
+            {
+                bSliding = true;
+
+                SlideDirection = new Vector3(Velocity.x, 0, Velocity.z).normalized;
+
+                Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
+                SlideSmoke.Play();
+                SlideSound.Play();
+            }
+        }
+
+        else
+        {
+            if (!CurrentInput.CTRL || Velocity.magnitude < SlideMinSpeed)
+            {
+                ExitSlide();
+            }
+        }
 
         if (bIsGrounded)
         {
@@ -479,26 +514,15 @@ public class PlayerMovement : NetworkBehaviour
                 LastTimeJumped = CurrentTimeStamp;
 
                 JumpVel = Vector3.up * JumpForce;
+
+                ExitSlide();
             }
 
-            if (CurrentInput.CTRL && Velocity.magnitude >= SlideMinSpeed)
+            if (bSliding)
             {
-                Delta = Velocity.magnitude >= SlideMoveSpeed ? (Velocity + JumpVel) * DeltaTime * (1 - SlideFriction * DeltaTime) : (Velocity.normalized * SlideMoveSpeed + JumpVel) * DeltaTime;
-
-                bSlideThisFrame = true;
-
-                if (!bIsSliding)
-                {
-                    bIsSliding = true;
-
-                    Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
-                }
-
-                if(!SlideSmoke.isPlaying)
-                {
-                    SlideSmoke.Play();
-                    SlideSound.Play();
-                }
+                Delta = Velocity.magnitude >= SlideMoveSpeed
+                    ? ((SlideDirection * new Vector3(Velocity.x, 0, Velocity.z).magnitude) * (1 - SlideFriction * DeltaTime) + JumpVel) * DeltaTime
+                    : ((SlideDirection * SlideMoveSpeed) + JumpVel) * DeltaTime;
             }
 
             else
@@ -509,8 +533,10 @@ public class PlayerMovement : NetworkBehaviour
 
         else
         {
-            if (CurrentInput.D && CheckForRightWall() && Velocity.magnitude >= MinWallRunSpeed)
+            if (CurrentInput.D && CheckForRightWall() && Velocity.magnitude >= MinWallRunSpeed && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
             {
+                ExitSlide();
+
                 Vector3 WallNormal = RightWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
                 Vector3 ForwardVector = ForwardRotation * Vector3.forward;
@@ -523,17 +549,19 @@ public class PlayerMovement : NetworkBehaviour
                     WallForward = -WallForward;
                 }
 
-                if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
+                if (CurrentInput.SpaceBar)
                 {
                     LastTimeJumped = CurrentTimeStamp;
-                    JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
+                    JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
                 }
 
                 Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
             }
 
-            else if(CurrentInput.A && CheckForLeftWall() && Velocity.magnitude >= MinWallRunSpeed)
+            else if(CurrentInput.A && CheckForLeftWall() && Velocity.magnitude >= MinWallRunSpeed && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
             {
+                ExitSlide();
+
                 Vector3 WallNormal = LeftWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
                 Vector3 ForwardVector = ForwardRotation * Vector3.forward;
@@ -546,10 +574,10 @@ public class PlayerMovement : NetworkBehaviour
                     WallForward = -WallForward;
                 }
 
-                if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
+                if (CurrentInput.SpaceBar)
                 {
                     LastTimeJumped = CurrentTimeStamp;
-                    JumpVel = (WallNormal + 2 * Vector3.up) * SlideJumpForce;
+                    JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
                 }
 
                 Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
@@ -558,27 +586,6 @@ public class PlayerMovement : NetworkBehaviour
             else
             {
                 Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
-            }
-        }
-
-        if(!bSlideThisFrame)
-        {
-            if(bIsSliding)
-            {
-                bIsSliding = false;
-                Player.CameraResetPosition(SlideCameraDuration);
-
-                if (Time.time - LastTimePlayedSlideExitAudio >= LandAudioCooldown)
-                {
-                    LastTimePlayedSlideExitAudio = Time.time;
-                    SlideExitSound.Play();
-                }
-            }
-
-            if(SlideSmoke.isPlaying)
-            {
-                SlideSmoke.Stop();
-                SlideSound.Stop();
             }
         }
 
@@ -603,6 +610,28 @@ public class PlayerMovement : NetworkBehaviour
     private bool CheckForLeftWall()
     {
         return bWallLeft = Physics.Raycast(SelfTransform.position, -(ForwardRotation * Vector3.right), out LeftWallHit, 1, WhatIsGround);
+    }
+
+    private void ExitSlide()
+    {
+        if (!bSliding)
+        {
+            return;
+        }
+
+        bSliding = false;
+        LastTimeSlide = CurrentTimeStamp;
+
+        Player.CameraResetPosition(SlideCameraDuration);
+
+        if (Time.time - LastTimePlayedSlideExitAudio >= LandAudioCooldown)
+        {
+            LastTimePlayedSlideExitAudio = Time.time;
+            SlideExitSound.Play();
+        }
+
+        SlideSmoke.Stop();
+        SlideSound.Stop();
     }
 
     private void SafeMovePlayer(Vector3 delta)
@@ -708,7 +737,10 @@ public class PlayerMovement : NetworkBehaviour
             LastTimeJumped,
             bDashing,
             StartDashTime,
-            DashingStartRotation
+            DashingStartRotation,
+            bSliding,
+            SlideDirection,
+            LastTimeSlide
             ),
             OwningClientID);
     }
@@ -722,6 +754,19 @@ public class PlayerMovement : NetworkBehaviour
         bDashing = ServerState.bDashing;
         StartDashTime = ServerState.StartDashTime;
         DashingStartRotation = ServerState.DashingStartRotation;
+
+        if(bSliding && !ServerState.bSliding)
+        {
+            ExitSlide();
+        }
+
+        else
+        {
+            bSliding = ServerState.bSliding;
+        }
+
+        SlideDirection = ServerState.SlideDirection;
+        LastTimeSlide = ServerState.LastTimeSlide;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -810,11 +855,6 @@ public class PlayerMovement : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
         {
             bSpaceBar = true;
-        }
-
-        if (Input.GetKeyDown(KeyCode.M))
-        {
-            //SelfTransform.position += Vector3.down * 0.5f;
         }
     }
 
@@ -906,18 +946,18 @@ public class PlayerMovement : NetworkBehaviour
         TPOrientation.rotation = ForwardRotation;
         FPOrientation.rotation = rotation;
 
-        if (issliding && !bIsSliding)
+        if (issliding && !bSliding)
         {
-            bIsSliding = true;
+            bSliding = true;
 
             Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
             SlideSmoke.Play();
             SlideSound.Play();
         }
 
-        if (!issliding && bIsSliding)
+        if (!issliding && bSliding)
         {
-            bIsSliding = false;
+            bSliding = false;
 
             Player.CameraResetPosition(SlideCameraDuration);
             SlideSmoke.Stop();
@@ -978,30 +1018,35 @@ public class PlayerMovement : NetworkBehaviour
 
         if (IsOwner)
         {
+            ExitSlide();
+
             return;
         }
 
-        if(bExternalSource && !bNoMovement)
+        if (bExternalSource && !bNoMovement)
         {
             ReplicateExternalMovement();
         }
+
+        ExitSlide();
     }
 
     private void ReplicateExternalMovement()
     {
         LastTimeSentCorrection = Time.time;
 
-        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity, LastTimeJumped, OwningClientID);
+        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity, LastTimeJumped, bSliding, OwningClientID);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateReplicateExternalMovementClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel, int lasttimejumped, ClientRpcParams clientRpcParams = default)
+    public void ReplicateReplicateExternalMovementClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel, int lasttimejumped, bool bwassliding, ClientRpcParams clientRpcParams = default)
     {
         AfterCorrectionReceived(replaytimestamp);
 
         ExternalMoveServerState.Position = pos;
         ExternalMoveServerState.Velocity = vel;
         ExternalMoveServerState.LastTimeJumped = lasttimejumped;
+        ExternalMoveServerState.bWasSliding = bwassliding;
     }
 
     private void SetToExternaMoveState()
@@ -1009,6 +1054,13 @@ public class PlayerMovement : NetworkBehaviour
         SelfTransform.position = ExternalMoveServerState.Position;
         Velocity = ExternalMoveServerState.Velocity;
         LastTimeJumped = ExternalMoveServerState.LastTimeJumped;
+
+        if(ExternalMoveServerState.bWasSliding)
+        {
+            ExitSlide();
+
+            LastTimeSlide = SimulateTimeStamp;
+        }
     }
 
     public Vector3 GetVelocity()
@@ -1038,7 +1090,7 @@ public class PlayerMovement : NetworkBehaviour
 
     public bool GetIsSliding()
     {
-        return bIsSliding;
+        return bSliding;
     }
 
     public float GetLastTimeDash()

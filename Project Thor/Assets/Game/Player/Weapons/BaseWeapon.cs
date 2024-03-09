@@ -29,7 +29,9 @@ public class BaseWeapon : MonoBehaviour
     public int FireCooldown1;
     public int FireCooldown2;
 
+    [HideInInspector]
     public int LastTimeShot1;
+    [HideInInspector]
     public int LastTimeShot2;
 
     public float Damage;

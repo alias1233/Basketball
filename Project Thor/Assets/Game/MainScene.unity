@@ -5632,7 +5632,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &526565236
 Transform:
   m_ObjectHideFlags: 0
@@ -5664,6 +5664,8 @@ MonoBehaviour:
   FIRST: 1
   SECOND: 0
   wow: 0
+  Velocity: {x: 1, y: 1, z: 1}
+  Velocity2: {x: 0.02, y: 0.02, z: 0.02}
   MoveDirection: {x: 0, y: 0, z: 0}
   Rotation: {x: 0, y: 0, z: 0, w: 0}
   ForwardRotation: {x: 0, y: 0, z: 0, w: 0}

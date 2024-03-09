@@ -7,9 +7,14 @@ public class BaseProjectile : NetworkBehaviour
 {
     [Header("Cached Components")]
 
+    [HideInInspector]
     public Transform SelfTransform;
 
+    [Header("Components")]
+
     public GameObject Model;
+
+    [Header("Movement")]
 
     public float InitialSpeed;
     public bool bGravity;
@@ -18,6 +23,14 @@ public class BaseProjectile : NetworkBehaviour
     public int Bounces;
 
     private Vector3 Velocity;
+
+    private float DeltaTime;
+
+    [Header("Stats")]
+
+    public bool DamagesPlayer;
+
+    private float ColliderRadius;
 
     [HideInInspector]
     public Teams OwningPlayerTeam;
@@ -33,14 +46,17 @@ public class BaseProjectile : NetworkBehaviour
 
     public float Damage;
     public LayerMask PlayerLayer;
+    public LayerMask PlayerObjectLayer;
 
     public virtual void Awake()
     {
         SelfTransform = transform;
+        ColliderRadius = GetComponent<SphereCollider>().radius;
+        DeltaTime = Time.fixedDeltaTime;
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (!Model.activeSelf)
         {
@@ -49,7 +65,55 @@ public class BaseProjectile : NetworkBehaviour
 
         if (IsServer)
         {
-            SelfTransform.position += Velocity * Time.deltaTime;
+            Velocity += Vector3.down * Gravity;
+
+            RaycastHit Hit;
+
+            if(Physics.SphereCast(SelfTransform.position, ColliderRadius, Velocity.normalized, out Hit, (Velocity * DeltaTime).magnitude, PlayerObjectLayer))
+            {
+                if (DamagesPlayer)
+                {
+                    if (Hit.transform.TryGetComponent<PlayerManager>(out PlayerManager player))
+                    {
+                        SelfTransform.position = Hit.point;
+                        OnHitPlayerWithTarget(player);
+
+                        return;
+                    }
+
+                    else
+                    {
+                        SelfTransform.position = Hit.point;
+                        OnHitGround();
+
+                        return;
+                    }
+                }
+
+                else
+                {
+                    if (Hit.transform.TryGetComponent<PlayerManager>(out PlayerManager player))
+                    {
+                        if (OwningPlayerTeam != player.GetTeam())
+                        {
+                            SelfTransform.position = Hit.point;
+                            OnHitPlayer();
+
+                            return;
+                        }
+                    }
+
+                    else
+                    {
+                        SelfTransform.position = Hit.point;
+                        OnHitGround();
+
+                        return;
+                    }
+                }
+            }
+
+            SelfTransform.position += Velocity * DeltaTime;
 
             if(Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
             {
@@ -74,42 +138,22 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        SelfTransform.position += Velocity * Time.deltaTime;
+        Velocity += Vector3.down * Gravity;
+        SelfTransform.position += Velocity * DeltaTime;
     }
 
     public virtual void OnHitGround() { }
 
     public virtual void OnHitPlayer() { }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if(!IsServer || !Model.activeSelf)
-        {
-            return;
-        }
-
-        if (other.gameObject.layer == 0)
-        {
-            OnHitGround();
-
-            return;
-        }
-
-        if(other.gameObject.TryGetComponent<PlayerManager>(out PlayerManager player))
-        {
-            if(OwningPlayerTeam != player.GetTeam())
-            {
-                OnHitPlayer();
-            }
-        }
-    }
+    public virtual void OnHitPlayerWithTarget(PlayerManager player) { }
 
     public void DisableGameObject()
     {
         gameObject.SetActive(false);
     }
 
-    public void Init(Teams team, Vector3 pos, Quaternion dir)
+    public void Init(Teams team, Vector3 pos, Vector3 dir)
     {
         Model.SetActive(true);
 
@@ -119,8 +163,8 @@ public class BaseProjectile : NetworkBehaviour
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
-        Velocity = dir * Vector3.forward * InitialSpeed;
-        SelfTransform.rotation = dir;
+        Velocity = dir * InitialSpeed;
+        SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -153,7 +197,7 @@ public class BaseProjectile : NetworkBehaviour
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    private void InitClientRpc(Teams team, Vector3 pos, Quaternion dir)
+    private void InitClientRpc(Teams team, Vector3 pos, Vector3 dir)
     {
         if (IsServer)
         {
@@ -169,7 +213,7 @@ public class BaseProjectile : NetworkBehaviour
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
-        Velocity = dir * Vector3.forward * InitialSpeed;
-        SelfTransform.rotation = dir;
+        Velocity = dir * InitialSpeed;
+        SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
     }
 }
