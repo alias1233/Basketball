@@ -535,8 +535,17 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   ChargingRocketParticleSystem: {fileID: 6378776556742038811}
-  PelletCount: 7
-  RandomOffset: 0.125
+  PelletCount: 9
+  RandomOffset: 0.1
+  Offsets:
+  - {x: 0, y: 1, z: 0}
+  - {x: 0.7, y: 0.7, z: 0}
+  - {x: -0.7, y: 0.7, z: 0}
+  - {x: 1, y: 0, z: 0}
+  - {x: -1, y: 0, z: 0}
+  - {x: 0, y: -1, z: 0}
+  - {x: 0.7, y: -0.7, z: 0}
+  - {x: -0.7, y: -0.7, z: 0}
   Offset: -0.5
   MaxChargingTime: 50
   RocketSpeedFactor: 3
@@ -27874,7 +27883,7 @@ MonoBehaviour:
   objectToPool: {fileID: 3153674883939604491, guid: 85e7c04ebda797c47b9a86e2b3f5ddfc,
     type: 3}
   bIsNetworkObject: 0
-  amountToPool: 15
+  amountToPool: 18
 --- !u!1 &6377430129892740836
 GameObject:
   m_ObjectHideFlags: 0
@@ -39174,7 +39183,7 @@ MonoBehaviour:
   SlideMinSpeed: 3
   SlideCooldown: 10
   GroundPoundSpeed: 25
-  MinHeightToGroundPound: 3
+  MinHeightToGroundPound: 2.5
   WallRunSpeed: 7
   WallJumpForce: 6
   MinWallRunSpeed: 2

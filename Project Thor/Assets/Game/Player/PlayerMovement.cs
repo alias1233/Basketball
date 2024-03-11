@@ -587,6 +587,11 @@ public class PlayerMovement : NetworkBehaviour
 
         if (bIsGrounded)
         {
+            if(Velocity.y < 0)
+            {
+                Velocity.y = 0;
+            }
+
             Vector3 JumpVel = Vector3.zero;
 
             if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)

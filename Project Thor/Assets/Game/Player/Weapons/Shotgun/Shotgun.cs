@@ -16,6 +16,8 @@ public class Shotgun : BaseWeapon
 
     private Ray[] PelletRays;
 
+    public Vector3[] Offsets;
+
     [Header("Fire 2")]
 
     public float Offset;
@@ -91,8 +93,11 @@ public class Shotgun : BaseWeapon
 
             else
             {
-                PelletRays[i] = new Ray(Manager.GetAimPointLocation(), PlayerMovementComponent.GetRotation()
-                * (Vector3.forward + Vector3.up * Random.Range(-RandomOffset, RandomOffset) + Vector3.right * Random.Range(-RandomOffset, RandomOffset)));
+                PelletRays[i] = new Ray(
+                    Manager.GetAimPointLocation() + PlayerMovementComponent.GetRotation() * (Offsets[i - 1] * RandomOffset),
+                    PlayerMovementComponent.GetRotation() * (Vector3.forward + Offsets[i - 1] * RandomOffset));
+
+                //PelletRays[i] = new Ray(Manager.GetAimPointLocation(), PlayerMovementComponent.GetRotation() * (Vector3.forward + Vector3.up * Random.Range(-RandomOffset, RandomOffset) + Vector3.right * Random.Range(-RandomOffset, RandomOffset)));
             }
 
             Vector3 HitPos = PelletRays[i].GetPoint(Range1);
@@ -110,7 +115,7 @@ public class Shotgun : BaseWeapon
                 LineRenderer tracer = Bullet.GetComponent<LineRenderer>();
 
                 Bullet.SetActive(true);
-                tracer.SetPosition(0, MuzzlePoint.position);
+                tracer.SetPosition(0, PelletRays[i].origin);
                 tracer.SetPosition(1, HitPos);
             }
         }

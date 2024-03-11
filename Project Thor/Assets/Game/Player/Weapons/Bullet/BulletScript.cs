@@ -4,25 +4,25 @@ using UnityEngine;
 
 public class BulletScript : MonoBehaviour
 {
-    private LineRenderer tracer;
+    //private LineRenderer tracer;
 
-    private float OriginalWidth;
+    //private float OriginalWidth;
 
-    private float TimeStart;
+    //private float TimeStart;
 
     public float BulletLifetime;
 
-    private void Awake()
-    {
-        tracer = GetComponent<LineRenderer>();
-        OriginalWidth = tracer.endWidth;
-    }
+    //private void Awake()
+    //{
+        //tracer = GetComponent<LineRenderer>();
+        //OriginalWidth = tracer.endWidth;
+    //}
 
     private void OnEnable()
     {
         Invoke(nameof(DisableBullet), BulletLifetime);
-        tracer.endWidth = OriginalWidth;
-        TimeStart = Time.time;
+        //tracer.endWidth = OriginalWidth;
+        //TimeStart = Time.time;
     }
 
     private void DisableBullet()
@@ -30,8 +30,8 @@ public class BulletScript : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    private void Update()
-    {
-        tracer.endWidth = (1 - ((Time.time - TimeStart) / BulletLifetime)) * OriginalWidth;
-    }
+    //private void Update()
+    //{
+        //tracer.endWidth = (1 - ((Time.time - TimeStart) / BulletLifetime)) * OriginalWidth;
+    //}
 }
