@@ -28,11 +28,16 @@ public class WeaponManager : NetworkBehaviour
     public ObjectPool BulletPool;
     public ObjectPool RocketPool;
 
+    public ObjectPool ProjectilePool;
+
+    public AudioSource HitSound;
+
     [Header("Client Data")]
 
     private int CurrentTimeStamp;
 
     private NetworkRole LocalRole;
+    private ClientRpcParams OwningClientID;
     private ClientRpcParams IgnoreOwnerRPCParams;
     private List<ulong> ClientIDList = new List<ulong>();
 
@@ -88,9 +93,22 @@ public class WeaponManager : NetworkBehaviour
         ActiveWeaponIndex = ActiveWeaponNumber.Shotgun;
         ActiveWeapon = WeaponList[0];
         ActiveWeapon.ChangeActive(true);
+    }
 
+    public override void OnNetworkSpawn()
+    {
         if (IsServer)
         {
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+
+            OwningClientID = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            };
+
             foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
             {
                 if (i != OwnerClientId && i != 0)
@@ -107,11 +125,35 @@ public class WeaponManager : NetworkBehaviour
                 }
             };
         }
+    }
 
-        if(IsOwner)
+    public override void OnNetworkDespawn()
+    {
+        if (IsServer)
         {
-            Fist.layer = 6;
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
         }
+    }
+
+    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
+    {
+        if (connection == ConnectionStatus.Connected)
+        {
+            ClientIDList.Add(clientId);
+        }
+
+        else
+        {
+            ClientIDList.Remove(clientId);
+        }
+
+        IgnoreOwnerRPCParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = ClientIDList
+            }
+        };
     }
 
     public void FixedTick(int timestamp)
@@ -538,41 +580,22 @@ public class WeaponManager : NetworkBehaviour
         OnChangeActiveWeapon(ActiveWeaponIndex, activeweapon);
     }
 
-    public override void OnNetworkSpawn()
+    public void PlayHitSound()
     {
-        if (IsServer)
+        if(IsOwner)
         {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+            HitSound.Play();
+
+            return;
         }
+
+        ReplicateHitClientRpc(OwningClientID);
     }
 
-    public override void OnNetworkDespawn()
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateHitClientRpc(ClientRpcParams clientRpcParams = default)
     {
-        if (IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
-        }
-    }
-
-    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
-    {
-        if (connection == ConnectionStatus.Connected)
-        {
-            ClientIDList.Add(clientId);
-        }
-
-        else
-        {
-            ClientIDList.Remove(clientId);
-        }
-
-        IgnoreOwnerRPCParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = ClientIDList
-            }
-        };
+        HitSound.Play();
     }
 
     public Vector3 GetAimPointLocation()

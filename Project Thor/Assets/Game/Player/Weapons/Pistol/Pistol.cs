@@ -23,7 +23,19 @@ public class Pistol : BaseWeapon
 
     public override void Fire1()
     {
+        if (!Manager.GetHasAuthority())
+        {
+            return;
+        }
 
+        GameObject Bullet = Manager.ProjectilePool.GetPooledObject();
+
+        if (Bullet != null)
+        {
+            Vector3 Dir = PlayerMovementComponent.GetRotation() * Vector3.forward;
+            Bullet.GetComponent<RocketScript>().Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir, Dir);
+            Bullet.SetActive(true);
+        }
     }
 
     public override void Fire2()

@@ -48,20 +48,7 @@ public class BaseWeapon : MonoBehaviour
 
     virtual public void Start()
     {
-        if(Manager.GetIsOwner())
-        {
-            SetGameLayerRecursive(WeaponModel, 6);
-        }
-    }
 
-    private void SetGameLayerRecursive(GameObject gameObject, int layer)
-    {
-        var children = gameObject.GetComponentsInChildren<Transform>(includeInactive: true);
-
-        foreach (var child in children)
-        {
-            child.gameObject.layer = layer;
-        }
     }
 
     public void ChangeActive(bool active)

@@ -8,9 +8,13 @@ public class SettingsUIScript : MonoBehaviour
 {
     public GameObject PlayerUI;
     public GameObject SettingsObject;
-    public TMP_Text PlayerInfoText;
     public Slider SensitivitySlider;
     public CameraScript PlayerCameraScript;
+
+    [SerializeField]
+    TMP_Text RedTeamPlayers;
+    [SerializeField]
+    TMP_Text BlueTeamPlayers;
 
     private void Start()
     {
@@ -43,37 +47,31 @@ public class SettingsUIScript : MonoBehaviour
 
                 PlayerCameraScript.enabled = false;
 
-                string players = "";
-                List<PlayerInformation> playerlist = GameManager.Singleton.GetAllPlayerInformation();
-                bool bruh = true;
-
-                foreach (var i in playerlist)
-                {
-                    if (bruh)
-                    {
-                        bruh = false;
-                    }
-
-                    else
-                    {
-                        players += ", ";
-                    }
-
-                    players += i.Id.ToString() + ": ";
-
-                    if (i.Team == 0)
-                    {
-                        players += "red";
-                    }
-
-                    else
-                    {
-                        players += "blue";
-                    }
-                }
-
-                PlayerInfoText.text = players;
+                DisplayPlayers();
             }
         }
+    }
+
+    private void DisplayPlayers()
+    {
+        string RedTeam = "";
+        string BlueTeam = "";
+        List<PlayerInformation> playerlist = GameManager.Singleton.GetAllPlayerInformation();
+
+        foreach (var i in playerlist)
+        {
+            if(i.Team == Teams.Red)
+            {
+                RedTeam += i.Id;
+            }
+
+            if(i.Team == Teams.Blue)
+            {
+                BlueTeam += i.Id;
+            }
+        }
+
+        RedTeamPlayers.text = RedTeam;
+        BlueTeamPlayers.text = BlueTeam;
     }
 }

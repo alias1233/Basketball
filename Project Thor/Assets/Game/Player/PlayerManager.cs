@@ -36,12 +36,19 @@ public class PlayerManager : NetworkBehaviour
     public List<MonoBehaviour> DisabledForOwnerScripts;
     public List<MonoBehaviour> DisabledForOthersScripts;
 
-    public GameObject FirstPersonComponents;
-    public GameObject ThirdPersonComponents;
+    [SerializeField]
+    private GameObject FirstPersonComponents;
+    [SerializeField]
+    private GameObject ThirdPersonComponents;
 
-    public GameObject FPPlayerCamera;
-    public CameraVisualsScript CameraVisuals;
-    public GameObject FirstPersonPlayerUI;
+    [SerializeField]
+    private GameObject FPPlayerCamera;
+    [SerializeField]
+    private CameraVisualsScript CameraVisuals;
+    [SerializeField]
+    private GameObject FirstPersonPlayerUI;
+
+    public GameObject[] RenderOnTop;
 
     [Header("Hit Registration")]
 
@@ -72,19 +79,6 @@ public class PlayerManager : NetworkBehaviour
         Movement = GetComponent<PlayerMovement>();
         Weapons = GetComponent<WeaponManager>();
 
-        if (IsServer)
-        {
-            TimeStamp = -ServerDelay;
-
-            OwningClientID = new ClientRpcParams
-            {
-                Send = new ClientRpcSendParams
-                {
-                    TargetClientIds = new ulong[] { OwnerClientId }
-                }
-            };
-        }
-
         List<PlayerInformation> PlayerList = GameManager.Singleton.GetAllPlayerInformation();
 
         foreach (PlayerInformation playerInfo in PlayerList)
@@ -92,30 +86,26 @@ public class PlayerManager : NetworkBehaviour
             if (playerInfo.Id == OwnerClientId)
             {
                 Team = playerInfo.Team;
+
+                break;
             }
         }
-
-        if (IsServer)
-        {
-            Health.Value = MaxHealth;
-        }
-
-        OnHealthChanged(Health.Value, Health.Value);
 
         if (IsOwner)
         {
+            if(!IsServer)
+            {
+                OnHealthChanged(Health.Value, Health.Value);
+            }
+
             if (Team == Teams.Red)
             {
                 FirstPersonHealthBarText.color = Color.red;
-
-                return;
             }
 
-            if (Team == Teams.Blue)
+            else if (Team == Teams.Blue)
             {
                 FirstPersonHealthBarText.color = Color.blue;
-
-                return;
             }
 
             return;
@@ -138,6 +128,23 @@ public class PlayerManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     { 
+        if(IsServer)
+        {
+            TimeStamp = -ServerDelay;
+
+            OwningClientID = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { OwnerClientId }
+                }
+            };
+
+            Health.Value = MaxHealth;
+
+            OnHealthChanged(Health.Value, Health.Value);
+        }
+
         Health.OnValueChanged += OnHealthChanged;
 
         if (IsOwner)
@@ -148,6 +155,11 @@ public class PlayerManager : NetworkBehaviour
             }
 
             ThirdPersonComponents.SetActive(false);
+
+            foreach(var i in RenderOnTop)
+            {
+                SetGameLayerRecursive(i, 6);
+            }
 
             return;
         }
@@ -170,11 +182,13 @@ public class PlayerManager : NetworkBehaviour
     {
         TimeStamp++;
 
-        if(!Dead)
+        if(Dead)
         {
-            Movement.FixedTick(TimeStamp);
-            Weapons.FixedTick(TimeStamp);
+            return;
         }
+
+        Movement.FixedTick(TimeStamp);
+        Weapons.FixedTick(TimeStamp);
 
         if(!IsServer)
         {
@@ -204,28 +218,7 @@ public class PlayerManager : NetworkBehaviour
 
         if (previous > 0 && current <= 0)
         {
-            Dead = true;
-
-            DeathSound.Play();
-
-            if (IsOwner)
-            {
-                DeathManager.Singleton.PossessGhost(transform.position, FPPlayerCamera.transform.rotation);
-
-                FPPlayerCamera.SetActive(false);
-                FirstPersonPlayerUI.SetActive(false);
-            }
-
-            if (!IsServer)
-            {
-                Invoke(nameof(DieOnClient), 0.5f);
-
-                return;
-            }
-
-            transform.position = GameManager.Singleton.GetGraveyardLocation();
-
-            Invoke(nameof(Respawn), RespawnTime);
+            Die();
 
             return;
         }
@@ -243,7 +236,61 @@ public class PlayerManager : NetworkBehaviour
             }
 
             transform.position = GameManager.Singleton.GetSpawnLocation(Team);
+            Movement.ChangeVelocity(Vector3.zero);
         }
+    }
+
+    private void Die()
+    {
+        Dead = true;
+
+        DeathSound.Play();
+
+        if (IsOwner)
+        {
+            DeathManager.Singleton.PossessGhost(transform.position, FPPlayerCamera.transform.rotation);
+
+            FPPlayerCamera.SetActive(false);
+            FirstPersonPlayerUI.SetActive(false);
+        }
+
+        if (IsServer)
+        {
+            transform.position = GameManager.Singleton.GetGraveyardLocation();
+
+            Invoke(nameof(Respawn), RespawnTime);
+
+            RewindDataDictionary.Clear();
+
+            return;
+        }
+
+        Invoke(nameof(DieOnClient), 0.5f);
+    }
+
+    public bool Damage(Teams team, float damage)
+    {
+        if (Team == team || !IsServer)
+        {
+            return false;
+        }
+
+        Health.Value -= damage;
+
+        return true;
+    }
+
+    public void DieOnClient()
+    {
+        if(Health.Value < 0)
+        {
+            transform.position = GameManager.Singleton.GetGraveyardLocation();
+        }
+    }
+
+    public void Respawn()
+    {
+        Health.Value = MaxHealth;
     }
 
     public bool RewindToPosition(Teams team, int pingintick)
@@ -314,31 +361,9 @@ public class PlayerManager : NetworkBehaviour
         TimeStamp += timediff;
     }
 
-    public bool Damage(Teams team, float damage)
-    {
-        if (Team == team || !IsServer)
-        {
-            return false;
-        }
-
-        Health.Value -= damage;
-
-        return true;
-    }
-
     public bool IsSameTeam(Teams team)
     {
         return Team == team;
-    }
-
-    public void DieOnClient()
-    {
-        transform.position = GameManager.Singleton.GetGraveyardLocation();
-    }
-
-    public void Respawn()
-    {
-        Health.Value = MaxHealth;
     }
 
     public void CameraChangePosition(Vector3 Offset, float duration)
@@ -393,5 +418,15 @@ public class PlayerManager : NetworkBehaviour
         }
 
         return NetworkRole.SimulatedProxy;
+    }
+
+    private void SetGameLayerRecursive(GameObject gameObject, int layer)
+    {
+        var children = gameObject.GetComponentsInChildren<Transform>(includeInactive: true);
+
+        foreach (var child in children)
+        {
+            child.gameObject.layer = layer;
+        }
     }
 }

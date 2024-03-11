@@ -50,29 +50,49 @@ public class GameManager : NetworkBehaviour
 
         if(connection == ConnectionStatus.Connected)
         {
-            Teams team = Teams.Red;
-            ushort val = (ushort)(clientId % 2);
+            int RedTeamNum = 0;
+            int BlueTeamNum = 0;
 
-            if (val == 1)
+            foreach(PlayerInformation player in PlayerList)
+            {
+                if(player.Team == Teams.Red)
+                {
+                    RedTeamNum++;
+                }
+
+                if(player.Team == Teams.Blue)
+                {
+                    BlueTeamNum++;
+                }
+            }
+
+            Teams team = Teams.Red;
+
+            if (BlueTeamNum < RedTeamNum)
             {
                 team = Teams.Blue;
             }
 
             PlayerList.Add(new PlayerInformation(clientId, team));
 
-            GameObject newPlayer = Instantiate(PlayerPrefab);
+            GameObject newPlayer = Instantiate(PlayerPrefab, GetSpawnLocation(team), Quaternion.identity);
 
-            if (team == Teams.Red)
-            {
-                newPlayer.transform.position = RedTeamSpawn.position;
-            }
-
-            if (team == Teams.Blue)
-            {
-                newPlayer.transform.position = BlueTeamSpawn.position;
-            }
+            print(team);
+            print(GetSpawnLocation(team));
 
             newPlayer.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+
+            return;
+        }
+
+        for(int i = 0; i < PlayerList.Count; i++)
+        {
+            if (PlayerList[i].Id == clientId)
+            {
+                PlayerList.RemoveAt(i);
+
+                return;
+            }
         }
     }
 

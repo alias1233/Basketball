@@ -51,6 +51,7 @@ public class LobbyManager : MonoBehaviour {
     private string PlayerName;
 
     public GameObject LobbyJoinUI;
+    public GameObject LobbyCamera;
 
     private void Awake() 
     {
@@ -60,17 +61,12 @@ public class LobbyManager : MonoBehaviour {
     private async void Start()
     {
         await UnityServices.InitializeAsync();
-
-        //AuthenticationService.Instance.SignedIn += () => {
-            //RefreshLobbyList();
-        //};
-
         await AuthenticationService.Instance.SignInAnonymouslyAsync();
     }
 
     private void Update()
     {
-        //HandleRefreshLobbyList(); // Disabled Auto Refresh for testing with multiple builds
+        //HandleRefreshLobbyList();
         HandleLobbyHeartbeat();
         HandleLobbyPolling();
     }
@@ -152,6 +148,7 @@ public class LobbyManager : MonoBehaviour {
                     }
 
                     LobbyJoinUI.SetActive(false);
+                    LobbyCamera.SetActive(false);
 
                     joinedLobby = null;
                 }

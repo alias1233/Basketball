@@ -52,6 +52,8 @@ public class Shotgun : BaseWeapon
             }
         }
 
+        bool bHit = false;
+
         for (int i = 0; i < PelletCount; i++)
         {
             RaycastHit hit;
@@ -60,9 +62,17 @@ public class Shotgun : BaseWeapon
             {
                 if (hit.transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
                 {
-                    stats.Damage(Manager.GetTeam(), Damage);
+                    if(stats.Damage(Manager.GetTeam(), Damage))
+                    {
+                        bHit = true;
+                    }
                 }
             }
+        }
+
+        if(bHit)
+        {
+            Manager.PlayHitSound();
         }
 
         ResetRewindedPlayers();

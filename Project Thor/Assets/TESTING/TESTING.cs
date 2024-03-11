@@ -29,10 +29,29 @@ public class TESTING : MonoBehaviour
 
     private Transform SelfTransform;
 
+    TrailRenderer trail;
+    int LastTime;
+    Vector3 bruh = new Vector3(0, 0, 2);
+
     private void Start()
     {
         SelfTransform = transform;
         DeltaTime = Time.fixedDeltaTime;
+        trail = GetComponent<TrailRenderer>();
+    }
+
+    private void FixedUpdate()
+    {
+        LastTime++;
+
+        if(LastTime >= 50)
+        {
+            LastTime = 0;
+
+            bruh = -bruh;
+        }
+
+        SelfTransform.position += bruh;
     }
 
     // Update is called once per frame
@@ -42,7 +61,7 @@ public class TESTING : MonoBehaviour
         {
             for (int i = 0; i < Times; i++)
             {
-                MoveDirection = Velocity * DeltaTime;
+                Velocity = new Vector3(MoveDirection.x, 0, MoveDirection.z).normalized;
             }
 
             return;
@@ -50,7 +69,7 @@ public class TESTING : MonoBehaviour
 
         for (int i = 0; i < Times; i++)
         {
-            MoveDirection = Velocity2;
+            Velocity = MoveDirection;
         }
     }
 

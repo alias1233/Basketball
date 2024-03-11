@@ -15,19 +15,27 @@ public struct ClientCorrection : INetworkSerializable
     public int StartDashTime;
     public Quaternion DashingStartRotation;
 
+    public bool bWasCTRL;
+    public bool bTrySlideGroundPound;
+
     public bool bSliding;
     public Vector3 SlideDirection;
     public int LastTimeSlide;
 
-    public ClientCorrection(int timestamp, Vector3 position, Vector3 velocity, 
-        bool bnomovement, 
+    public bool bGroundPound;
+
+    public ClientCorrection(int timestamp, Vector3 position, Vector3 velocity,
+        bool bnomovement,
         int lasttimejumped,
         bool bdashing,
-        int startdashtime, 
-        Quaternion dashingstartrotation, 
-        bool bsliding, 
+        int startdashtime,
+        Quaternion dashingstartrotation,
+        bool bsliding,
         Vector3 slidedirection,
-        int lasttimeslide
+        int lasttimeslide,
+        bool bwasctrl,
+        bool btryslidegroundpound,
+        bool bgroundpound
         )
     {
         TimeStamp = timestamp;
@@ -41,6 +49,9 @@ public struct ClientCorrection : INetworkSerializable
         bSliding = bsliding;
         SlideDirection = slidedirection;
         LastTimeSlide = lasttimeslide;
+        bWasCTRL = bwasctrl;
+        bTrySlideGroundPound = btryslidegroundpound;
+        bGroundPound = bgroundpound;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -60,6 +71,9 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferWriter.WriteValueSafe(bSliding);
             fastBufferWriter.WriteValueSafe(SlideDirection);
             fastBufferWriter.WriteValueSafe(LastTimeSlide);
+            fastBufferWriter.WriteValueSafe(bWasCTRL);
+            fastBufferWriter.WriteValueSafe(bTrySlideGroundPound);
+            fastBufferWriter.WriteValueSafe(bGroundPound);
         }
 
         if (serializer.IsReader)
@@ -77,6 +91,9 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferReader.ReadValueSafe(out bool bsliding);
             fastBufferReader.ReadValueSafe(out Vector3 slidedirection);
             fastBufferReader.ReadValueSafe(out int lasttimeslide);
+            fastBufferReader.ReadValueSafe(out bool bwasctrl);
+            fastBufferReader.ReadValueSafe(out bool btryslidegroundpound);
+            fastBufferReader.ReadValueSafe(out bool bgroundpound);
 
             TimeStamp = timestamp;
             Position = position;
@@ -89,6 +106,9 @@ public struct ClientCorrection : INetworkSerializable
             bSliding = bsliding;
             SlideDirection = slidedirection;
             LastTimeSlide = lasttimeslide;
+            bWasCTRL = bwasctrl;
+            bTrySlideGroundPound = btryslidegroundpound;
+            bGroundPound = bgroundpound;
         }
     }
 }
