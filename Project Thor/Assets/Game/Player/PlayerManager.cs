@@ -73,12 +73,15 @@ public class PlayerManager : NetworkBehaviour
 
     public AudioSource DeathSound;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
         Movement = GetComponent<PlayerMovement>();
         Weapons = GetComponent<WeaponManager>();
+    }
 
+    // Start is called before the first frame update
+    private void Start()
+    {
         List<PlayerInformation> PlayerList = GameManager.Singleton.GetAllPlayerInformation();
 
         foreach (PlayerInformation playerInfo in PlayerList)
@@ -93,11 +96,6 @@ public class PlayerManager : NetworkBehaviour
 
         if (IsOwner)
         {
-            if(!IsServer)
-            {
-                OnHealthChanged(Health.Value, Health.Value);
-            }
-
             if (Team == Teams.Red)
             {
                 FirstPersonHealthBarText.color = Color.red;
@@ -141,9 +139,9 @@ public class PlayerManager : NetworkBehaviour
             };
 
             Health.Value = MaxHealth;
-
-            OnHealthChanged(Health.Value, Health.Value);
         }
+
+        OnHealthChanged(Health.Value, Health.Value);
 
         Health.OnValueChanged += OnHealthChanged;
 

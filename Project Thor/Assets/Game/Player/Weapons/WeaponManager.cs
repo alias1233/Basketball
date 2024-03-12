@@ -83,6 +83,11 @@ public class WeaponManager : NetworkBehaviour
 
     private RaycastHit[] Hits = new RaycastHit[5];
 
+    [Header("Visuals")]
+
+    public float MaxSwayVelocity;
+    public float MaxSwayAmount;
+
     private void Start()
     {
         Player = GetComponent<PlayerManager>();
@@ -167,6 +172,8 @@ public class WeaponManager : NetworkBehaviour
                 HostTick();
                 ServerTickForAll();
 
+                WeaponSway();
+
                 break;
 
             case NetworkRole.HostProxy:
@@ -179,6 +186,8 @@ public class WeaponManager : NetworkBehaviour
             case NetworkRole.AutonomousProxy:
 
                 AutonomousProxyTick();
+
+                WeaponSway();
 
                 break;
 
@@ -596,6 +605,13 @@ public class WeaponManager : NetworkBehaviour
     public void ReplicateHitClientRpc(ClientRpcParams clientRpcParams = default)
     {
         HitSound.Play();
+    }
+
+    private void WeaponSway()
+    {
+        ActiveWeapon.SetWeaponModelPos(
+            -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() / MaxSwayVelocity, MaxSwayAmount)
+            );
     }
 
     public Vector3 GetAimPointLocation()

@@ -18,12 +18,14 @@ public class CameraVisualsScript : MonoBehaviour
     private float OriginalFOV;
     private float ChangingFOV;
 
+    /*
     private float MoveCammeraDuration;
 
     private bool bMoveCammera;
     private float StartMoveCammeraTime;
     private Vector3 OriginalPos;
     private Vector3 ChangingPos;
+    */
 
     private void Start()
     {
@@ -47,6 +49,7 @@ public class CameraVisualsScript : MonoBehaviour
         }
     }
 
+    /*
     private void FixedUpdate()
     {
         if (bMoveCammera)
@@ -66,23 +69,34 @@ public class CameraVisualsScript : MonoBehaviour
             }
         }
     }
+    */
 
     public void ChangePosition(Vector3 offset, float duration)
     {
+        /*
         bMoveCammera = true;
         MoveCammeraDuration = duration;
         OriginalPos = CameraTransform.position - transform.position;
         ChangingPos = offset;
         StartMoveCammeraTime = Time.time;
+        */
+
+        CameraTransform.position = offset + transform.position;
+        FPAllTransform.position = offset + transform.position;
     }
 
     public void ResetPosition(float duration)
     {
+        /*
         bMoveCammera = true;
         MoveCammeraDuration = duration;
         OriginalPos = CameraTransform.position - transform.position;
         ChangingPos = Vector3.zero;
         StartMoveCammeraTime = Time.time;
+        */
+
+        CameraTransform.position = transform.position;
+        FPAllTransform.position = transform.position;
     }
 
     public void ChangeFOV(float FOVdiff, float duration)

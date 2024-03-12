@@ -77,9 +77,6 @@ public class GameManager : NetworkBehaviour
 
             GameObject newPlayer = Instantiate(PlayerPrefab, GetSpawnLocation(team), Quaternion.identity);
 
-            print(team);
-            print(GetSpawnLocation(team));
-
             newPlayer.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
 
             return;

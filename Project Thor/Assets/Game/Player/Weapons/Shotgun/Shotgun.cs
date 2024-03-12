@@ -39,14 +39,14 @@ public class Shotgun : BaseWeapon
     {
         Visuals1();
 
-        if (!Manager.GetHasAuthority())
+        if (!bIsServer)
         {
             return;
         }
 
         Manager.ReplicateFire(1);
 
-        if (!Manager.GetIsOwner())
+        if (!bIsOwner)
         {
             if (!RewindPlayers(new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward), Range1))
             {
@@ -94,7 +94,8 @@ public class Shotgun : BaseWeapon
             else
             {
                 PelletRays[i] = new Ray(
-                    Manager.GetAimPointLocation() + PlayerMovementComponent.GetRotation() * (Offsets[i - 1] * RandomOffset),
+                    Manager.GetAimPointLocation() //+ PlayerMovementComponent.GetRotation() * (Offsets[i - 1] * RandomOffset),
+                    ,
                     PlayerMovementComponent.GetRotation() * (Vector3.forward + Offsets[i - 1] * RandomOffset));
 
                 //PelletRays[i] = new Ray(Manager.GetAimPointLocation(), PlayerMovementComponent.GetRotation() * (Vector3.forward + Vector3.up * Random.Range(-RandomOffset, RandomOffset) + Vector3.right * Random.Range(-RandomOffset, RandomOffset)));
@@ -115,7 +116,16 @@ public class Shotgun : BaseWeapon
                 LineRenderer tracer = Bullet.GetComponent<LineRenderer>();
 
                 Bullet.SetActive(true);
-                tracer.SetPosition(0, PelletRays[i].origin);
+                if(i == 0)
+                {
+                    tracer.SetPosition(0, MuzzlePoint.position);
+                }
+
+                else
+                {
+                    tracer.SetPosition(0, MuzzlePoint.position + PlayerMovementComponent.GetRotation() * (Offsets[i - 1] * RandomOffset));
+                }
+                
                 tracer.SetPosition(1, HitPos);
             }
         }
@@ -148,7 +158,7 @@ public class Shotgun : BaseWeapon
         ChargingRocketParticleSystem.Clear();
         ChargingRocketParticleSystem.Stop();
 
-        if (!Manager.GetHasAuthority())
+        if (!bIsServer)
         {
             return;
         }

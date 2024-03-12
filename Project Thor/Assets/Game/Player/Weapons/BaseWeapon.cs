@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class BaseWeapon : MonoBehaviour
@@ -11,8 +13,14 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public PlayerMovement PlayerMovementComponent;
 
+    public bool bIsOwner;
+    public bool bIsServer;
+
     [SerializeField]
     public GameObject WeaponModel;
+    private Transform WeaponModelTransform;
+    [SerializeField]
+    private Transform WeaponModelHolder;
     [SerializeField]
     public Transform MuzzlePoint;
 
@@ -46,9 +54,15 @@ public class BaseWeapon : MonoBehaviour
 
     private RaycastHit[] Hits = new RaycastHit[5];
 
+    virtual public void Awake()
+    {
+        WeaponModelTransform = WeaponModel.transform;
+    }
+
     virtual public void Start()
     {
-
+        bIsOwner = Manager.GetIsOwner();
+        bIsServer = Manager.GetHasAuthority();
     }
 
     public void ChangeActive(bool active)
@@ -116,6 +130,11 @@ public class BaseWeapon : MonoBehaviour
         {
             i.ResetToOriginalPosition();
         }
+    }
+
+    public void SetWeaponModelPos(Vector3 pos)
+    {
+        WeaponModelTransform.position = WeaponModelHolder.position + pos;
     }
 
     public virtual void OnActivate() { }

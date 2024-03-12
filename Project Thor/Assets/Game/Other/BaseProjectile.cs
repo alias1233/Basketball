@@ -140,6 +140,11 @@ public class BaseProjectile : NetworkBehaviour
 
         Velocity += Vector3.down * Gravity;
         SelfTransform.position += Velocity * DeltaTime;
+
+        if (Time.time - StartTime >= Lifetime * 2)
+        {
+            gameObject.SetActive(false);
+        }
     }
 
     public virtual void OnHitGround() { }
@@ -157,9 +162,9 @@ public class BaseProjectile : NetworkBehaviour
     {
         Model.SetActive(true);
 
-        LastTimeReplicatedPosition = StartTime;
+        LastTimeReplicatedPosition = Time.time;
         InitClientRpc(team, pos, dir);
-        StartTime = Time.time;
+        StartTime = LastTimeReplicatedPosition;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
@@ -189,6 +194,8 @@ public class BaseProjectile : NetworkBehaviour
         if (!Model.activeSelf)
         {
             Model.SetActive(true);
+
+            StartTime = Time.time;
         }
 
         bUpdatedThisFrame = true;
@@ -207,6 +214,8 @@ public class BaseProjectile : NetworkBehaviour
         if (!Model.activeSelf)
         {
             Model.SetActive(true);
+
+            StartTime = Time.time;
         }
 
         bUpdatedThisFrame = true;
