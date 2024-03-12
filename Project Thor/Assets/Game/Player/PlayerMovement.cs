@@ -669,7 +669,15 @@ public class PlayerMovement : NetworkBehaviour
 
             else
             {
-                Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+                if(bGroundPound)
+                {
+                    Delta = Velocity * DeltaTime;
+                }
+
+                else
+                {
+                    Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+                }
             }
         }
 
