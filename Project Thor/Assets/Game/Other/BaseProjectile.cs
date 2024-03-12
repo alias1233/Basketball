@@ -194,9 +194,9 @@ public class BaseProjectile : NetworkBehaviour
         if (!Model.activeSelf)
         {
             Model.SetActive(true);
-
-            StartTime = Time.time;
         }
+
+        StartTime = Time.time;
 
         bUpdatedThisFrame = true;
 
@@ -214,9 +214,9 @@ public class BaseProjectile : NetworkBehaviour
         if (!Model.activeSelf)
         {
             Model.SetActive(true);
-
-            StartTime = Time.time;
         }
+
+        StartTime = Time.time;
 
         bUpdatedThisFrame = true;
 
