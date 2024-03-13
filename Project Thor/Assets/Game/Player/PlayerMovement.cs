@@ -734,6 +734,7 @@ public class PlayerMovement : NetworkBehaviour
         GroundPoundImpactParticle.Play();
 
         GroundPoundTrails.Stop();
+        GroundPoundTrails.Clear();
         GroundPoundLandAudio.Play();
 
         if (IsServer)

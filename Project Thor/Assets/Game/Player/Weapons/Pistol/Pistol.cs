@@ -1,20 +1,19 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using Unity.Netcode;
 using UnityEngine;
 
 public class Pistol : BaseWeapon
 {
-    [SerializeField]
-    private BigLaserScript BigLaser;
-    [SerializeField]
-    private ParticleSystem ChargingLaserParticleSystem;
+    [Header("Pistol")]
 
-    public int Radius2;
-    public int MaxChargingTime;
-    private bool bIsCharging;
-    private float ChargingStartTime;
-    private RaycastHit[] Hits = new RaycastHit[5];
+    public LayerMask ObjectProjectileLayer;
+
+    private Ray BulletRay;
+
+    public AudioSource CoinFlipSound;
+    public AudioSource CoinShootSound;
 
     public override void Start()
     {
@@ -23,103 +22,77 @@ public class Pistol : BaseWeapon
 
     public override void Fire1()
     {
-        if (!Manager.GetHasAuthority())
+        Visuals1();
+
+        if (!bIsServer)
         {
             return;
         }
 
-        GameObject Bullet = Manager.ProjectilePool.GetPooledObject();
+        Manager.ReplicateFire(1);
+    }
+
+    public override void Visuals1()
+    {
+        BulletRay = new Ray(Manager.GetAimPointLocation(), PlayerMovementComponent.GetRotation() * Vector3.forward);
+        Vector3 HitPos = BulletRay.GetPoint(Range1);
+        RaycastHit hit;
+
+        if (Physics.Raycast(BulletRay, out hit, Range1, ObjectProjectileLayer))
+        {
+            HitPos = hit.point;
+
+            if(hit.transform.TryGetComponent<Coin>(out Coin coin))
+            {
+                CoinShootSound.Play();
+
+                if (bIsOwner && bIsServer)
+                {
+                    coin.OnShoot();
+                }
+
+                else if(bIsOwner)
+                {
+                    Manager.OnShootCoinServerRpc();
+                }
+            }
+        }
+
+        GameObject Bullet = Manager.BulletPool.GetPooledObject();
 
         if (Bullet != null)
         {
-            Vector3 Dir = PlayerMovementComponent.GetRotation() * Vector3.forward;
-            Bullet.GetComponent<RocketScript>().Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir, Dir);
+            LineRenderer tracer = Bullet.GetComponent<LineRenderer>();
+            tracer.SetPosition(0, MuzzlePoint.position);
+            tracer.SetPosition(1, HitPos);
+
             Bullet.SetActive(true);
         }
     }
 
     public override void Fire2()
     {
-        if (bIsCharging)
-        {
-            return;
-        }
-
-        bIsCharging = true;
-        ChargingStartTime = Manager.GetTimeStamp();
-
-        ChargingLaserParticleSystem.Play();
-    }
-
-    public override void StopFire2()
-    {
-        if (!bIsCharging)
-        {
-            return;
-        }
-
-        LastTimeShot2 = Manager.GetTimeStamp();
-
-        bIsCharging = false;
-
-        ChargingLaserParticleSystem.Clear();
-        ChargingLaserParticleSystem.Stop();
-
         Visuals2();
 
-        if (!Manager.GetHasAuthority())
+        if (!bIsServer)
         {
             return;
         }
 
         Manager.ReplicateFire(2);
 
-        Ray laserRay = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
+        GameObject Coin = Manager.ProjectilePool.GetPooledObject();
 
-        if (!Manager.GetIsOwner())
+        if (Coin != null)
         {
-            if (!RewindPlayers(laserRay, Range2))
-            {
-                return;
-            }
+            Coin.GetComponent<Coin>().Init(Manager.GetTeam(), Manager.GetAimPointLocation(),
+                PlayerMovementComponent.GetRotation() * Vector3.forward + Vector3.up * 0.5f);
+            Coin.SetActive(true);
         }
-
-        int NumHits = Physics.SphereCastNonAlloc(laserRay, Radius2, Hits, Range1, PlayerLayer);
-
-        for (int i = 0; i < NumHits; i++)
-        {
-            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
-            {
-                stats.Damage(Manager.GetTeam(), Mathf.Clamp(Damage2 * (Manager.GetTimeStamp() - ChargingStartTime) / MaxChargingTime, 0, Damage2));
-            }
-        }
-
-        ResetRewindedPlayers();
     }
 
     public override void Visuals2()
     {
-        Ray laserRay2 = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
-        RaycastHit colliderInfo2;
-
-        if (Physics.Raycast(laserRay2, out colliderInfo2, Range2, ObjectLayer))
-        {
-            BigLaser.ShootLaser(colliderInfo2.distance / 2, MuzzlePoint.rotation * Vector3.forward);
-        }
-
-        else
-        {
-            BigLaser.ShootLaser(Range2 / 2, MuzzlePoint.rotation * Vector3.forward);
-        }
-    }
-
-    public override void OnActivate()
-    {
-        bIsCharging = false;
-    }
-    public override void OnDeactivate()
-    {
-        ChargingLaserParticleSystem.Clear();
-        ChargingLaserParticleSystem.Stop();
+        CoinFlipSound.Play();
     }
 }

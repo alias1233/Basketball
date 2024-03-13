@@ -140,11 +140,6 @@ public class BaseProjectile : NetworkBehaviour
 
         Velocity += Vector3.down * Gravity;
         SelfTransform.position += Velocity * DeltaTime;
-
-        if (Time.time - StartTime >= Lifetime * 2)
-        {
-            gameObject.SetActive(false);
-        }
     }
 
     public virtual void OnHitGround() { }
@@ -173,7 +168,7 @@ public class BaseProjectile : NetworkBehaviour
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    private void ReplicateDisableClientRpc()
+    public void ReplicateDisableClientRpc()
     {
         if (IsServer)
         {
@@ -196,8 +191,6 @@ public class BaseProjectile : NetworkBehaviour
             Model.SetActive(true);
         }
 
-        StartTime = Time.time;
-
         bUpdatedThisFrame = true;
 
         SelfTransform.position = pos;
@@ -215,8 +208,6 @@ public class BaseProjectile : NetworkBehaviour
         {
             Model.SetActive(true);
         }
-
-        StartTime = Time.time;
 
         bUpdatedThisFrame = true;
 

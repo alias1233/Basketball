@@ -614,6 +614,20 @@ public class WeaponManager : NetworkBehaviour
             );
     }
 
+    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
+    public void OnShootCoinServerRpc()
+    {
+        foreach(GameObject coin in ProjectilePool.pooledObjects)
+        {
+            if(coin.activeSelf)
+            {
+                coin.GetComponent<Coin>().OnShoot();
+
+                return;
+            }
+        }
+    }
+
     public Vector3 GetAimPointLocation()
     {
         return AimPoint.position;

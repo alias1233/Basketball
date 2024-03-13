@@ -115,7 +115,6 @@ public class Shotgun : BaseWeapon
             {
                 LineRenderer tracer = Bullet.GetComponent<LineRenderer>();
 
-                Bullet.SetActive(true);
                 if(i == 0)
                 {
                     tracer.SetPosition(0, MuzzlePoint.position);
@@ -127,6 +126,8 @@ public class Shotgun : BaseWeapon
                 }
                 
                 tracer.SetPosition(1, HitPos);
+
+                Bullet.SetActive(true);
             }
         }
     }

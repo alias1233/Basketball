@@ -8,6 +8,7 @@ public class ObjectPool : NetworkBehaviour
     public List<GameObject> pooledObjects;
     public GameObject objectToPool;
     public bool bIsNetworkObject;
+    public bool bIndex;
     public int amountToPool;
 
     void Start()
@@ -27,7 +28,6 @@ public class ObjectPool : NetworkBehaviour
             if(tmp.TryGetComponent<NetworkObject>(out NetworkObject obj))
             {
                 obj.Spawn();
-
             }
 
             tmp.SetActive(false);
