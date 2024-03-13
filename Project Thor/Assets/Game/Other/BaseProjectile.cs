@@ -125,7 +125,7 @@ public class BaseProjectile : NetworkBehaviour
             if(Time.time - StartTime >= Lifetime)
             {
                 ReplicateDisableClientRpc();
-                gameObject.SetActive(false);
+                DisableGameObject();
             }
 
             return;
@@ -148,15 +148,23 @@ public class BaseProjectile : NetworkBehaviour
 
     public virtual void OnHitPlayerWithTarget(PlayerManager player) { }
 
-    public void DisableGameObject()
+    public virtual void DisableGameObject()
     {
         gameObject.SetActive(false);
     }
 
-    public void Init(Teams team, Vector3 pos, Vector3 dir)
+    public virtual void DisableModel()
+    {
+        Model.SetActive(false);
+    }
+
+    public virtual void EnableModel()
     {
         Model.SetActive(true);
+    }
 
+    public virtual void Init(Teams team, Vector3 pos, Vector3 dir)
+    {
         LastTimeReplicatedPosition = Time.time;
         InitClientRpc(team, pos, dir);
         StartTime = LastTimeReplicatedPosition;
@@ -165,6 +173,8 @@ public class BaseProjectile : NetworkBehaviour
         SelfTransform.position = pos;
         Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+        EnableModel();
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -175,7 +185,7 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        Model.SetActive(false);
+        DisableModel();
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -186,14 +196,14 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        if (!Model.activeSelf)
-        {
-            Model.SetActive(true);
-        }
-
         bUpdatedThisFrame = true;
 
         SelfTransform.position = pos;
+
+        if (!Model.activeSelf)
+        {
+            EnableModel();
+        }
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -204,16 +214,16 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        if (!Model.activeSelf)
-        {
-            Model.SetActive(true);
-        }
-
         bUpdatedThisFrame = true;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
         Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+        if (!Model.activeSelf)
+        {
+            EnableModel();
+        }
     }
 }

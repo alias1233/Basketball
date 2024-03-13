@@ -7,18 +7,43 @@ public class Coin : BaseProjectile
 {
     [Header("Coin")]
 
-    public float CoinRange;
-
     public LineRenderer Ricochet;
-
+    public TrailRenderer CoinTrail;
     public AudioSource ShootCoinSound;
 
+    public float CoinRange;
+
     Collider[] Hits = new Collider[5];
+
+    public override void DisableGameObject()
+    {
+        base.DisableGameObject();
+
+        CoinTrail.emitting = false;
+    }
+    public override void EnableModel()
+    {
+        base.EnableModel();
+
+        Invoke(nameof(ActivateCoinTrail), 0.1f);
+    }
+
+    public override void DisableModel()
+    {
+        base.DisableModel();
+
+        CoinTrail.emitting = false;
+    }
+
+    private void ActivateCoinTrail()
+    {
+        CoinTrail.emitting = true;
+    }
 
     public override void OnHitGround()
     {
         ReplicateDisableClientRpc();
-        gameObject.SetActive(false);
+        DisableGameObject();
     }
 
     public void OnShoot()
@@ -31,12 +56,14 @@ public class Coin : BaseProjectile
 
             if (player.GetTeam() != OwningPlayerTeam)
             {
+                Model.SetActive(false);
+
                 Vector3 PlayerPos = Hits[i].transform.position;
                 player.Damage(OwningPlayerTeam, Damage);
 
                 ReplicateShotPlayerClientRpc(PlayerPos);
                 Invoke(nameof(DisableGameObject), 0.5f);
-                Model.SetActive(false);
+                CoinTrail.emitting = false;
 
                 Ricochet.SetPosition(0, SelfTransform.position);
                 Ricochet.SetPosition(1, PlayerPos);
@@ -48,7 +75,7 @@ public class Coin : BaseProjectile
         }
 
         ReplicateShotClientRpc();
-        gameObject.SetActive(false);
+        DisableGameObject();
     }
 
     private void DisableRicochet()
@@ -64,12 +91,12 @@ public class Coin : BaseProjectile
             return;
         }
 
+        DisableModel();
+
         Ricochet.SetPosition(0, SelfTransform.position);
         Ricochet.SetPosition(1, hitplayerpos);
         Ricochet.enabled = true;
         Invoke(nameof(DisableRicochet), 0.5f);
-
-        Model.SetActive(false);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -80,6 +107,6 @@ public class Coin : BaseProjectile
             return;
         }
 
-        Model.SetActive(false);
+        DisableModel();
     }
 }
