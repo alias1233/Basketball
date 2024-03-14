@@ -34,7 +34,7 @@ public class RocketScript : BaseProjectile
     {
         ExplodeVisuals();
         Model.SetActive(false);
-        Invoke(nameof(DisableGameObject), 0.5f);
+        Invoke(nameof(Despawn), 0.5f);
 
         int NumHits = Physics.OverlapSphereNonAlloc(SelfTransform.position, Radius, Hits, PlayerLayer);
 
@@ -62,6 +62,6 @@ public class RocketScript : BaseProjectile
 
         SelfTransform.position = pos;
         ExplodeVisuals();
-        Model.SetActive(false);
+        Despawn();
     }
 }

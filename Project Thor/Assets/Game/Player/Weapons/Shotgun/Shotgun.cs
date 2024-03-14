@@ -164,14 +164,15 @@ public class Shotgun : BaseWeapon
             return;
         }
 
-        GameObject Rocket = Manager.RocketPool.GetPooledObject();
+        GameObject obj = Manager.RocketPool.GetPooledObject();
 
-        if (Rocket != null)
+        if (obj != null)
         {
             Vector3 Dir = PlayerMovementComponent.GetRotation() * Vector3.forward;
-            Rocket.GetComponent<RocketScript>().Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir * Offset, Dir
+            RocketScript rocket = obj.GetComponent<RocketScript>();
+            rocket.Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir * Offset, Dir
                 * Mathf.Clamp(RocketSpeedFactor * (Manager.GetTimeStamp() - ChargingStartTime) / MaxChargingTime, 1, RocketSpeedFactor));
-            Rocket.SetActive(true);
+            rocket.Spawn();
         }
     }
 

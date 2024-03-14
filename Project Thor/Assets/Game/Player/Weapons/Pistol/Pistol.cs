@@ -53,7 +53,7 @@ public class Pistol : BaseWeapon
 
                 else if(bIsOwner)
                 {
-                    Manager.OnShootCoinServerRpc();
+                    coin.OnShootServerRpc();
                 }
             }
         }
@@ -81,13 +81,18 @@ public class Pistol : BaseWeapon
 
         Manager.ReplicateFire(2);
 
-        GameObject Coin = Manager.ProjectilePool.GetPooledObject();
+        GameObject obj = Manager.CoinPool.GetPooledObject();
 
-        if (Coin != null)
+        if (obj != null)
         {
-            Coin.GetComponent<Coin>().Init(Manager.GetTeam(), Manager.GetAimPointLocation(),
-                PlayerMovementComponent.GetRotation() * Vector3.forward + Vector3.up * 0.5f);
-            Coin.SetActive(true);
+            Coin coin = obj.GetComponent<Coin>();
+
+            Vector3 vel = PlayerMovementComponent.GetVelocity();
+
+            coin.CoinInit(Manager.GetTeam(), Manager.GetAimPointLocation(),
+                PlayerMovementComponent.GetRotation() * Vector3.forward * 0.5f + Vector3.up * 0.5f,
+                new Vector3(vel.x, 0, vel.z));
+            coin.Spawn();
         }
     }
 

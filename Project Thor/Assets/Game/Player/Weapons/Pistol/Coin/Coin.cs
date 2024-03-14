@@ -15,22 +15,16 @@ public class Coin : BaseProjectile
 
     Collider[] Hits = new Collider[5];
 
-    public override void DisableGameObject()
+    public override void Activate()
     {
-        base.DisableGameObject();
+        base.Activate();
 
-        CoinTrail.emitting = false;
-    }
-    public override void EnableModel()
-    {
-        base.EnableModel();
-
-        Invoke(nameof(ActivateCoinTrail), 0.1f);
+        Invoke(nameof(ActivateCoinTrail), 0.01f);
     }
 
-    public override void DisableModel()
+    public override void Deactivate()
     {
-        base.DisableModel();
+        base.Deactivate();
 
         CoinTrail.emitting = false;
     }
@@ -43,7 +37,19 @@ public class Coin : BaseProjectile
     public override void OnHitGround()
     {
         ReplicateDisableClientRpc();
-        DisableGameObject();
+        Despawn();
+    }
+
+    public void CoinInit(Teams team, Vector3 pos, Vector3 dir, Vector3 initalvel)
+    {
+        LastTimeReplicatedPosition = Time.time;
+        CoinInitClientRpc(team, pos, dir, initalvel);
+        StartTime = LastTimeReplicatedPosition;
+
+        OwningPlayerTeam = team;
+        SelfTransform.position = pos;
+        Velocity = dir * InitialSpeed + initalvel;
+        SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
     }
 
     public void OnShoot()
@@ -62,7 +68,7 @@ public class Coin : BaseProjectile
                 player.Damage(OwningPlayerTeam, Damage);
 
                 ReplicateShotPlayerClientRpc(PlayerPos);
-                Invoke(nameof(DisableGameObject), 0.5f);
+                Invoke(nameof(Despawn), 0.5f);
                 CoinTrail.emitting = false;
 
                 Ricochet.SetPosition(0, SelfTransform.position);
@@ -75,12 +81,33 @@ public class Coin : BaseProjectile
         }
 
         ReplicateShotClientRpc();
-        DisableGameObject();
+        Despawn();
     }
 
     private void DisableRicochet()
     {
         Ricochet.enabled = false;
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    private void CoinInitClientRpc(Teams team, Vector3 pos, Vector3 dir, Vector3 initialvel)
+    {
+        if (IsServer)
+        {
+            return;
+        }
+
+        if (!bIsActive)
+        {
+            Spawn();
+        }
+
+        bUpdatedThisFrame = true;
+
+        OwningPlayerTeam = team;
+        SelfTransform.position = pos;
+        Velocity = dir * InitialSpeed + initialvel;
+        SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -91,7 +118,7 @@ public class Coin : BaseProjectile
             return;
         }
 
-        DisableModel();
+        Despawn();
 
         Ricochet.SetPosition(0, SelfTransform.position);
         Ricochet.SetPosition(1, hitplayerpos);
@@ -107,6 +134,12 @@ public class Coin : BaseProjectile
             return;
         }
 
-        DisableModel();
+        Despawn();
+    }
+
+    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
+    public void OnShootServerRpc()
+    {
+        OnShoot();
     }
 }

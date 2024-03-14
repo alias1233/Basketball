@@ -3,8 +3,47 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-public class BaseProjectile : NetworkBehaviour
+public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 {
+    public bool bIsActive
+    {
+        get
+        {
+            return bisactive;
+        }
+
+        set
+        {
+            bisactive = value;
+        }
+    }
+
+    public bool bisactive;
+
+    public void Spawn()
+    {
+        bIsActive = true;
+
+        Activate();
+    }
+
+    public void Despawn()
+    {
+        bIsActive = false;
+
+        Deactivate();
+    }
+
+    virtual public void Activate()
+    {
+        Model.SetActive(true);
+    }
+
+    virtual public void Deactivate()
+    {
+        Model.SetActive(false);
+    }
+
     [Header("Cached Components")]
 
     [HideInInspector]
@@ -22,7 +61,8 @@ public class BaseProjectile : NetworkBehaviour
     public bool bBounce;
     public int Bounces;
 
-    private Vector3 Velocity;
+    [HideInInspector]
+    public Vector3 Velocity;
 
     private float DeltaTime;
 
@@ -37,12 +77,15 @@ public class BaseProjectile : NetworkBehaviour
 
     public float Lifetime;
 
-    private float StartTime;
+    [HideInInspector]
+    public float StartTime;
 
     public float ReplicatePositionInterval;
 
-    private float LastTimeReplicatedPosition;
-    private bool bUpdatedThisFrame;
+    [HideInInspector]
+    public float LastTimeReplicatedPosition;
+    [HideInInspector]
+    public bool bUpdatedThisFrame;
 
     public float Damage;
     public LayerMask PlayerLayer;
@@ -58,7 +101,7 @@ public class BaseProjectile : NetworkBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (!Model.activeSelf)
+        if (!bIsActive)
         {
             return;
         }
@@ -125,7 +168,8 @@ public class BaseProjectile : NetworkBehaviour
             if(Time.time - StartTime >= Lifetime)
             {
                 ReplicateDisableClientRpc();
-                DisableGameObject();
+
+                Despawn();
             }
 
             return;
@@ -148,21 +192,6 @@ public class BaseProjectile : NetworkBehaviour
 
     public virtual void OnHitPlayerWithTarget(PlayerManager player) { }
 
-    public virtual void DisableGameObject()
-    {
-        gameObject.SetActive(false);
-    }
-
-    public virtual void DisableModel()
-    {
-        Model.SetActive(false);
-    }
-
-    public virtual void EnableModel()
-    {
-        Model.SetActive(true);
-    }
-
     public virtual void Init(Teams team, Vector3 pos, Vector3 dir)
     {
         LastTimeReplicatedPosition = Time.time;
@@ -173,8 +202,6 @@ public class BaseProjectile : NetworkBehaviour
         SelfTransform.position = pos;
         Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
-
-        EnableModel();
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -185,7 +212,7 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        DisableModel();
+        Despawn();
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -196,13 +223,9 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
-        bUpdatedThisFrame = true;
-
-        SelfTransform.position = pos;
-
-        if (!Model.activeSelf)
+        if (!bIsActive)
         {
-            EnableModel();
+            Spawn();
         }
     }
 
@@ -214,16 +237,16 @@ public class BaseProjectile : NetworkBehaviour
             return;
         }
 
+        if (!bIsActive)
+        {
+            Spawn();
+        }
+
         bUpdatedThisFrame = true;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
         Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
-
-        if (!Model.activeSelf)
-        {
-            EnableModel();
-        }
     }
 }

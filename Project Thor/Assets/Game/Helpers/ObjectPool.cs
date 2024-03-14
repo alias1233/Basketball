@@ -1,35 +1,21 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Netcode;
 using UnityEngine;
 
-public class ObjectPool : NetworkBehaviour
+public class ObjectPool : MonoBehaviour
 {
     public List<GameObject> pooledObjects;
     public GameObject objectToPool;
-    public bool bIsNetworkObject;
-    public bool bIndex;
     public int amountToPool;
 
     void Start()
     {
-        if(!IsServer && bIsNetworkObject)
-        {
-            return;
-        }
-
         pooledObjects = new List<GameObject>();
         GameObject tmp;
 
         for (int i = 0; i < amountToPool; i++)
         {
             tmp = Instantiate(objectToPool);
-
-            if(tmp.TryGetComponent<NetworkObject>(out NetworkObject obj))
-            {
-                obj.Spawn();
-            }
-
             tmp.SetActive(false);
             pooledObjects.Add(tmp);
         }

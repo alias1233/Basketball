@@ -26,9 +26,9 @@ public class WeaponManager : NetworkBehaviour
     private List<BaseWeapon> WeaponList;
 
     public ObjectPool BulletPool;
-    public ObjectPool RocketPool;
 
-    public ObjectPool ProjectilePool;
+    public NetworkObjectPool RocketPool;
+    public NetworkObjectPool CoinPool;
 
     public AudioSource HitSound;
 
@@ -612,20 +612,6 @@ public class WeaponManager : NetworkBehaviour
         ActiveWeapon.SetWeaponModelPos(
             -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() / MaxSwayVelocity, MaxSwayAmount)
             );
-    }
-
-    [ServerRpc(Delivery = RpcDelivery.Unreliable)]
-    public void OnShootCoinServerRpc()
-    {
-        foreach(GameObject coin in ProjectilePool.pooledObjects)
-        {
-            if(coin.activeSelf)
-            {
-                coin.GetComponent<Coin>().OnShoot();
-
-                return;
-            }
-        }
     }
 
     public Vector3 GetAimPointLocation()
