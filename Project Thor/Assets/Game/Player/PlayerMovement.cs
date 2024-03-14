@@ -97,6 +97,7 @@ public class PlayerMovement : NetworkBehaviour
 
     public LayerMask WhatIsGround;
     public LayerMask PlayerLayer;
+    public LayerMask PlayerObjectLayer;
 
     public float WalkMoveSpeed = 4f;
     
@@ -185,6 +186,11 @@ public class PlayerMovement : NetworkBehaviour
     public float DashSpeed;
     public float AfterDashVelocityMagnitude;
 
+    public int GrappleDuration;
+    public int GrappleCooldown;
+    public float GrappleSpeed;
+    public float AfterGrappleVelocityMagnitude;
+
     /*
     * 
     * Variables That Need To Be Sent For Client Corrections
@@ -194,6 +200,10 @@ public class PlayerMovement : NetworkBehaviour
     private bool bDashing;
     private int StartDashTime;
     private Quaternion DashingStartRotation;
+
+    private bool bGrapple;
+    private int GrappleStartTime;
+    private Vector3 GrappleLocation;
 
     [Header("Visuals")]
 
@@ -428,7 +438,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void AbilityTick()
     {
-        if(CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown)
+        if (CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown)
         {
             StartDashTime = CurrentTimeStamp;
             bDashing = true;
@@ -465,7 +475,7 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
 
-        if(bDashing)
+        if (bDashing)
         {
             if (CurrentTimeStamp - StartDashTime <= DashDuration)
             {
@@ -486,6 +496,39 @@ public class PlayerMovement : NetworkBehaviour
                 }
 
                 DashTrails.emitting = false;
+            }
+        }
+
+        if (CurrentInput.E && CurrentTimeStamp - GrappleStartTime >= GrappleCooldown)
+        {
+            RaycastHit hit;
+
+            if(Physics.Raycast(SelfTransform.position, Rotation * Vector3.forward, out hit, 100, PlayerObjectLayer))
+            {
+                GrappleStartTime = CurrentTimeStamp;
+                bGrapple = true;
+                bNoMovement = true;
+
+                ExitSlide();
+
+                GrappleLocation = hit.point;
+            }
+        }
+
+        if (bGrapple)
+        {
+            if (CurrentTimeStamp - GrappleStartTime <= GrappleDuration && (GrappleLocation - SelfTransform.position).magnitude > 1)
+            {
+                SafeMovePlayer(GrappleSpeed * (GrappleLocation - SelfTransform.position).normalized * DeltaTime);
+            }
+
+            else
+            {
+                bGrapple = false;
+                bNoMovement = false;
+
+                Velocity = (Velocity.normalized + Vector3.up) * AfterGrappleVelocityMagnitude;
+                bChangingVelocity = true;
             }
         }
     }
@@ -856,7 +899,10 @@ public class PlayerMovement : NetworkBehaviour
             LastTimeSlide,
             bWasCTRL,
             bTrySlideGroundPound,
-            bGroundPound
+            bGroundPound,
+            bGrapple,
+            GrappleStartTime,
+            GrappleLocation
             ),
             OwningClientID);
 
@@ -888,6 +934,9 @@ public class PlayerMovement : NetworkBehaviour
         bWasCTRL = ServerState.bWasCTRL;
         bTrySlideGroundPound = ServerState.bTrySlideGroundPound;
         bGroundPound = ServerState.bGroundPound;
+        bGrapple = ServerState.bGrapple;
+        GrappleStartTime = ServerState.GrappleStartTime;
+        GrappleLocation = ServerState.GrappleLocation;
     }
 
     private void ReplayMovesAfterCorrection()
@@ -990,6 +1039,7 @@ public class PlayerMovement : NetworkBehaviour
         input.SpaceBar = bSpaceBar;
         input.Shift = bShift;
         input.CTRL = Input.GetKey(KeyCode.LeftShift);
+        input.E = Input.GetKey(KeyCode.E);
 
         bSpaceBar = false;
         bShift = false;

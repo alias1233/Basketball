@@ -44130,6 +44130,9 @@ MonoBehaviour:
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
+  PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 9
   WalkMoveSpeed: 4
   JumpForce: 16
   JumpCooldown: 10
@@ -44166,6 +44169,10 @@ MonoBehaviour:
   DashCooldown: 125
   DashSpeed: 40
   AfterDashVelocityMagnitude: 0.25
+  GrappleDuration: 25
+  GrappleCooldown: 100
+  GrappleSpeed: 25
+  AfterGrappleVelocityMagnitude: 1
   DashFOVOffset: 15
   DashFOVDuration: 0.5
   FirstPersonDashParticles: {fileID: 7429191906427250410}

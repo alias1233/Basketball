@@ -24,6 +24,10 @@ public struct ClientCorrection : INetworkSerializable
 
     public bool bGroundPound;
 
+    public bool bGrapple;
+    public int GrappleStartTime;
+    public Vector3 GrappleLocation;
+
     public ClientCorrection(int timestamp, Vector3 position, Vector3 velocity,
         bool bnomovement,
         int lasttimejumped,
@@ -35,7 +39,10 @@ public struct ClientCorrection : INetworkSerializable
         int lasttimeslide,
         bool bwasctrl,
         bool btryslidegroundpound,
-        bool bgroundpound
+        bool bgroundpound,
+        bool bgrapple,
+        int grapplestarttime,
+        Vector3 grapplelocation
         )
     {
         TimeStamp = timestamp;
@@ -52,6 +59,9 @@ public struct ClientCorrection : INetworkSerializable
         bWasCTRL = bwasctrl;
         bTrySlideGroundPound = btryslidegroundpound;
         bGroundPound = bgroundpound;
+        bGrapple = bgrapple;
+        GrappleStartTime = grapplestarttime;
+        GrappleLocation = grapplelocation;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -74,6 +84,9 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferWriter.WriteValueSafe(bWasCTRL);
             fastBufferWriter.WriteValueSafe(bTrySlideGroundPound);
             fastBufferWriter.WriteValueSafe(bGroundPound);
+            fastBufferWriter.WriteValueSafe(bGrapple);
+            fastBufferWriter.WriteValueSafe(GrappleStartTime);
+            fastBufferWriter.WriteValueSafe(GrappleLocation);
         }
 
         if (serializer.IsReader)
@@ -94,6 +107,9 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferReader.ReadValueSafe(out bool bwasctrl);
             fastBufferReader.ReadValueSafe(out bool btryslidegroundpound);
             fastBufferReader.ReadValueSafe(out bool bgroundpound);
+            fastBufferReader.ReadValueSafe(out bool bgrapple);
+            fastBufferReader.ReadValueSafe(out int grapplestarttime);
+            fastBufferReader.ReadValueSafe(out Vector3 grapplelocation);
 
             TimeStamp = timestamp;
             Position = position;
@@ -109,6 +125,9 @@ public struct ClientCorrection : INetworkSerializable
             bWasCTRL = bwasctrl;
             bTrySlideGroundPound = btryslidegroundpound;
             bGroundPound = bgroundpound;
+            bGrapple = bgrapple;
+            GrappleStartTime = grapplestarttime;
+            GrappleLocation = grapplelocation;
         }
     }
 }
