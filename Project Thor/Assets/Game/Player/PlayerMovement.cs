@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using static ConnectionNotificationManager;
+using Unity.Burst.CompilerServices;
 
 struct ExternalMoveCorrection
 {
@@ -10,6 +11,14 @@ struct ExternalMoveCorrection
     public Vector3 Velocity;
     public int LastTimeJumped;
     public bool bWasSliding;
+}
+
+struct GrappleMoveCorrection
+{
+    public Vector3 Position;
+    public int LastTimeJumped;
+    public int GrappleStartTime;
+    public Vector3 GrappleLocation;
 }
 
 public class PlayerMovement : NetworkBehaviour
@@ -186,10 +195,14 @@ public class PlayerMovement : NetworkBehaviour
     public float DashSpeed;
     public float AfterDashVelocityMagnitude;
 
+    public NetworkObjectPool GrapplePool;
+
     public int GrappleDuration;
-    public int GrappleCooldown;
+    public int GrappleShootCooldown;
     public float GrappleSpeed;
-    public float AfterGrappleVelocityMagnitude;
+    public int MinGrappleTimeBeforeJumping;
+
+    private int GrappleShootTime;
 
     /*
     * 
@@ -216,9 +229,19 @@ public class PlayerMovement : NetworkBehaviour
 
     public AudioSource DashSound;
 
+    public float GrappleFOVOffset;
+    public float GrappleFOVDuration;
+
+    public AudioSource GrappleThrowStart;
+    public AudioSource GrappleHit;
+    public AudioSource GrappleLoop;
+
     [Header("External Movement")]
 
     private ExternalMoveCorrection ExternalMoveServerState;
+
+    private bool bRewindingGrappleMove;
+    private GrappleMoveCorrection GrappleMoveServerState;
 
     private void Awake()
     {
@@ -436,9 +459,78 @@ public class PlayerMovement : NetworkBehaviour
         SafeMovePlayer(Velocity * DeltaTime);
     }
 
+    public void StartGrapple(Vector3 HitPos)
+    {
+        ExitSlide();
+        bDashing = false;
+        DashTrails.emitting = false;
+
+        GrappleStartTime = CurrentTimeStamp;
+        bGrapple = true;
+        bNoMovement = true;
+
+        GrappleLocation = HitPos;
+
+        if (IsOwner)
+        {
+            FirstPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 2;
+            FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
+            FirstPersonDashParticles.Play();
+
+            Player.ChangeFOV(GrappleFOVOffset, GrappleFOVDuration);
+        }
+
+        else
+        {
+            ThirdPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 2;
+            ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+            ThirdPersonDashParticles.Play();
+        }
+
+        GrappleHit.Play();
+        GrappleLoop.Play();
+
+        if (IsServer)
+        {
+            ReplicateGrapple();
+        }
+    }
+
+    private void ExitGrapple()
+    {
+        bGrapple = false;
+        bNoMovement = false;
+
+        Velocity *= 0.25f;
+        bChangingVelocity = true;
+
+        if (IsOwner)
+        {
+            FirstPersonDashParticles.Stop();
+        }
+
+        GrappleLoop.Stop();
+    }
+
+    private void ExitJumpGrapple()
+    {
+        bGrapple = false;
+        bNoMovement = false;
+
+        Velocity = Velocity * 0.5f + Vector3.up * JumpForce;
+        bChangingVelocity = true;
+
+        if (IsOwner)
+        {
+            FirstPersonDashParticles.Stop();
+        }
+
+        GrappleLoop.Stop();
+    }
+
     private void AbilityTick()
     {
-        if (CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown)
+        if (CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown && !bGrapple)
         {
             StartDashTime = CurrentTimeStamp;
             bDashing = true;
@@ -499,36 +591,44 @@ public class PlayerMovement : NetworkBehaviour
             }
         }
 
-        if (CurrentInput.E && CurrentTimeStamp - GrappleStartTime >= GrappleCooldown)
+        if (CurrentInput.E && CurrentTimeStamp - GrappleShootTime >= GrappleShootCooldown)
         {
-            RaycastHit hit;
+            GrappleShootTime = CurrentTimeStamp;
 
-            if(Physics.Raycast(SelfTransform.position, Rotation * Vector3.forward, out hit, 100, PlayerObjectLayer))
+            if(IsServer)
             {
-                GrappleStartTime = CurrentTimeStamp;
-                bGrapple = true;
-                bNoMovement = true;
+                GameObject obj = GrapplePool.GetPooledObject();
 
-                ExitSlide();
+                if (obj != null)
+                {
+                    GrapplingHook grapplinghook = obj.GetComponent<GrapplingHook>();
 
-                GrappleLocation = hit.point;
+                    grapplinghook.Init(Player.GetTeam(), SelfTransform.position, Rotation * Vector3.forward);
+                    //grapplinghook.OwningPlayerMovement = this;
+                    grapplinghook.Spawn();
+                }
             }
+
+            GrappleThrowStart.Play();
         }
 
         if (bGrapple)
         {
-            if (CurrentTimeStamp - GrappleStartTime <= GrappleDuration && (GrappleLocation - SelfTransform.position).magnitude > 1)
+            if (CurrentTimeStamp - GrappleStartTime <= GrappleDuration && (GrappleLocation - SelfTransform.position).magnitude > 2.5)
             {
                 SafeMovePlayer(GrappleSpeed * (GrappleLocation - SelfTransform.position).normalized * DeltaTime);
+
+                if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown && CurrentTimeStamp - GrappleStartTime >= MinGrappleTimeBeforeJumping)
+                {
+                    LastTimeJumped = CurrentTimeStamp;
+
+                    ExitJumpGrapple();
+                }
             }
 
             else
             {
-                bGrapple = false;
-                bNoMovement = false;
-
-                Velocity = (Velocity.normalized + Vector3.up) * AfterGrappleVelocityMagnitude;
-                bChangingVelocity = true;
+                ExitGrapple();
             }
         }
     }
@@ -948,6 +1048,13 @@ public class PlayerMovement : NetworkBehaviour
             SetToServerState();
         }
 
+        else if(bRewindingGrappleMove)
+        {
+            bRewindingGrappleMove = false;
+
+            SetToGrappleState();
+        }
+
         else
         {
             SetToExternaMoveState();
@@ -1000,6 +1107,72 @@ public class PlayerMovement : NetworkBehaviour
         bSmoothingCorrection = true;
         StartSmoothingCorrectionTime = CurrentTimeStamp;
         StartCorrectionPosition = SelfTransform.position;
+    }
+
+    private void ReplicateExternalMovement()
+    {
+        LastTimeSentCorrection = Time.time;
+
+        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity, LastTimeJumped, bSliding, OwningClientID);
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateReplicateExternalMovementClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel, int lasttimejumped, bool bwassliding, ClientRpcParams clientRpcParams = default)
+    {
+        AfterCorrectionReceived(replaytimestamp);
+
+        ExternalMoveServerState.Position = pos;
+        ExternalMoveServerState.Velocity = vel;
+        ExternalMoveServerState.LastTimeJumped = lasttimejumped;
+        ExternalMoveServerState.bWasSliding = bwassliding;
+    }
+
+    private void SetToExternaMoveState()
+    {
+        SelfTransform.position = ExternalMoveServerState.Position;
+        Velocity = ExternalMoveServerState.Velocity;
+        LastTimeJumped = ExternalMoveServerState.LastTimeJumped;
+
+        if (ExternalMoveServerState.bWasSliding)
+        {
+            ExitSlide();
+
+            LastTimeSlide = SimulateTimeStamp;
+        }
+    }
+
+    private void ReplicateGrapple()
+    {
+        LastTimeSentCorrection = Time.time;
+
+        ReplicateGrappleClientrpc(CurrentTimeStamp, SelfTransform.position, LastTimeJumped,
+            GrappleStartTime,
+            GrappleLocation,
+            OwningClientID
+            );
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateGrappleClientrpc(int replaytimestamp, Vector3 pos, int lasttimejumped,
+        int grappleStartTime, Vector3 grappleLocation, ClientRpcParams clientRpcParams = default)
+    {
+        AfterCorrectionReceived(replaytimestamp);
+
+        bRewindingGrappleMove = true;
+
+        GrappleMoveServerState.Position = pos;
+        GrappleMoveServerState.LastTimeJumped = lasttimejumped;
+        GrappleMoveServerState.GrappleStartTime = grappleStartTime;
+        GrappleMoveServerState.GrappleLocation = grappleLocation;
+    }
+
+    public void SetToGrappleState()
+    {
+        StartGrapple(GrappleMoveServerState.GrappleLocation);
+
+        SelfTransform.position = GrappleMoveServerState.Position;
+        LastTimeJumped = GrappleMoveServerState.LastTimeJumped;
+        GrappleStartTime = GrappleMoveServerState.GrappleStartTime;
     }
 
     /*
@@ -1197,38 +1370,6 @@ public class PlayerMovement : NetworkBehaviour
         Velocity = NewVel;
     }
 
-    private void ReplicateExternalMovement()
-    {
-        LastTimeSentCorrection = Time.time;
-
-        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity, LastTimeJumped, bSliding, OwningClientID);
-    }
-
-    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateReplicateExternalMovementClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel, int lasttimejumped, bool bwassliding, ClientRpcParams clientRpcParams = default)
-    {
-        AfterCorrectionReceived(replaytimestamp);
-
-        ExternalMoveServerState.Position = pos;
-        ExternalMoveServerState.Velocity = vel;
-        ExternalMoveServerState.LastTimeJumped = lasttimejumped;
-        ExternalMoveServerState.bWasSliding = bwassliding;
-    }
-
-    private void SetToExternaMoveState()
-    {
-        SelfTransform.position = ExternalMoveServerState.Position;
-        Velocity = ExternalMoveServerState.Velocity;
-        LastTimeJumped = ExternalMoveServerState.LastTimeJumped;
-
-        if(ExternalMoveServerState.bWasSliding)
-        {
-            ExitSlide();
-
-            LastTimeSlide = SimulateTimeStamp;
-        }
-    }
-
     public Vector3 GetVelocity()
     {
         return Velocity;
@@ -1262,5 +1403,10 @@ public class PlayerMovement : NetworkBehaviour
     public float GetLastTimeDash()
     {
         return StartDashTime;
+    }
+
+    public ulong GetOwnerID()
+    {
+        return OwnerClientId;
     }
 }

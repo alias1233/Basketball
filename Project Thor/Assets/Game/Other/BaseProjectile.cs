@@ -99,7 +99,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    public virtual void FixedUpdate()
     {
         if (!bIsActive)
         {
