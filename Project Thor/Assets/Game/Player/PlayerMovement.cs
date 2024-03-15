@@ -603,8 +603,7 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     GrapplingHook grapplinghook = obj.GetComponent<GrapplingHook>();
 
-                    grapplinghook.Init(Player.GetTeam(), SelfTransform.position, Rotation * Vector3.forward);
-                    //grapplinghook.OwningPlayerMovement = this;
+                    grapplinghook.Init(Player.GetTeam(), SelfTransform.position + Vector3.up * 0.6f, Rotation * Vector3.forward);
                     grapplinghook.Spawn();
                 }
             }

@@ -322,7 +322,7 @@ MonoBehaviour:
   bisactive: 0
   SelfTransform: {fileID: 0}
   Model: {fileID: 5939826294115142725}
-  InitialSpeed: 40
+  InitialSpeed: 50
   bGravity: 0
   Gravity: 0
   bBounce: 0

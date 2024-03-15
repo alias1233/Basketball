@@ -44617,7 +44617,7 @@ MonoBehaviour:
   DashTrails: {fileID: 3087438247527566822}
   DashSound: {fileID: 9118582997608574433}
   GrappleFOVOffset: 10
-  GrappleFOVDuration: 50
+  GrappleFOVDuration: 1
   GrappleThrowStart: {fileID: 763110860330991138}
   GrappleHit: {fileID: 5957654724499714865}
   GrappleLoop: {fileID: 2922597831688011253}
