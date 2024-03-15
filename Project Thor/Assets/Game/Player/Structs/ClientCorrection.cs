@@ -10,6 +10,8 @@ public struct ClientCorrection : INetworkSerializable
     public Vector3 Velocity;
     public bool bNoMovement;
     public int LastTimeJumped;
+    public bool bWasSpace;
+    public bool bTryJump;
 
     public bool bDashing;
     public int StartDashTime;
@@ -17,6 +19,7 @@ public struct ClientCorrection : INetworkSerializable
 
     public bool bWasCTRL;
     public bool bTrySlideGroundPound;
+    public int TimeStartSlideGroundPound;
 
     public bool bSliding;
     public Vector3 SlideDirection;
@@ -31,6 +34,8 @@ public struct ClientCorrection : INetworkSerializable
     public ClientCorrection(int timestamp, Vector3 position, Vector3 velocity,
         bool bnomovement,
         int lasttimejumped,
+        bool bwasspace,
+        bool btryjump,
         bool bdashing,
         int startdashtime,
         Quaternion dashingstartrotation,
@@ -39,6 +44,7 @@ public struct ClientCorrection : INetworkSerializable
         int lasttimeslide,
         bool bwasctrl,
         bool btryslidegroundpound,
+        int timestartslidegroundpound,
         bool bgroundpound,
         bool bgrapple,
         int grapplestarttime,
@@ -50,6 +56,8 @@ public struct ClientCorrection : INetworkSerializable
         Velocity = velocity;
         bNoMovement = bnomovement;
         LastTimeJumped = lasttimejumped;
+        bWasSpace = bwasspace;
+        bTryJump = btryjump;
         bDashing = bdashing;
         StartDashTime = startdashtime;
         DashingStartRotation = dashingstartrotation;
@@ -58,6 +66,7 @@ public struct ClientCorrection : INetworkSerializable
         LastTimeSlide = lasttimeslide;
         bWasCTRL = bwasctrl;
         bTrySlideGroundPound = btryslidegroundpound;
+        TimeStartSlideGroundPound = timestartslidegroundpound;
         bGroundPound = bgroundpound;
         bGrapple = bgrapple;
         GrappleStartTime = grapplestarttime;
@@ -75,6 +84,8 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferWriter.WriteValueSafe(Velocity);
             fastBufferWriter.WriteValueSafe(bNoMovement);
             fastBufferWriter.WriteValueSafe(LastTimeJumped);
+            fastBufferWriter.WriteValueSafe(bWasSpace);
+            fastBufferWriter.WriteValueSafe(bTryJump);
             fastBufferWriter.WriteValueSafe(bDashing);
             fastBufferWriter.WriteValueSafe(StartDashTime);
             fastBufferWriter.WriteValueSafe(DashingStartRotation);
@@ -83,6 +94,7 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferWriter.WriteValueSafe(LastTimeSlide);
             fastBufferWriter.WriteValueSafe(bWasCTRL);
             fastBufferWriter.WriteValueSafe(bTrySlideGroundPound);
+            fastBufferWriter.WriteValueSafe(TimeStartSlideGroundPound);
             fastBufferWriter.WriteValueSafe(bGroundPound);
             fastBufferWriter.WriteValueSafe(bGrapple);
             fastBufferWriter.WriteValueSafe(GrappleStartTime);
@@ -98,6 +110,8 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferReader.ReadValueSafe(out Vector3 velocity);
             fastBufferReader.ReadValueSafe(out bool bnomovement);
             fastBufferReader.ReadValueSafe(out int lasttimejumped);
+            fastBufferReader.ReadValueSafe(out bool bwasspace);
+            fastBufferReader.ReadValueSafe(out bool btryjump);
             fastBufferReader.ReadValueSafe(out bool bdashing);
             fastBufferReader.ReadValueSafe(out int startdashtime);
             fastBufferReader.ReadValueSafe(out Quaternion dashingstartrotation);
@@ -106,6 +120,7 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferReader.ReadValueSafe(out int lasttimeslide);
             fastBufferReader.ReadValueSafe(out bool bwasctrl);
             fastBufferReader.ReadValueSafe(out bool btryslidegroundpound);
+            fastBufferReader.ReadValueSafe(out int timestartslidegroundpound);
             fastBufferReader.ReadValueSafe(out bool bgroundpound);
             fastBufferReader.ReadValueSafe(out bool bgrapple);
             fastBufferReader.ReadValueSafe(out int grapplestarttime);
@@ -116,6 +131,8 @@ public struct ClientCorrection : INetworkSerializable
             Velocity = velocity;
             bNoMovement = bnomovement;
             LastTimeJumped = lasttimejumped;
+            bWasSpace = bwasspace;
+            bTryJump = btryjump;
             bDashing = bdashing;
             StartDashTime = startdashtime;
             DashingStartRotation = dashingstartrotation;
@@ -124,6 +141,7 @@ public struct ClientCorrection : INetworkSerializable
             LastTimeSlide = lasttimeslide;
             bWasCTRL = bwasctrl;
             bTrySlideGroundPound = btryslidegroundpound;
+            TimeStartSlideGroundPound = timestartslidegroundpound;
             bGroundPound = bgroundpound;
             bGrapple = bgrapple;
             GrappleStartTime = grapplestarttime;

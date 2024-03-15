@@ -157,6 +157,8 @@ public class PlayerMovement : NetworkBehaviour
     private bool bNoMovement;
     private Vector3 Velocity;
     private int LastTimeJumped;
+    private bool bWasSpace;
+    private bool bTryJump;
 
     private bool bSliding;
     private Vector3 SlideDirection;
@@ -164,6 +166,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private bool bWasCTRL;
     private bool bTrySlideGroundPound;
+    private int TimeStartSlideGroundPound;
 
     private bool bGroundPound;
 
@@ -496,28 +499,21 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
-    private void ExitGrapple()
+    private void ExitGrapple(bool bjump)
     {
         bGrapple = false;
         bNoMovement = false;
 
-        Velocity *= 0.25f;
-        bChangingVelocity = true;
-
-        if (IsOwner)
+        if(bjump)
         {
-            FirstPersonDashParticles.Stop();
+            Velocity = Velocity * 0.5f + Vector3.up * JumpForce;
         }
 
-        GrappleLoop.Stop();
-    }
+        else
+        {
+            Velocity *= 0.5f;
+        }
 
-    private void ExitJumpGrapple()
-    {
-        bGrapple = false;
-        bNoMovement = false;
-
-        Velocity = Velocity * 0.5f + Vector3.up * JumpForce;
         bChangingVelocity = true;
 
         if (IsOwner)
@@ -617,17 +613,19 @@ public class PlayerMovement : NetworkBehaviour
             {
                 SafeMovePlayer(GrappleSpeed * (GrappleLocation - SelfTransform.position).normalized * DeltaTime);
 
-                if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown && CurrentTimeStamp - GrappleStartTime >= MinGrappleTimeBeforeJumping)
+                if (bTryJump && CurrentTimeStamp - LastTimeJumped > JumpCooldown && CurrentTimeStamp - GrappleStartTime >= MinGrappleTimeBeforeJumping)
                 {
+                    bTryJump = false;
+
                     LastTimeJumped = CurrentTimeStamp;
 
-                    ExitJumpGrapple();
+                    ExitGrapple(true);
                 }
             }
 
             else
             {
-                ExitGrapple();
+                ExitGrapple(false);
             }
         }
     }
@@ -653,7 +651,9 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        if(Physics.Raycast(SelfTransform.position, Vector3.down, Collider.height * 0.5f + 0.2f, WhatIsGround))
+        Vector3 JumpVel = Vector3.zero;
+
+        if (Physics.Raycast(SelfTransform.position, Vector3.down, Collider.height * 0.5f + 0.2f, WhatIsGround))
         {
             if(!bIsGrounded)
             {
@@ -662,6 +662,14 @@ public class PlayerMovement : NetworkBehaviour
                 if(bGroundPound)
                 {
                     ExitGroundPound();
+
+                    if(bTryJump)
+                    {
+                        bTryJump = false;
+                        LastTimeJumped = CurrentTimeStamp;
+
+                        JumpVel = Vector3.up * JumpForce * (CurrentTimeStamp - TimeStartSlideGroundPound);
+                    }
                 }
 
                 else if (Time.time - LastTimePlayedLandAudio >= LandAudioCooldown)
@@ -682,6 +690,7 @@ public class PlayerMovement : NetworkBehaviour
             if (bTrySlideGroundPound && Velocity.magnitude >= SlideMinSpeed && bIsGrounded && CurrentTimeStamp - LastTimeSlide >= SlideCooldown)
             {
                 bTrySlideGroundPound = false;
+                TimeStartSlideGroundPound = CurrentTimeStamp;
                 bSliding = true;
 
                 SlideDirection = MoveDirection;
@@ -707,6 +716,7 @@ public class PlayerMovement : NetworkBehaviour
             if(bTrySlideGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown && !Physics.Raycast(SelfTransform.position, Vector3.down, MinHeightToGroundPound, WhatIsGround))
             {
                 bTrySlideGroundPound = false;
+                TimeStartSlideGroundPound = CurrentTimeStamp;
                 bGroundPound = true;
                 Velocity = GroundPoundSpeed * Vector3.down;
 
@@ -723,11 +733,10 @@ public class PlayerMovement : NetworkBehaviour
 
         if (bIsGrounded)
         {
-            Vector3 JumpVel = Vector3.zero;
-
-            if (CurrentInput.SpaceBar && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
+            if (bTryJump && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
             {
                 LastTimeJumped = CurrentTimeStamp;
+                bTryJump = false;
 
                 Velocity.y = 0;
 
@@ -735,7 +744,15 @@ public class PlayerMovement : NetworkBehaviour
                 {
                     ExitSlide();
 
-                    JumpVel = (Vector3.up * 2.5f + SlideDirection).normalized * SlideJumpForce;
+                    if(CurrentTimeStamp - TimeStartSlideGroundPound < 50)
+                    {
+                        JumpVel = (Vector3.up * 2.5f + SlideDirection).normalized * SlideJumpForce;
+                    }
+
+                    else
+                    {
+                        JumpVel = Vector3.up * JumpForce * 2;
+                    }
                 }
 
                 else
@@ -766,7 +783,6 @@ public class PlayerMovement : NetworkBehaviour
                 Vector3 WallNormal = RightWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
                 Vector3 ForwardVector = ForwardRotation * Vector3.forward;
-                Vector3 JumpVel = Vector3.zero;
 
                 Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
@@ -775,9 +791,10 @@ public class PlayerMovement : NetworkBehaviour
                     WallForward = -WallForward;
                 }
 
-                if (CurrentInput.SpaceBar)
+                if (bTryJump)
                 {
                     LastTimeJumped = CurrentTimeStamp;
+                    bTryJump = false;
                     JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
                 }
 
@@ -791,7 +808,6 @@ public class PlayerMovement : NetworkBehaviour
                 Vector3 WallNormal = LeftWallHit.normal;
                 Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
                 Vector3 ForwardVector = ForwardRotation * Vector3.forward;
-                Vector3 JumpVel = Vector3.zero;
 
                 Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
@@ -800,9 +816,10 @@ public class PlayerMovement : NetworkBehaviour
                     WallForward = -WallForward;
                 }
 
-                if (CurrentInput.SpaceBar)
+                if (bTryJump)
                 {
                     LastTimeJumped = CurrentTimeStamp;
+                    bTryJump = false;
                     JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
                 }
 
@@ -990,6 +1007,8 @@ public class PlayerMovement : NetworkBehaviour
             Velocity,
             bNoMovement,
             LastTimeJumped,
+            bWasSpace,
+            bTryJump,
             bDashing,
             StartDashTime,
             DashingStartRotation,
@@ -998,6 +1017,7 @@ public class PlayerMovement : NetworkBehaviour
             LastTimeSlide,
             bWasCTRL,
             bTrySlideGroundPound,
+            TimeStartSlideGroundPound,
             bGroundPound,
             bGrapple,
             GrappleStartTime,
@@ -1014,6 +1034,8 @@ public class PlayerMovement : NetworkBehaviour
         Velocity = ServerState.Velocity;
         bNoMovement = ServerState.bNoMovement;
         LastTimeJumped = ServerState.LastTimeJumped;
+        bWasSpace = ServerState.bWasSpace;
+        bTryJump = ServerState.bTryJump;
         bDashing = ServerState.bDashing;
         StartDashTime = ServerState.StartDashTime;
         DashingStartRotation = ServerState.DashingStartRotation;
@@ -1032,6 +1054,7 @@ public class PlayerMovement : NetworkBehaviour
         LastTimeSlide = ServerState.LastTimeSlide;
         bWasCTRL = ServerState.bWasCTRL;
         bTrySlideGroundPound = ServerState.bTrySlideGroundPound;
+        TimeStartSlideGroundPound = ServerState.TimeStartSlideGroundPound;
         bGroundPound = ServerState.bGroundPound;
         bGrapple = ServerState.bGrapple;
         GrappleStartTime = ServerState.GrappleStartTime;
@@ -1191,11 +1214,6 @@ public class PlayerMovement : NetworkBehaviour
         {
             bShift = true;
         }
-
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            bSpaceBar = true;
-        }
     }
 
     private void CreateInputs(ref Inputs input)
@@ -1208,12 +1226,11 @@ public class PlayerMovement : NetworkBehaviour
         input.A = Input.GetKey(KeyCode.A);
         input.S = Input.GetKey(KeyCode.S);
         input.D = Input.GetKey(KeyCode.D);
-        input.SpaceBar = bSpaceBar;
+        input.SpaceBar = Input.GetKey(KeyCode.Space);
         input.Shift = bShift;
         input.CTRL = Input.GetKey(KeyCode.LeftShift);
         input.E = Input.GetKey(KeyCode.E);
 
-        bSpaceBar = false;
         bShift = false;
     }
 
@@ -1260,6 +1277,18 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         bWasCTRL = input.CTRL;
+
+        if (input.SpaceBar && !bWasSpace)
+        {
+            bTryJump = true;
+        }
+
+        else if(!input.SpaceBar)
+        {
+            bTryJump = false;
+        }
+
+        bWasSpace = input.SpaceBar;
     }
 
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]

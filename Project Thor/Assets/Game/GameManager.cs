@@ -39,8 +39,6 @@ public class GameManager : NetworkBehaviour
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdatePlayers;
     }
 
-
-
     private void UpdatePlayers(ulong clientId, ConnectionStatus connection)
     {
         if (!IsServer)
@@ -92,6 +90,8 @@ public class GameManager : NetworkBehaviour
             }
         }
     }
+
+
 
     public List<PlayerInformation> GetAllPlayerInformation()
     {
