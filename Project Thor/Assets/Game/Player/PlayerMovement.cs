@@ -34,6 +34,9 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField]
     private Transform FPOrientation;
 
+    [SerializeField]
+    private Transform HandTransform;
+
     private PlayerManager Player;
     private CapsuleCollider Collider;
 
@@ -56,7 +59,6 @@ public class PlayerMovement : NetworkBehaviour
 
     private int SaveRecentDataTime = 50;
 
-    private bool bSpaceBar;
     private bool bShift;
 
     [Header("Replicate Movement")]
@@ -119,6 +121,7 @@ public class PlayerMovement : NetworkBehaviour
     public int SlideCooldown;
 
     public float GroundPoundSpeed = 15f;
+    public float GroundPoundAcceleration;
     public float MinHeightToGroundPound = 1;
 
     public float GroundPoundDamage;
@@ -465,6 +468,7 @@ public class PlayerMovement : NetworkBehaviour
     public void StartGrapple(Vector3 HitPos)
     {
         ExitSlide();
+
         bDashing = false;
         DashTrails.emitting = false;
 
@@ -591,16 +595,22 @@ public class PlayerMovement : NetworkBehaviour
         {
             GrappleShootTime = CurrentTimeStamp;
 
-            if(IsServer)
+            GameObject obj = GrapplePool.GetPooledObject();
+
+            if (obj != null)
             {
-                GameObject obj = GrapplePool.GetPooledObject();
+                GrapplingHook grapplinghook = obj.GetComponent<GrapplingHook>();
 
-                if (obj != null)
+                grapplinghook.Spawn();
+
+                if (IsServer && !IsOwner)
                 {
-                    GrapplingHook grapplinghook = obj.GetComponent<GrapplingHook>();
+                    grapplinghook.InitAndSimulateForward(Player.GetTeam(), SelfTransform.position + Vector3.up * 0.6f, Rotation * Vector3.forward, Player.GetHalfRTTInTick());
+                }
 
+                else
+                {
                     grapplinghook.Init(Player.GetTeam(), SelfTransform.position + Vector3.up * 0.6f, Rotation * Vector3.forward);
-                    grapplinghook.Spawn();
                 }
             }
 
@@ -668,7 +678,8 @@ public class PlayerMovement : NetworkBehaviour
                         bTryJump = false;
                         LastTimeJumped = CurrentTimeStamp;
 
-                        JumpVel = Vector3.up * JumpForce * (CurrentTimeStamp - TimeStartSlideGroundPound);
+                        Velocity.y = 0;
+                        JumpVel = Vector3.up * JumpForce * 1.75f;
                     }
                 }
 
@@ -718,7 +729,11 @@ public class PlayerMovement : NetworkBehaviour
                 bTrySlideGroundPound = false;
                 TimeStartSlideGroundPound = CurrentTimeStamp;
                 bGroundPound = true;
-                Velocity = GroundPoundSpeed * Vector3.down;
+
+                if (Velocity.y > 0)
+                {
+                    Velocity.y = 0;
+                }
 
                 GroundPoundTrails.Play();
             }
@@ -726,7 +741,12 @@ public class PlayerMovement : NetworkBehaviour
 
         else
         {
-            Velocity = GroundPoundSpeed * Vector3.down;
+            Velocity.y -= GroundPoundAcceleration * DeltaTime;
+
+            if (Velocity.y < -GroundPoundSpeed)
+            {
+                Velocity.y = -GroundPoundSpeed;
+            }
         }
 
         Vector3 Delta;
@@ -751,7 +771,7 @@ public class PlayerMovement : NetworkBehaviour
 
                     else
                     {
-                        JumpVel = Vector3.up * JumpForce * 2;
+                        JumpVel = Vector3.up * JumpForce * 1.75f;
                     }
                 }
 
@@ -1436,5 +1456,10 @@ public class PlayerMovement : NetworkBehaviour
     public ulong GetOwnerID()
     {
         return OwnerClientId;
+    }
+
+    public Vector3 GetHandPosition()
+    {
+        return HandTransform.position;
     }
 }

@@ -152,6 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e468c77541d5e6b42bf7b5018cf283ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  bisactive: 0
   SelfTransform: {fileID: 0}
   Model: {fileID: 809271689842028591}
   InitialSpeed: 15
@@ -159,10 +160,15 @@ MonoBehaviour:
   Gravity: 0.5
   bBounce: 0
   Bounces: 0
+  Velocity: {x: 0, y: 0, z: 0}
+  TimeStamp: 0
   DamagesPlayer: 0
   OwningPlayerTeam: 0
-  Lifetime: 4
+  Lifetime: 200
+  StartTime: 0
   ReplicatePositionInterval: 1
+  LastTimeReplicatedPosition: 0
+  bUpdatedThisFrame: 0
   Damage: 75
   PlayerLayer:
     serializedVersion: 2

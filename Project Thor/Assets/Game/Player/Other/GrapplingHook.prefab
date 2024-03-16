@@ -328,9 +328,10 @@ MonoBehaviour:
   bBounce: 0
   Bounces: 0
   Velocity: {x: 0, y: 0, z: 0}
+  TimeStamp: 0
   DamagesPlayer: 0
   OwningPlayerTeam: 0
-  Lifetime: 0.5
+  Lifetime: 25
   StartTime: 0
   ReplicatePositionInterval: 2
   LastTimeReplicatedPosition: 0

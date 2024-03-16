@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using static ConnectionNotificationManager;
 
@@ -65,7 +67,9 @@ public class WeaponManager : NetworkBehaviour
 
     public GameObject Fist;
 
-    public LayerMask PlayerLayer;
+    public TMP_Text FistChargeBar;
+
+    public LayerMask PlayerAndBallLayer;
 
     [SerializeField]
     private MeleeAnimScript meleeanimation;
@@ -79,6 +83,13 @@ public class WeaponManager : NetworkBehaviour
 
     private int LastTimeMelee;
 
+    bool bIsCharging;
+    int ChargingStartTime;
+
+    public int MaxChargingTime = 50;
+
+    public int ThrowForce;
+
     public float Radius;
 
     private RaycastHit[] Hits = new RaycastHit[5];
@@ -87,6 +98,14 @@ public class WeaponManager : NetworkBehaviour
 
     public float MaxSwayVelocity;
     public float MaxSwayAmount;
+
+    [Header("Other")]
+
+    public LayerMask ObjectLayer;
+
+    private List<PlayerManager> RewindedPlayerList = new List<PlayerManager>();
+
+    private RaycastHit[] RewindHits = new RaycastHit[5];
 
     private void Start()
     {
@@ -222,8 +241,13 @@ public class WeaponManager : NetworkBehaviour
             {
                 LastTimeMelee = CurrentTimeStamp;
 
-                Melee();
+                ChargeMelee();
             }
+        }
+
+        else
+        {
+            Melee();
         }
 
         if (Input.GetKey(KeyCode.Mouse0))
@@ -274,8 +298,13 @@ public class WeaponManager : NetworkBehaviour
             {
                 LastTimeMelee = CurrentTimeStamp;
 
-                Melee();
+                ChargeMelee();
             }
+        }
+
+        else
+        {
+            Melee();
         }
 
         if (CurrentInput.Mouse1)
@@ -357,8 +386,13 @@ public class WeaponManager : NetworkBehaviour
             {
                 LastTimeMelee = CurrentTimeStamp;
 
-                Melee();
+                ChargeMelee();
             }
+        }
+
+        else
+        {
+            Melee();
         }
 
         if (CurrentInput.Mouse1)
@@ -445,13 +479,28 @@ public class WeaponManager : NetworkBehaviour
         ActiveWeapon.ChangeActive(true);
     }
 
-    private void Melee()
+    private void ChargeMelee()
     {
+        if(Ball.Singleton.GetAttachedPlayer() == OwnerClientId)
+        {
+            if (bIsCharging)
+            {
+                return;
+            }
+
+            bIsCharging = true;
+            ChargingStartTime = CurrentTimeStamp;
+
+            FistChargeBar.enabled = true;
+
+            return;
+        }
+
         MeleeVisual();
 
         if (!IsServer)
         {
-            int NumHits2 = Physics.SphereCastNonAlloc(new Ray(GetAimPointLocation(), PlayerMovementComponent.GetRotation() * Vector3.forward), Radius, Hits, MeleeRange, PlayerLayer);
+            int NumHits2 = Physics.SphereCastNonAlloc(new Ray(GetAimPointLocation(), PlayerMovementComponent.GetRotation() * Vector3.forward), Radius, Hits, MeleeRange, PlayerAndBallLayer);
             bool bHit2 = false;
 
             for (int i = 0; i < NumHits2; i++)
@@ -462,6 +511,11 @@ public class WeaponManager : NetworkBehaviour
                     {
                         bHit2 = true;
                     }
+                }
+
+                if (Hits[i].transform.gameObject.TryGetComponent<Ball>(out Ball ball))
+                {
+                    ball.Attach(PlayerMovementComponent);
                 }
             }
 
@@ -479,13 +533,10 @@ public class WeaponManager : NetworkBehaviour
 
         if (!IsOwner)
         {
-            if (!ActiveWeapon.RewindPlayers(CenterRay, MeleeRange))
-            {
-                return;
-            }
+            RewindPlayers(CenterRay, MeleeRange);
         }
 
-        int NumHits = Physics.SphereCastNonAlloc(CenterRay, Radius, Hits, MeleeRange, PlayerLayer);
+        int NumHits = Physics.SphereCastNonAlloc(CenterRay, Radius, Hits, MeleeRange, PlayerAndBallLayer);
         bool bHit = false;
 
         for (int i = 0; i < NumHits; i++)
@@ -495,16 +546,58 @@ public class WeaponManager : NetworkBehaviour
                 if (stats.Damage(GetTeam(), MeleeDamage))
                 {
                     bHit = true;
+
+                    if(Ball.Singleton.GetAttachedPlayer() == stats.GetClientID())
+                    {
+                        Ball.Singleton.Attach(PlayerMovementComponent);
+                    }
                 }
+            }
+
+            if (Hits[i].transform.gameObject.TryGetComponent<Ball>(out Ball ball))
+            {
+                Ball.Singleton.Attach(PlayerMovementComponent);
             }
         }
 
-        if(bHit)
+        if (bHit)
         {
             PunchHitSound.Play();
         }
 
-        ActiveWeapon.ResetRewindedPlayers();
+        ResetRewindedPlayers();
+    }
+
+    private void Melee()
+    {
+        if(!bIsCharging)
+        {
+            return;
+        }
+
+        bIsCharging = false;
+
+        LastTimeMelee = CurrentTimeStamp;
+
+        FistChargeBar.enabled = false;
+
+        MeleeVisual();
+
+        if (Ball.Singleton.GetAttachedPlayer() == OwnerClientId)
+        {
+            Ball.Singleton.Throw(
+                (PlayerMovementComponent.GetRotation() * Vector3.forward + Vector3.up * 0.33f) *
+                Mathf.Clamp(ThrowForce * (CurrentTimeStamp - ChargingStartTime) / MaxChargingTime, 5, ThrowForce)
+                //+ Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() * 0.25f, 5)
+                );
+        }
+
+        if (!IsServer)
+        {
+            return;
+        }
+
+        ReplicateFire(3);
     }
 
     private void MeleeVisual()
@@ -513,6 +606,67 @@ public class WeaponManager : NetworkBehaviour
         meleeanimation.PunchAnim();
 
         PunchSwooshSound.Play();
+    }
+
+    public bool GetIsChargingFist()
+    {
+        return bIsCharging;
+    }
+
+    public int GetFistStartChargeTime()
+    {
+        return ChargingStartTime;
+    }
+
+    public bool RewindPlayers(Ray ray, int range)
+    {
+        RewindedPlayerList.Clear();
+
+        int NumHits = Physics.SphereCastNonAlloc(ray, Radius, RewindHits, range, PlayerAndBallLayer);
+        bool bRewindedPlayers = false;
+
+        for (int i = 0; i < NumHits; i++)
+        {
+            if (RewindHits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager rewind))
+            {
+                if (rewind.RewindToPosition(GetTeam(), GetPingInTick()))
+                {
+                    if (!Physics.Linecast(ray.origin, RewindHits[i].transform.position, ObjectLayer))
+                    {
+                        RewindedPlayerList.Add(rewind);
+
+                        bRewindedPlayers = true;
+                    }
+
+                    else
+                    {
+                        rewind.ResetToOriginalPosition();
+                    }
+                }
+            }
+        }
+
+        if (bRewindedPlayers)
+        {
+            Physics.SyncTransforms();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public void ResetRewindedPlayers()
+    {
+        if (GetIsOwner())
+        {
+            return;
+        }
+
+        foreach (PlayerManager i in RewindedPlayerList)
+        {
+            i.ResetToOriginalPosition();
+        }
     }
 
     [ServerRpc(Delivery = RpcDelivery.Unreliable)]

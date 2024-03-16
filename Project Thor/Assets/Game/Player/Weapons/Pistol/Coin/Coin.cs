@@ -44,7 +44,7 @@ public class Coin : BaseProjectile
     {
         LastTimeReplicatedPosition = Time.time;
         CoinInitClientRpc(team, pos, dir, initalvel);
-        StartTime = LastTimeReplicatedPosition;
+        StartTime = TimeStamp;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
@@ -103,6 +103,8 @@ public class Coin : BaseProjectile
         }
 
         bUpdatedThisFrame = true;
+
+        StartTime = TimeStamp;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;

@@ -68,6 +68,9 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
     [Header("Stats")]
 
+    [HideInInspector]
+    public int TimeStamp;
+
     public bool DamagesPlayer;
 
     private float ColliderRadius;
@@ -75,10 +78,10 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     [HideInInspector]
     public Teams OwningPlayerTeam;
 
-    public float Lifetime;
+    public int Lifetime;
 
     [HideInInspector]
-    public float StartTime;
+    public int StartTime;
 
     public float ReplicatePositionInterval;
 
@@ -101,6 +104,8 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     // Update is called once per frame
     public virtual void FixedUpdate()
     {
+        TimeStamp++;
+
         if (!bIsActive)
         {
             return;
@@ -112,7 +117,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
             RaycastHit Hit;
 
-            if(Physics.SphereCast(SelfTransform.position, ColliderRadius, Velocity.normalized, out Hit, (Velocity * DeltaTime).magnitude, PlayerObjectLayer))
+            if (Physics.SphereCast(SelfTransform.position, ColliderRadius, Velocity.normalized, out Hit, (Velocity * DeltaTime).magnitude, PlayerObjectLayer))
             {
                 if (DamagesPlayer)
                 {
@@ -158,14 +163,14 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
             SelfTransform.position += Velocity * DeltaTime;
 
-            if(Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
+            if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
             {
                 LastTimeReplicatedPosition = Time.time;
 
                 ReplicatePositionClientRpc(SelfTransform.position);
             }
 
-            if(Time.time - StartTime >= Lifetime)
+            if (TimeStamp - StartTime >= Lifetime)
             {
                 ReplicateDisableClientRpc();
 
@@ -175,7 +180,12 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
             return;
         }
 
-        if(bUpdatedThisFrame)
+        if (TimeStamp - StartTime >= Lifetime)
+        {
+            Despawn();
+        }
+
+        if (bUpdatedThisFrame)
         {
             bUpdatedThisFrame = false;
 
@@ -196,12 +206,30 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     {
         LastTimeReplicatedPosition = Time.time;
         InitClientRpc(team, pos, dir);
-        StartTime = LastTimeReplicatedPosition;
+        StartTime = TimeStamp;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
         Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+    }
+
+    public virtual void InitAndSimulateForward(Teams team, Vector3 pos, Vector3 dir, int tickstosimulate)
+    {
+        LastTimeReplicatedPosition = Time.time;
+        StartTime = TimeStamp;
+
+        OwningPlayerTeam = team;
+        SelfTransform.position = pos;
+        Velocity = dir * InitialSpeed;
+        SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+        for(int i = 0; i < tickstosimulate; i++)
+        {
+            FixedUpdate();
+        }
+
+        ReplicatePositionClientRpc(SelfTransform.position);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -243,6 +271,8 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         }
 
         bUpdatedThisFrame = true;
+
+        StartTime = TimeStamp;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;

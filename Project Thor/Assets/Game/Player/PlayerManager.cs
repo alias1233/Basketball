@@ -326,6 +326,11 @@ public class PlayerManager : NetworkBehaviour
         return (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(OwnerClientId) * 0.05f);
     }
 
+    public int GetHalfRTTInTick()
+    {
+        return GetPingInTick() + ServerDelay;
+    }
+
     public void CheckClientTimeError(int clienttime)
     {
         if (Time.time - LastTimeSentClientTimeCorrection < 1)

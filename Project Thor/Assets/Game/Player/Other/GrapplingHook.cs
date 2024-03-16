@@ -14,19 +14,7 @@ public class GrapplingHook : BaseProjectile
     {
         base.OnNetworkSpawn();
 
-        PlayerMovement[] playermovements = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
-
-        foreach(PlayerMovement i in playermovements)
-        {
-            if(i.GetOwnerID() == OwnerClientId)
-            {
-                OwningPlayerMovement = i;
-
-                return;
-            }
-        }
-
-        Invoke(nameof(TryFindOwnerAgain), 1);
+        Invoke(nameof(TryFindOwnerAgain), 2);
     }
 
     private void TryFindOwnerAgain()
@@ -39,6 +27,12 @@ public class GrapplingHook : BaseProjectile
             {
                 OwningPlayerMovement = i;
 
+                if (IsOwner && !IsServer)
+                {
+                    i.GrapplePool.pooledObjects.Add(gameObject);
+                    i.GrapplePool.pooledNetworkObjects.Add(this);
+                }
+
                 return;
             }
         }
@@ -48,26 +42,32 @@ public class GrapplingHook : BaseProjectile
 
     public override void OnHitGround()
     {
-        OwningPlayerMovement.StartGrapple(SelfTransform.position);
+        if(IsServer)
+        {
+            OwningPlayerMovement.StartGrapple(SelfTransform.position);
 
-        bHit = true;
+            bHit = true;
 
-        Invoke(nameof(DisableGrapple), 0.5f);
+            Invoke(nameof(DisableGrapple), 0.5f);
 
-        ReplicateHitClientRpc();
-        Despawn();
+            ReplicateHitClientRpc();
+            Despawn();
+        }
     }
 
     public override void OnHitPlayer()
     {
-        OwningPlayerMovement.StartGrapple(SelfTransform.position);
+        if (IsServer)
+        {
+            OwningPlayerMovement.StartGrapple(SelfTransform.position);
 
-        bHit = true;
+            bHit = true;
 
-        Invoke(nameof(DisableGrapple), 0.5f);
+            Invoke(nameof(DisableGrapple), 0.5f);
 
-        ReplicateHitClientRpc();
-        Despawn();
+            ReplicateHitClientRpc();
+            Despawn();
+        }
     }
 
     public override void Activate()

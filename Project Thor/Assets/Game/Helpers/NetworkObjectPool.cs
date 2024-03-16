@@ -5,8 +5,8 @@ using UnityEngine;
 
 public class NetworkObjectPool : NetworkBehaviour
 {
-    public List<GameObject> pooledObjects;
-    public List<IBaseNetworkObject> pooledNetworkObjects;
+    public List<GameObject> pooledObjects = new List<GameObject>();
+    public List<IBaseNetworkObject> pooledNetworkObjects = new List<IBaseNetworkObject>();
     public GameObject objectToPool;
     public int amountToPool;
 
@@ -18,8 +18,6 @@ public class NetworkObjectPool : NetworkBehaviour
             return;
         }
 
-        pooledObjects = new List<GameObject>();
-        pooledNetworkObjects = new List<IBaseNetworkObject>();
         GameObject tmp;
 
         for (int i = 0; i < amountToPool; i++)
