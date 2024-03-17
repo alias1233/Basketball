@@ -66,6 +66,8 @@ public class WeaponManager : NetworkBehaviour
     [Header("Melee")]
 
     public GameObject Fist;
+    public Transform FistParentTransform;
+    public Transform FistParentParentTransform;
 
     public TMP_Text FistChargeBar;
 
@@ -107,6 +109,8 @@ public class WeaponManager : NetworkBehaviour
 
     private RaycastHit[] RewindHits = new RaycastHit[5];
 
+    public bool bHoldingBall;
+
     private void Start()
     {
         Player = GetComponent<PlayerManager>();
@@ -117,6 +121,11 @@ public class WeaponManager : NetworkBehaviour
         ActiveWeaponIndex = ActiveWeaponNumber.Shotgun;
         ActiveWeapon = WeaponList[0];
         ActiveWeapon.ChangeActive(true);
+
+        if(!IsOwner)
+        {
+            Fist.SetActive(false);
+        }
     }
 
     public override void OnNetworkSpawn()
@@ -241,13 +250,23 @@ public class WeaponManager : NetworkBehaviour
             {
                 LastTimeMelee = CurrentTimeStamp;
 
-                ChargeMelee();
+                Melee();
             }
         }
 
-        else
+        if(bHoldingBall)
         {
-            Melee();
+            if (Input.GetKey(KeyCode.Mouse0))
+            {
+                ChargeThrow();
+            }
+
+            else
+            {
+                ThrowBall();
+            }
+
+            return;
         }
 
         if (Input.GetKey(KeyCode.Mouse0))
@@ -298,13 +317,23 @@ public class WeaponManager : NetworkBehaviour
             {
                 LastTimeMelee = CurrentTimeStamp;
 
-                ChargeMelee();
+                Melee();
             }
         }
 
-        else
+        if (bHoldingBall)
         {
-            Melee();
+            if (CurrentInput.Mouse1)
+            {
+                ChargeThrow();
+            }
+
+            else
+            {
+                ThrowBall();
+            }
+
+            return;
         }
 
         if (CurrentInput.Mouse1)
@@ -386,13 +415,23 @@ public class WeaponManager : NetworkBehaviour
             {
                 LastTimeMelee = CurrentTimeStamp;
 
-                ChargeMelee();
+                Melee();
             }
         }
 
-        else
+        if (bHoldingBall)
         {
-            Melee();
+            if (CurrentInput.Mouse1)
+            {
+                ChargeThrow();
+            }
+
+            else
+            {
+                ThrowBall();
+            }
+
+            return;
         }
 
         if (CurrentInput.Mouse1)
@@ -476,26 +515,67 @@ public class WeaponManager : NetworkBehaviour
                 break;
         }
 
-        ActiveWeapon.ChangeActive(true);
+        if(!bHoldingBall)
+        {
+            ActiveWeapon.ChangeActive(true);
+        }
     }
 
-    private void ChargeMelee()
+    private void ChargeThrow()
     {
-        if(Ball.Singleton.GetAttachedPlayer() == OwnerClientId)
+        if (bIsCharging)
         {
-            if (bIsCharging)
-            {
-                return;
-            }
-
-            bIsCharging = true;
-            ChargingStartTime = CurrentTimeStamp;
-
-            FistChargeBar.enabled = true;
-
             return;
         }
 
+        bIsCharging = true;
+        ChargingStartTime = CurrentTimeStamp;
+
+        FistChargeBar.enabled = true;
+
+        return;
+    }
+
+    private void ThrowBall()
+    {
+        if (!bIsCharging)
+        {
+            return;
+        }
+
+        bIsCharging = false;
+
+        LastTimeMelee = CurrentTimeStamp;
+
+        FistChargeBar.enabled = false;
+
+        if (bHoldingBall)
+        {
+            Ball.Singleton.Throw(
+                (PlayerMovementComponent.GetRotation() * Vector3.forward + Vector3.up * 0.33f) *
+                Mathf.Clamp(ThrowForce * (CurrentTimeStamp - ChargingStartTime) / MaxChargingTime, 5, ThrowForce)
+                );
+        }
+    }
+
+    public void EnterDunk()
+    {
+        if(bHoldingBall)
+        {
+            meleeanimation.EnterDunk();
+        }
+    }
+
+    public void ExitDunk()
+    {
+        if (bHoldingBall)
+        {
+            meleeanimation.ExitDunk();
+        }
+    }
+
+    private void Melee()
+    {
         MeleeVisual();
 
         if (!IsServer)
@@ -515,7 +595,7 @@ public class WeaponManager : NetworkBehaviour
 
                 if (Hits[i].transform.gameObject.TryGetComponent<Ball>(out Ball ball))
                 {
-                    ball.Attach(PlayerMovementComponent);
+                    ball.Attach(Player);
                 }
             }
 
@@ -549,14 +629,14 @@ public class WeaponManager : NetworkBehaviour
 
                     if(Ball.Singleton.GetAttachedPlayer() == stats.GetClientID())
                     {
-                        Ball.Singleton.Attach(PlayerMovementComponent);
+                        Ball.Singleton.Attach(Player);
                     }
                 }
             }
 
             if (Hits[i].transform.gameObject.TryGetComponent<Ball>(out Ball ball))
             {
-                Ball.Singleton.Attach(PlayerMovementComponent);
+                Ball.Singleton.Attach(Player);
             }
         }
 
@@ -568,42 +648,12 @@ public class WeaponManager : NetworkBehaviour
         ResetRewindedPlayers();
     }
 
-    private void Melee()
-    {
-        if(!bIsCharging)
-        {
-            return;
-        }
-
-        bIsCharging = false;
-
-        LastTimeMelee = CurrentTimeStamp;
-
-        FistChargeBar.enabled = false;
-
-        MeleeVisual();
-
-        if (Ball.Singleton.GetAttachedPlayer() == OwnerClientId)
-        {
-            Ball.Singleton.Throw(
-                (PlayerMovementComponent.GetRotation() * Vector3.forward + Vector3.up * 0.33f) *
-                Mathf.Clamp(ThrowForce * (CurrentTimeStamp - ChargingStartTime) / MaxChargingTime, 5, ThrowForce)
-                //+ Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() * 0.25f, 5)
-                );
-        }
-
-        if (!IsServer)
-        {
-            return;
-        }
-
-        ReplicateFire(3);
-    }
-
     private void MeleeVisual()
     {
-        Fist.SetActive(true);
-        meleeanimation.PunchAnim();
+        if(IsOwner)
+        {
+            meleeanimation.PunchAnim();
+        }
 
         PunchSwooshSound.Play();
     }
@@ -763,9 +813,13 @@ public class WeaponManager : NetworkBehaviour
 
     private void WeaponSway()
     {
+        Vector3 moveamount = -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() / MaxSwayVelocity, MaxSwayAmount);
+
         ActiveWeapon.SetWeaponModelPos(
-            -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() / MaxSwayVelocity, MaxSwayAmount)
+            moveamount
             );
+
+        FistParentTransform.position = FistParentParentTransform.position + moveamount;
     }
 
     public Vector3 GetAimPointLocation()
@@ -801,5 +855,19 @@ public class WeaponManager : NetworkBehaviour
     public int GetTimeStamp()
     {
         return Player.GetTimeStamp();
+    }
+
+    public void Attach()
+    {
+        bHoldingBall = true;
+        ActiveWeapon.ChangeActive(false);
+        meleeanimation.HoldBall();
+    }
+
+    public void Detach()
+    {
+        bHoldingBall = false;
+        ActiveWeapon.ChangeActive(true);
+        meleeanimation.UnholdBall();
     }
 }

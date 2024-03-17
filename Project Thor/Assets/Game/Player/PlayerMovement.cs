@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using static ConnectionNotificationManager;
-using Unity.Burst.CompilerServices;
 
 struct ExternalMoveCorrection
 {
@@ -34,10 +33,8 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField]
     private Transform FPOrientation;
 
-    [SerializeField]
-    private Transform HandTransform;
-
     private PlayerManager Player;
+    private WeaponManager Weapons;
     private CapsuleCollider Collider;
 
     [Header("Ticking")]
@@ -252,6 +249,7 @@ public class PlayerMovement : NetworkBehaviour
     private void Awake()
     {
         Player = GetComponent<PlayerManager>();
+        Weapons = GetComponent<WeaponManager>();
         Collider = GetComponent<CapsuleCollider>();
 
         SelfTransform = transform;
@@ -508,15 +506,7 @@ public class PlayerMovement : NetworkBehaviour
         bGrapple = false;
         bNoMovement = false;
 
-        if(bjump)
-        {
-            Velocity = Velocity * 0.5f + Vector3.up * JumpForce;
-        }
-
-        else
-        {
-            Velocity *= 0.5f;
-        }
+        Velocity = Velocity * 0.25f + Vector3.up * JumpForce * 1.25f;
 
         bChangingVelocity = true;
 
@@ -619,7 +609,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (bGrapple)
         {
-            if (CurrentTimeStamp - GrappleStartTime <= GrappleDuration && (GrappleLocation - SelfTransform.position).magnitude > 2.5)
+            if (CurrentTimeStamp - GrappleStartTime <= GrappleDuration && (GrappleLocation - SelfTransform.position).magnitude > 5)
             {
                 SafeMovePlayer(GrappleSpeed * (GrappleLocation - SelfTransform.position).normalized * DeltaTime);
 
@@ -679,6 +669,8 @@ public class PlayerMovement : NetworkBehaviour
                         LastTimeJumped = CurrentTimeStamp;
 
                         Velocity.y = 0;
+
+                        //TimeStartSlideGroundPound
                         JumpVel = Vector3.up * JumpForce * 1.75f;
                     }
                 }
@@ -736,6 +728,8 @@ public class PlayerMovement : NetworkBehaviour
                 }
 
                 GroundPoundTrails.Play();
+
+                Weapons.EnterDunk();
             }
         }
 
@@ -915,6 +909,8 @@ public class PlayerMovement : NetworkBehaviour
         GroundPoundTrails.Stop();
         GroundPoundTrails.Clear();
         GroundPoundLandAudio.Play();
+
+        Weapons.ExitDunk();
 
         if (IsServer)
         {
@@ -1456,10 +1452,5 @@ public class PlayerMovement : NetworkBehaviour
     public ulong GetOwnerID()
     {
         return OwnerClientId;
-    }
-
-    public Vector3 GetHandPosition()
-    {
-        return HandTransform.position;
     }
 }

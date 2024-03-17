@@ -33,6 +33,9 @@ public class PlayerManager : NetworkBehaviour
     private PlayerMovement Movement;
     private WeaponManager Weapons;
 
+    [SerializeField]
+    private Transform HandTransform;
+
     public List<MonoBehaviour> DisabledForOwnerScripts;
     public List<MonoBehaviour> DisabledForOthersScripts;
 
@@ -421,6 +424,21 @@ public class PlayerManager : NetworkBehaviour
         }
 
         return NetworkRole.SimulatedProxy;
+    }
+
+    public Vector3 GetHandPosition()
+    {
+        return HandTransform.position;
+    }
+
+    public void Attach()
+    {
+        Weapons.Attach();
+    }
+
+    public void Unattach()
+    {
+        Weapons.Detach();
     }
 
     private void SetGameLayerRecursive(GameObject gameObject, int layer)

@@ -5,22 +5,29 @@ using UnityEngine;
 public class MeleeAnimScript : MonoBehaviour
 {
     public Animator animator;
-    public bool IsActive;
 
-    private void Update()
-    {
-        if(!IsActive)
-        {
-            gameObject.SetActive(false);
-        }
-    }
-
-    private void OnEnable()
-    {
-        IsActive = true;
-    }
     public void PunchAnim()
     {
         animator.SetTrigger("StartPunch");
+    }
+
+    public void HoldBall()
+    {
+        animator.SetBool("bHoldingBall", true);
+    }
+
+    public void UnholdBall()
+    {
+        animator.SetBool("bHoldingBall", false);
+    }
+
+    public void EnterDunk()
+    {
+        animator.SetBool("bDunking", true);
+    }
+
+    public void ExitDunk()
+    {
+        animator.SetBool("bDunking", false);
     }
 }

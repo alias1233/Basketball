@@ -12176,8 +12176,18 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2193289442231697638, guid: 1a12ebcd96796f642b384accabe07c3c,
         type: 3}
+      propertyPath: BounceFactor
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2193289442231697638, guid: 1a12ebcd96796f642b384accabe07c3c,
+        type: 3}
+      propertyPath: FrictionFactor
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2193289442231697638, guid: 1a12ebcd96796f642b384accabe07c3c,
+        type: 3}
       propertyPath: GravityAcceleration
-      value: 15
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 2193289442231697638, guid: 1a12ebcd96796f642b384accabe07c3c,
         type: 3}

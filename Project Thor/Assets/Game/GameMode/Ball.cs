@@ -9,7 +9,7 @@ public class Ball : NetworkBehaviour
 
     Transform SelfTransform;
 
-    public PlayerMovement AttachedPlayer;
+    public PlayerManager AttachedPlayer;
     public bool bAttached;
 
     public float GravityAcceleration;
@@ -46,13 +46,21 @@ public class Ball : NetworkBehaviour
         DeltaTime = Time.fixedDeltaTime;
     }
 
+    private void Update()
+    {
+        if (bAttached)
+        {
+            SelfTransform.position = AttachedPlayer.GetHandPosition();
+        }
+    }
+
     private void FixedUpdate()
     {
         if (IsServer)
         {
             if (bAttached)
             {
-                SelfTransform.position = AttachedPlayer.GetHandPosition();
+                //SelfTransform.position = AttachedPlayer.GetHandPosition();
 
                 if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
                 {
@@ -80,7 +88,7 @@ public class Ball : NetworkBehaviour
 
         if(bAttached)
         {
-            SelfTransform.position = AttachedPlayer.GetHandPosition();
+            //SelfTransform.position = AttachedPlayer.GetHandPosition();
 
             return;
         }
@@ -93,12 +101,21 @@ public class Ball : NetworkBehaviour
     public void Detach()
     {
         bAttached = false;
+
+        AttachedPlayer.Unattach();
     }
 
-    public void Attach(PlayerMovement playermovement)
+    public void Attach(PlayerManager player)
     {
         bAttached = true;
-        AttachedPlayer = playermovement;
+
+        if(AttachedPlayer != null)
+        {
+            AttachedPlayer.Unattach();
+        }
+
+        AttachedPlayer = player;
+        AttachedPlayer.Attach();
 
         if (IsClient)
         {
@@ -112,6 +129,7 @@ public class Ball : NetworkBehaviour
 
         Velocity = ThrowVel;
         bAttached = false;
+        AttachedPlayer.Unattach();
 
         int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 4;
 
@@ -143,6 +161,11 @@ public class Ball : NetworkBehaviour
         Velocity = velocity;
         bAttached = false;
 
+        if (AttachedPlayer != null)
+        {
+            AttachedPlayer.Unattach();
+        }
+
         int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 4;
 
         for (int i = 0; i < PingInTick; i++)
@@ -166,8 +189,14 @@ public class Ball : NetworkBehaviour
 
         if (playerGameObject.TryGet(out NetworkObject networkObject))
         {
+            if (AttachedPlayer != null)
+            {
+                AttachedPlayer.Unattach();
+            }
+
             bAttached = true;
-            AttachedPlayer = networkObject.GetComponent<PlayerMovement>();
+            AttachedPlayer = networkObject.GetComponent<PlayerManager>();
+            AttachedPlayer.Attach();
         }
     }
 
@@ -225,7 +254,7 @@ public class Ball : NetworkBehaviour
     {
         if(bAttached)
         {
-            return AttachedPlayer.GetOwnerID();
+            return AttachedPlayer.OwnerClientId;
         }
 
         return 10000000000;

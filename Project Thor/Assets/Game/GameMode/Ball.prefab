@@ -154,7 +154,7 @@ MonoBehaviour:
   AttachedPlayer: {fileID: 0}
   bAttached: 0
   GravityAcceleration: 15
-  FrictionFactor: 0.99
+  FrictionFactor: 1
   SkinWidth: 0.015
   layerMask:
     serializedVersion: 2
@@ -228,7 +228,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2726001478071226558}
   - component: {fileID: 1503886826269600850}
-  m_Layer: 8
+  m_Layer: 1
   m_Name: Trail
   m_TagString: Untagged
   m_Icon: {fileID: 0}
