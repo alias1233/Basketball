@@ -545,9 +545,11 @@ public class WeaponManager : NetworkBehaviour
 
         bIsCharging = false;
 
-        LastTimeMelee = CurrentTimeStamp;
+        LastTimeMelee = CurrentTimeStamp - MeleeCooldown / 4;
 
         FistChargeBar.enabled = false;
+
+        MeleeVisual();
 
         if (bHoldingBall)
         {
@@ -869,5 +871,6 @@ public class WeaponManager : NetworkBehaviour
         bHoldingBall = false;
         ActiveWeapon.ChangeActive(true);
         meleeanimation.UnholdBall();
+        meleeanimation.ExitDunk();
     }
 }

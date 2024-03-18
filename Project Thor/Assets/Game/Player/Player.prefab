@@ -403,6 +403,37 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &217155119285349621
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5933093482926841075}
+  m_Layer: 3
+  m_Name: ThrowBallLocation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5933093482926841075
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 217155119285349621}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5777097177635859462}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &378798959059611845
 GameObject:
   m_ObjectHideFlags: 0
@@ -34194,6 +34225,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 5933093482926841075}
   - {fileID: 1250242749983745449}
   - {fileID: 5233459599570621814}
   - {fileID: 4751414947569926169}
@@ -44718,7 +44750,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GlobalObjectIdHash: 951099334
   AlwaysReplicateAsRoot: 0
-  SynchronizeTransform: 0
+  SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
   SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
@@ -44738,13 +44770,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ServerDelay: 4
   HandTransform: {fileID: 9123796275599009219}
+  ThrowBallLocationTransform: {fileID: 5933093482926841075}
   DisabledForOwnerScripts: []
   DisabledForOthersScripts:
   - {fileID: 2162949238340863825}
   FirstPersonComponents: {fileID: 8682605103006323548}
   ThirdPersonComponents: {fileID: 4935691055142638147}
   FPPlayerCamera: {fileID: 6505237652908839332}
-  CameraVisuals: {fileID: 3015463303445800145}
   FirstPersonPlayerUI: {fileID: 5984778461918668308}
   RenderOnTop:
   - {fileID: 378798959059611845}
@@ -44769,6 +44801,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TPOrientation: {fileID: 2328282342131481982}
   FPOrientation: {fileID: 245901753364132158}
+  CameraVisuals: {fileID: 3015463303445800145}
   ReplicatePositionInterval: 0.1
   CorrectionDistance: 0.5
   MinTimeBetweenCorrections: 1
@@ -44799,8 +44832,10 @@ MonoBehaviour:
   SlideMinSpeed: 3
   SlideCooldown: 10
   GroundPoundSpeed: 25
-  GroundPoundAcceleration: 100
+  GroundPoundAcceleration: 200
   MinHeightToGroundPound: 2.5
+  MaxGroundPoundJumpForce: 1.75
+  MaxGroundPoundChargeJumpTime: 50
   GroundPoundDamage: 15
   GroundPoundRadius: 4
   WallRunSpeed: 10
@@ -44812,6 +44847,7 @@ MonoBehaviour:
   WallRunFriction: 10
   AirFriction: 1.25
   Gravity: 0.65
+  StunDuration: 50
   LandAudio: {fileID: 8070140050174576484}
   LandAudioCooldown: 0.5
   SlideCameraOffset: {x: 0, y: -0.75, z: 0}

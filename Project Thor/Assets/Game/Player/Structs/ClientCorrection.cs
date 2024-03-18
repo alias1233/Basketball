@@ -15,7 +15,7 @@ public struct ClientCorrection : INetworkSerializable
 
     public bool bDashing;
     public int StartDashTime;
-    public Quaternion DashingStartRotation;
+    public Vector3 DashingStartRotation;
 
     public bool bWasCTRL;
     public bool bTrySlideGroundPound;
@@ -38,7 +38,7 @@ public struct ClientCorrection : INetworkSerializable
         bool btryjump,
         bool bdashing,
         int startdashtime,
-        Quaternion dashingstartrotation,
+        Vector3 dashingstartrotation,
         bool bsliding,
         Vector3 slidedirection,
         int lasttimeslide,
@@ -114,7 +114,7 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferReader.ReadValueSafe(out bool btryjump);
             fastBufferReader.ReadValueSafe(out bool bdashing);
             fastBufferReader.ReadValueSafe(out int startdashtime);
-            fastBufferReader.ReadValueSafe(out Quaternion dashingstartrotation);
+            fastBufferReader.ReadValueSafe(out Vector3 dashingstartrotation);
             fastBufferReader.ReadValueSafe(out bool bsliding);
             fastBufferReader.ReadValueSafe(out Vector3 slidedirection);
             fastBufferReader.ReadValueSafe(out int lasttimeslide);

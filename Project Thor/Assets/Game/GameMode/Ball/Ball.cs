@@ -14,7 +14,7 @@ public class Ball : NetworkBehaviour
 
     public float GravityAcceleration;
     public float FrictionFactor;
-    private Vector3 Velocity;
+    public Vector3 Velocity;
 
     private float DeltaTime;
     private float ColliderRadius;
@@ -35,6 +35,13 @@ public class Ball : NetworkBehaviour
 
     public float IgnoreReplicatedMovementTime;
     private float LastTimePredictedMovement;
+
+    public float XPos;
+    public float NXPos;
+    public float YPos;
+    public float NYPos;
+    public float ZPos;
+    public float NZPos;
 
     private void Awake()
     {
@@ -58,10 +65,65 @@ public class Ball : NetworkBehaviour
     {
         if (IsServer)
         {
+            Vector3 pos = SelfTransform.position;
+
+            if(pos.x < NXPos)
+            {
+                if(bAttached)
+                {
+                    Detach();
+                }
+                SelfTransform.position = new Vector3(NXPos + 2, SelfTransform.position.y, SelfTransform.position.z);
+                Velocity = Vector3.zero;
+            }
+            if (pos.x > XPos)
+            {
+                if (bAttached)
+                {
+                    Detach();
+                }
+                SelfTransform.position = new Vector3(XPos - 2, SelfTransform.position.y, SelfTransform.position.z);
+                Velocity = Vector3.zero;
+            }
+            if (pos.y < NYPos)
+            {
+                if (bAttached)
+                {
+                    Detach();
+                }
+                SelfTransform.position = new Vector3(SelfTransform.position.x, NYPos + 2, SelfTransform.position.z);
+                Velocity = Vector3.zero;
+            }
+            if (pos.y > YPos)
+            {
+                if (bAttached)
+                {
+                    Detach();
+                }
+                SelfTransform.position = new Vector3(SelfTransform.position.x, YPos - 2, SelfTransform.position.z);
+                Velocity = Vector3.zero;
+            }
+            if (pos.z < NZPos)
+            {
+                if (bAttached)
+                {
+                    Detach();
+                }
+                SelfTransform.position = new Vector3(SelfTransform.position.x, SelfTransform.position.y, NZPos + 2);
+                Velocity = Vector3.zero;
+            }
+            if (pos.z > ZPos)
+            {
+                if (bAttached)
+                {
+                    Detach();
+                }
+                SelfTransform.position = new Vector3(SelfTransform.position.x, SelfTransform.position.y, ZPos - 2);
+                Velocity = Vector3.zero;
+            }
+
             if (bAttached)
             {
-                //SelfTransform.position = AttachedPlayer.GetHandPosition();
-
                 if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
                 {
                     LastTimeReplicatedPosition = Time.time;
@@ -88,8 +150,6 @@ public class Ball : NetworkBehaviour
 
         if(bAttached)
         {
-            //SelfTransform.position = AttachedPlayer.GetHandPosition();
-
             return;
         }
 
@@ -101,6 +161,8 @@ public class Ball : NetworkBehaviour
     public void Detach()
     {
         bAttached = false;
+
+        SelfTransform.position = AttachedPlayer.GetAimPointLocation();
 
         AttachedPlayer.Unattach();
     }
@@ -125,7 +187,7 @@ public class Ball : NetworkBehaviour
 
     public void Throw(Vector3 ThrowVel)
     {
-        SelfTransform.position -= ThrowVel.normalized;
+        SelfTransform.position = AttachedPlayer.GetAimPointLocation();
 
         Velocity = ThrowVel;
         bAttached = false;
@@ -258,5 +320,10 @@ public class Ball : NetworkBehaviour
         }
 
         return 10000000000;
+    }
+
+    public void TeleportTo(Vector3 pos)
+    {
+        SelfTransform.position = pos;
     }
 }

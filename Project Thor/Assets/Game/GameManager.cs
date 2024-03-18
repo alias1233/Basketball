@@ -3,6 +3,7 @@ using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
 using static ConnectionNotificationManager;
+using TMPro;
 
 public enum Teams
 { 
@@ -27,6 +28,15 @@ public class GameManager : NetworkBehaviour
 
     private NetworkList<PlayerInformation> PlayerList;
 
+    private List<PlayerManager> RedTeamPlayers = new List<PlayerManager>();
+    private List<PlayerManager> BlueTeamPlayers = new List<PlayerManager>();
+
+    public int RedTeamScore;
+    public int BlueTeamScore;
+
+    public TMP_Text RedTeamScoreText;
+    public TMP_Text BlueTeamScoreText;
+
     private void Awake()
     {
         Singleton = this;
@@ -37,6 +47,59 @@ public class GameManager : NetworkBehaviour
     private void Start()
     {
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdatePlayers;
+    }
+
+    public Transform RedTeamHoopTransform;
+    public Transform BlueTeamHoopTransform;
+
+    public float LaunchFactor = 1000;
+
+    float IntervalBetweenScore = 5;
+
+    float LastTimeScoreRed;
+    float LastTimeScoreBlue;
+
+    public void ScorePoint(Teams team)
+    {
+        if(team == Teams.Red)
+        {
+            if(Time.time - LastTimeScoreRed > IntervalBetweenScore)
+            {
+                LastTimeScoreRed = Time.time;
+
+                BlueTeamScore++;
+
+                BlueTeamScoreText.text = BlueTeamScore.ToString();
+
+                foreach(PlayerManager i in BlueTeamPlayers)
+                {
+                    i.OnScore(
+                        LaunchFactor * 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - RedTeamHoopTransform.position).normalized
+                        );
+                }
+
+                return;
+            }
+        }
+
+        if(team == Teams.Blue)
+        {
+            if (Time.time - LastTimeScoreBlue > IntervalBetweenScore)
+            {
+                LastTimeScoreBlue = Time.time;
+
+                RedTeamScore++;
+
+                RedTeamScoreText.text = RedTeamScore.ToString();
+
+                foreach (PlayerManager i in RedTeamPlayers)
+                {
+                    i.OnScore(
+                        LaunchFactor * 1 / Mathf.Clamp((i.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - BlueTeamHoopTransform.position).normalized
+                        );
+                }
+            }
+        }
     }
 
     private void UpdatePlayers(ulong clientId, ConnectionStatus connection)
@@ -77,6 +140,16 @@ public class GameManager : NetworkBehaviour
 
             newPlayer.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
 
+            if (team == Teams.Red)
+            {
+                RedTeamPlayers.Add(newPlayer.GetComponent<PlayerManager>());
+            }
+
+            else
+            {
+                BlueTeamPlayers.Add(newPlayer.GetComponent<PlayerManager>());
+            }
+
             return;
         }
 
@@ -85,13 +158,25 @@ public class GameManager : NetworkBehaviour
             if (PlayerList[i].Id == clientId)
             {
                 PlayerList.RemoveAt(i);
+            }
+        }
 
-                return;
+        for (int i = 0; i < RedTeamPlayers.Count; i++)
+        {
+            if (RedTeamPlayers[i].OwnerClientId == clientId)
+            {
+                RedTeamPlayers.RemoveAt(i);
+            }
+        }
+
+        for (int i = 0; i < BlueTeamPlayers.Count; i++)
+        {
+            if (BlueTeamPlayers[i].OwnerClientId == clientId)
+            {
+                BlueTeamPlayers.RemoveAt(i);
             }
         }
     }
-
-
 
     public List<PlayerInformation> GetAllPlayerInformation()
     {

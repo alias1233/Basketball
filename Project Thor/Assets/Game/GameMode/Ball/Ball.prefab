@@ -153,18 +153,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   AttachedPlayer: {fileID: 0}
   bAttached: 0
-  GravityAcceleration: 15
+  GravityAcceleration: 20
   FrictionFactor: 1
+  Velocity: {x: 0, y: 0, z: 0}
   SkinWidth: 0.015
   layerMask:
     serializedVersion: 2
     m_Bits: 1
   MaxBounces: 5
-  BounceFactor: 0.9
+  BounceFactor: 0.65
   MaxResolvePenetrationAttempts: 3
   ResolvePenetrationDistance: 0.1
   ReplicatePositionInterval: 0.1
   IgnoreReplicatedMovementTime: 0.25
+  XPos: 5
+  NXPos: -5
+  YPos: 5
+  NYPos: 0
+  ZPos: 5
+  NZPos: -5
 --- !u!135 &4892704901192779872
 SphereCollider:
   m_ObjectHideFlags: 0

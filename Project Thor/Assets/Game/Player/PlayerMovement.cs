@@ -33,6 +33,9 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField]
     private Transform FPOrientation;
 
+    [SerializeField]
+    private CameraVisualsScript CameraVisuals;
+
     private PlayerManager Player;
     private WeaponManager Weapons;
     private CapsuleCollider Collider;
@@ -56,7 +59,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private int SaveRecentDataTime = 50;
 
-    private bool bShift;
+    private bool bCapsLock;
 
     [Header("Replicate Movement")]
 
@@ -76,6 +79,7 @@ public class PlayerMovement : NetworkBehaviour
     private Dictionary<int, Vector3> ClientDataDictionary = new Dictionary<int, Vector3>();
     private ClientCorrection ServerState;
     private bool bRewindingClientCorrection;
+    private bool bRewindingExternalMove;
     private float LastTimeSentCorrection;
     private float LastTimeSentClientData;
     private bool ReplayMoves;
@@ -120,6 +124,8 @@ public class PlayerMovement : NetworkBehaviour
     public float GroundPoundSpeed = 15f;
     public float GroundPoundAcceleration;
     public float MinHeightToGroundPound = 1;
+    public float MaxGroundPoundJumpForce = 1.75f;
+    public float MaxGroundPoundChargeJumpTime = 50;
 
     public float GroundPoundDamage;
     public float GroundPoundRadius;
@@ -147,6 +153,11 @@ public class PlayerMovement : NetworkBehaviour
     private RaycastHit LeftWallHit;
 
     private bool bChangingVelocity;
+
+    public int StunDuration;
+
+    private bool bStunned;
+    private int LastTimeStunned = -99999;
 
     /*
     * 
@@ -215,7 +226,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private bool bDashing;
     private int StartDashTime;
-    private Quaternion DashingStartRotation;
+    private Vector3 DashingStartRotation;
 
     private bool bGrapple;
     private int GrappleStartTime;
@@ -369,6 +380,8 @@ public class PlayerMovement : NetworkBehaviour
         HandleInputs(ref CurrentInput);
 
         MovePlayer();
+
+        HandleCameraTilt();
     }
 
     private void ServerTickForOtherPlayers()
@@ -429,6 +442,8 @@ public class PlayerMovement : NetworkBehaviour
             CorrectedPosition = SelfTransform.position;
             SelfTransform.position = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, (float)(CurrentTimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime);
         }
+
+        HandleCameraTilt();
     }
 
     private void ServerTickForAll()
@@ -463,68 +478,47 @@ public class PlayerMovement : NetworkBehaviour
         SafeMovePlayer(Velocity * DeltaTime);
     }
 
-    public void StartGrapple(Vector3 HitPos)
-    {
-        ExitSlide();
-
-        bDashing = false;
-        DashTrails.emitting = false;
-
-        GrappleStartTime = CurrentTimeStamp;
-        bGrapple = true;
-        bNoMovement = true;
-
-        GrappleLocation = HitPos;
-
-        if (IsOwner)
-        {
-            FirstPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 2;
-            FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
-            FirstPersonDashParticles.Play();
-
-            Player.ChangeFOV(GrappleFOVOffset, GrappleFOVDuration);
-        }
-
-        else
-        {
-            ThirdPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 2;
-            ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - ThirdPersonDashParticles.transform.position), Vector3.up);
-            ThirdPersonDashParticles.Play();
-        }
-
-        GrappleHit.Play();
-        GrappleLoop.Play();
-
-        if (IsServer)
-        {
-            ReplicateGrapple();
-        }
-    }
-
-    private void ExitGrapple(bool bjump)
-    {
-        bGrapple = false;
-        bNoMovement = false;
-
-        Velocity = Velocity * 0.25f + Vector3.up * JumpForce * 1.25f;
-
-        bChangingVelocity = true;
-
-        if (IsOwner)
-        {
-            FirstPersonDashParticles.Stop();
-        }
-
-        GrappleLoop.Stop();
-    }
-
     private void AbilityTick()
     {
         if (CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown && !bGrapple)
         {
             StartDashTime = CurrentTimeStamp;
             bDashing = true;
-            DashingStartRotation = Rotation;
+
+            Vector3 DashDirection = Vector3.zero;
+
+            if (CurrentInput.W)
+            {
+                DashDirection += Rotation * Vector3.forward;
+            }
+
+            if (CurrentInput.A)
+            {
+                DashDirection -= Rotation * Vector3.right;
+            }
+
+            if (CurrentInput.S)
+            {
+                DashDirection -= Rotation * Vector3.forward;
+            }
+
+            if (CurrentInput.D)
+            {
+                DashDirection += Rotation * Vector3.right;
+            }
+
+            DashDirection.Normalize();
+
+            if(DashDirection == Vector3.zero)
+            {
+                DashingStartRotation = Rotation * Vector3.forward;
+            }
+
+            else
+            {
+                DashingStartRotation = DashDirection;
+            }
+
             bNoMovement = true;
 
             ExitSlide();
@@ -538,18 +532,18 @@ public class PlayerMovement : NetworkBehaviour
 
             if (IsOwner)
             {
-                FirstPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * Vector3.forward * 2;
+                FirstPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * 2;
                 FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
                 FirstPersonDashParticles.Play();
 
                 DashTrails.emitting = true;
 
-                Player.ChangeFOV(DashFOVOffset, DashFOVDuration);
+                CameraVisuals.ChangeFOV(DashFOVOffset, DashFOVDuration);
             }
 
             else
             {
-                ThirdPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * Vector3.forward * 2;
+                ThirdPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * 2;
                 ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - ThirdPersonDashParticles.transform.position), Vector3.up);
                 ThirdPersonDashParticles.Play();
 
@@ -561,23 +555,12 @@ public class PlayerMovement : NetworkBehaviour
         {
             if (CurrentTimeStamp - StartDashTime <= DashDuration)
             {
-                SafeMovePlayer(DashingStartRotation * Vector3.forward * DashSpeed * DeltaTime);
+                SafeMovePlayer(DashingStartRotation * DashSpeed * DeltaTime);
             }
 
             else
             {
-                bDashing = false;
-                bNoMovement = false;
-
-                Velocity *= AfterDashVelocityMagnitude;
-                bChangingVelocity = true;
-
-                if (IsOwner)
-                {
-                    FirstPersonDashParticles.Stop();
-                }
-
-                DashTrails.emitting = false;
+                ExitDash();
             }
         }
 
@@ -630,6 +613,82 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
+    public void ExitDash()
+    {
+        bDashing = false;
+        bNoMovement = false;
+
+        Velocity *= AfterDashVelocityMagnitude;
+        bChangingVelocity = true;
+
+        if (IsOwner)
+        {
+            FirstPersonDashParticles.Stop();
+        }
+
+        DashTrails.emitting = false;
+    }
+
+    public void StartGrapple(Vector3 HitPos)
+    {
+        if(bStunned)
+        {
+            return;
+        }
+
+        ExitSlide();
+
+        bDashing = false;
+        DashTrails.emitting = false;
+
+        GrappleStartTime = CurrentTimeStamp;
+        bGrapple = true;
+        bNoMovement = true;
+
+        GrappleLocation = HitPos;
+
+        if (IsOwner)
+        {
+            FirstPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 2;
+            FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
+            FirstPersonDashParticles.Play();
+
+            CameraVisuals.ChangeFOV(GrappleFOVOffset, GrappleFOVDuration);
+        }
+
+        else
+        {
+            ThirdPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 2;
+            ThirdPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - ThirdPersonDashParticles.transform.position), Vector3.up);
+            ThirdPersonDashParticles.Play();
+        }
+
+        GrappleHit.Play();
+        GrappleLoop.Play();
+
+        if (IsServer)
+        {
+            ReplicateGrapple();
+        }
+    }
+
+    private void ExitGrapple(bool bjump)
+    {
+        bGrapple = false;
+        bNoMovement = false;
+
+        Velocity = Velocity * 0.25f + Vector3.up * JumpForce * 1.25f;
+
+        bChangingVelocity = true;
+
+        if (IsOwner)
+        {
+            FirstPersonDashParticles.Stop();
+        }
+
+        GrappleLoop.Stop();
+    }
+
     private void MovePlayer()
     {
         PreviousPosition = SelfTransform.position;
@@ -670,8 +729,15 @@ public class PlayerMovement : NetworkBehaviour
 
                         Velocity.y = 0;
 
-                        //TimeStartSlideGroundPound
-                        JumpVel = Vector3.up * JumpForce * 1.75f;
+                        if(CurrentTimeStamp - TimeStartSlideGroundPound > MaxGroundPoundChargeJumpTime)
+                        {
+                            JumpVel = Vector3.up * JumpForce * (MaxGroundPoundJumpForce + 0.25f);
+                        }
+
+                        else
+                        {
+                            JumpVel = Vector3.up * JumpForce * (1.25f + (CurrentTimeStamp - TimeStartSlideGroundPound) / MaxGroundPoundChargeJumpTime * (MaxGroundPoundJumpForce - 1));
+                        }
                     }
                 }
 
@@ -698,7 +764,7 @@ public class PlayerMovement : NetworkBehaviour
 
                 SlideDirection = MoveDirection;
 
-                Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
+                CameraVisuals.ChangePosition(SlideCameraOffset);
 
                 SlideParticles.transform.position = FPOrientation.position + MoveDirection * 2 + Vector3.down * SlideParticleOffset;
                 SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
@@ -887,7 +953,7 @@ public class PlayerMovement : NetworkBehaviour
         bSliding = false;
         LastTimeSlide = CurrentTimeStamp;
 
-        Player.CameraResetPosition(SlideCameraDuration);
+        CameraVisuals.ResetPosition();
 
         if (Time.time - LastTimePlayedSlideExitAudio >= LandAudioCooldown)
         {
@@ -1093,9 +1159,19 @@ public class PlayerMovement : NetworkBehaviour
             SetToGrappleState();
         }
 
+        else if(bRewindingExternalMove)
+        {
+            bRewindingExternalMove = false;
+
+            SetToExternaMoveState();
+        }
+
         else
         {
-            SetToExternaMoveState();
+            SetToOnScoreState();
+
+            bStunned = true;
+            LastTimeStunned = SimulateTimeStamp;
         }
 
         int currentTime = CurrentTimeStamp;
@@ -1159,6 +1235,8 @@ public class PlayerMovement : NetworkBehaviour
     {
         AfterCorrectionReceived(replaytimestamp);
 
+        bRewindingExternalMove = true;
+
         ExternalMoveServerState.Position = pos;
         ExternalMoveServerState.Velocity = vel;
         ExternalMoveServerState.LastTimeJumped = lasttimejumped;
@@ -1219,19 +1297,6 @@ public class PlayerMovement : NetworkBehaviour
     *
     */
 
-    private void Update()
-    {
-        if (!IsOwner)
-        {
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.CapsLock))
-        {
-            bShift = true;
-        }
-    }
-
     private void CreateInputs(ref Inputs input)
     {
         Rotation = FPOrientation.rotation;
@@ -1243,15 +1308,32 @@ public class PlayerMovement : NetworkBehaviour
         input.S = Input.GetKey(KeyCode.S);
         input.D = Input.GetKey(KeyCode.D);
         input.SpaceBar = Input.GetKey(KeyCode.Space);
-        input.Shift = bShift;
+        input.Shift = bCapsLock;
         input.CTRL = Input.GetKey(KeyCode.LeftShift);
         input.E = Input.GetKey(KeyCode.E);
 
-        bShift = false;
+        bCapsLock = false;
     }
 
     private void HandleInputs(ref Inputs input)
     {
+        if (bStunned)
+        {
+            input.W = false;
+            input.A = false;
+            input.S = false;
+            input.D = false;
+            input.SpaceBar = false;
+            input.Shift = false;
+            input.CTRL = false;
+            input.E = false;
+
+            if (CurrentTimeStamp - LastTimeStunned > StunDuration)
+            {
+                bStunned = false;
+            }
+        }
+
         MoveDirection = Vector3.zero;
         Rotation = input.Rotation;
 
@@ -1348,7 +1430,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             bSliding = true;
 
-            Player.CameraChangePosition(SlideCameraOffset, SlideCameraDuration);
+            CameraVisuals.ChangePosition(SlideCameraOffset);
 
             SlideParticles.transform.position = FPOrientation.position + Velocity.normalized * 2 + Vector3.down * SlideParticleOffset;
             SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
@@ -1362,7 +1444,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             bSliding = false;
 
-            Player.CameraResetPosition(SlideCameraDuration);
+            CameraVisuals.ResetPosition();
             SlideParticles.Stop();
             SlideSmoke.Stop();
             SlideSound.Stop();
@@ -1409,9 +1491,114 @@ public class PlayerMovement : NetworkBehaviour
         ExitSlide();
     }
 
+    public void OnScore(Vector3 Impulse)
+    {
+        ResetMovement();
+
+        Velocity += Impulse;
+        bStunned = true;
+        LastTimeStunned = CurrentTimeStamp;
+
+        ReplicateOnScore();
+    }
+
+    private void ReplicateOnScore()
+    {
+        LastTimeSentCorrection = Time.time;
+
+        ReplicateOnScoreClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity, OwningClientID);
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateOnScoreClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel, ClientRpcParams clientRpcParams = default)
+    {
+        AfterCorrectionReceived(replaytimestamp);
+
+        ExternalMoveServerState.Position = pos;
+        ExternalMoveServerState.Velocity = vel;
+    }
+
+    private void SetToOnScoreState()
+    {
+        ResetMovement();
+
+        SelfTransform.position = ExternalMoveServerState.Position;
+        Velocity = ExternalMoveServerState.Velocity;
+    }
+
+    public void ResetMovement()
+    {
+        ExitSlide();
+        ExitGrapple(false);
+        ExitGroundPound();
+        ExitDash();
+
+        Velocity = Vector3.zero;
+    }
+
+    private void HandleCameraTilt()
+    {
+        if (CurrentInput.A && !CurrentInput.D)
+        {
+            if (bDashing)
+            {
+                CameraVisuals.Tilt(5f);
+
+                return;
+            }
+
+            if (bSliding)
+            {
+                CameraVisuals.Tilt(2.5f);
+
+                return;
+            }
+
+            CameraVisuals.Tilt(1);
+
+            return;
+        }
+
+        if (CurrentInput.D && !CurrentInput.A)
+        {
+            if (bDashing)
+            {
+                CameraVisuals.Tilt(-5);
+
+                return;
+            }
+
+            if (bSliding)
+            {
+                CameraVisuals.Tilt(-2.5f);
+
+                return;
+            }
+
+            CameraVisuals.Tilt(-1);
+
+            return;
+        }
+
+        CameraVisuals.Tilt(0);
+    }
+
     public void ChangeVelocity(Vector3 NewVel)
     {
         Velocity = NewVel;
+    }
+
+    private void Update()
+    {
+        if(!IsOwner)
+        {
+            return;
+        }
+
+        if (Input.GetKeyDown(KeyCode.CapsLock))
+        {
+            bCapsLock = true;
+        }
     }
 
     public Vector3 GetVelocity()

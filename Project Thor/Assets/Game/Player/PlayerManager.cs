@@ -35,6 +35,8 @@ public class PlayerManager : NetworkBehaviour
 
     [SerializeField]
     private Transform HandTransform;
+    [SerializeField]
+    private Transform ThrowBallLocationTransform;
 
     public List<MonoBehaviour> DisabledForOwnerScripts;
     public List<MonoBehaviour> DisabledForOthersScripts;
@@ -46,8 +48,6 @@ public class PlayerManager : NetworkBehaviour
 
     [SerializeField]
     private GameObject FPPlayerCamera;
-    [SerializeField]
-    private CameraVisualsScript CameraVisuals;
     [SerializeField]
     private GameObject FirstPersonPlayerUI;
 
@@ -97,6 +97,11 @@ public class PlayerManager : NetworkBehaviour
             }
         }
 
+        if(!IsServer)
+        {
+            OnHealthChanged(MaxHealth, MaxHealth);
+        }
+
         if (IsOwner)
         {
             if (Team == Teams.Red)
@@ -142,9 +147,9 @@ public class PlayerManager : NetworkBehaviour
             };
 
             Health.Value = MaxHealth;
-        }
 
-        OnHealthChanged(Health.Value, Health.Value);
+            OnHealthChanged(Health.Value, Health.Value);
+        }
 
         Health.OnValueChanged += OnHealthChanged;
 
@@ -246,6 +251,13 @@ public class PlayerManager : NetworkBehaviour
         Dead = true;
 
         DeathSound.Play();
+
+        if(Weapons.bHoldingBall)
+        {
+            Ball.Singleton.Detach();
+        }
+
+        Movement.ResetMovement();
 
         if (IsOwner)
         {
@@ -372,20 +384,6 @@ public class PlayerManager : NetworkBehaviour
         return Team == team;
     }
 
-    public void CameraChangePosition(Vector3 Offset, float duration)
-    {
-        CameraVisuals.ChangePosition(Offset, duration);
-    }
-    public void CameraResetPosition(float duration)
-    {
-        CameraVisuals.ResetPosition(duration);
-    }
-
-    public void ChangeFOV(float FOVdiff, float duration)
-    {
-        CameraVisuals.ChangeFOV(FOVdiff, duration);
-    }
-
     public int GetTimeStamp()
     {
         return TimeStamp;
@@ -431,6 +429,11 @@ public class PlayerManager : NetworkBehaviour
         return HandTransform.position;
     }
 
+    public Vector3 GetAimPointLocation()
+    {
+        return ThrowBallLocationTransform.position;
+    }
+
     public void Attach()
     {
         Weapons.Attach();
@@ -439,6 +442,26 @@ public class PlayerManager : NetworkBehaviour
     public void Unattach()
     {
         Weapons.Detach();
+    }
+
+    public Vector3 GetVelocity()
+    {
+        return Movement.GetVelocity();
+    }
+
+    public bool GetIsHoldingBall()
+    {
+        return Weapons.bHoldingBall;
+    }
+
+    public void OnScore(Vector3 NewVelocity)
+    {
+        if (Weapons.bHoldingBall)
+        {
+            Ball.Singleton.Detach();
+        }
+
+        Movement.OnScore(NewVelocity);
     }
 
     private void SetGameLayerRecursive(GameObject gameObject, int layer)

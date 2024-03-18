@@ -52,6 +52,7 @@ public class LobbyManager : MonoBehaviour {
 
     public GameObject LobbyJoinUI;
     public GameObject LobbyCamera;
+    public GameObject ScoreBoardUI;
 
     private void Awake() 
     {
@@ -149,6 +150,8 @@ public class LobbyManager : MonoBehaviour {
 
                     LobbyJoinUI.SetActive(false);
                     LobbyCamera.SetActive(false);
+
+                    ScoreBoardUI.SetActive(true);
 
                     joinedLobby = null;
                 }

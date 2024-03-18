@@ -19,12 +19,12 @@ public class CameraVisualsScript : MonoBehaviour
     private float ChangingFOV;
 
     /*
-    private float MoveCammeraDuration;
+    private float TiltCameraDuration;
 
-    private bool bMoveCammera;
-    private float StartMoveCammeraTime;
-    private Vector3 OriginalPos;
-    private Vector3 ChangingPos;
+    private bool bTiltCamera;
+    private float StartTiltCameraTime;
+    private Quaternion TiltRotation;
+    private float TiltAmount;
     */
 
     private void Start()
@@ -52,26 +52,25 @@ public class CameraVisualsScript : MonoBehaviour
     /*
     private void FixedUpdate()
     {
-        if (bMoveCammera)
+        if (bTiltCamera)
         {
-            if (Time.time - StartMoveCammeraTime >= MoveCammeraDuration)
+            if (Time.time - StartTiltCameraTime >= TiltCameraDuration)
             {
-                bMoveCammera = false;
-                CameraTransform.position = transform.position + ChangingPos;
-                FPAllTransform.position = transform.position + ChangingPos;
+                bTiltCamera = false;
+                CameraTransform.localRotation = Quaternion.RotateTowards(CameraTransform.localRotation, TiltRotation, 0.5f);
             }
 
             else
             {
-                Vector3 Pos = Vector3.Lerp(transform.position + OriginalPos, transform.position + ChangingPos, (Time.time - StartMoveCammeraTime) / MoveCammeraDuration);
-                CameraTransform.position = Pos;
-                FPAllTransform.position = Pos;
+                //Vector3 Pos = Vector3.Lerp(transform.position + OriginalPos, transform.position + ChangingPos, (Time.time - StartMoveCammeraTime) / MoveCammeraDuration);
+                //CameraTransform.position = Pos;
+                //FPAllTransform.position = Pos;
             }
         }
     }
     */
 
-    public void ChangePosition(Vector3 offset, float duration)
+    public void ChangePosition(Vector3 offset)
     {
         /*
         bMoveCammera = true;
@@ -85,18 +84,15 @@ public class CameraVisualsScript : MonoBehaviour
         FPAllTransform.position = offset + transform.position;
     }
 
-    public void ResetPosition(float duration)
+    public void ResetPosition()
     {
-        /*
-        bMoveCammera = true;
-        MoveCammeraDuration = duration;
-        OriginalPos = CameraTransform.position - transform.position;
-        ChangingPos = Vector3.zero;
-        StartMoveCammeraTime = Time.time;
-        */
-
         CameraTransform.position = transform.position;
         FPAllTransform.position = transform.position;
+    }
+
+    public void Tilt(float amount)
+    {
+        CameraTransform.localRotation = Quaternion.RotateTowards(CameraTransform.localRotation, Quaternion.Euler(0, 0, amount), Mathf.Clamp(Mathf.Abs(amount / 2), 0.5f, 5f));
     }
 
     public void ChangeFOV(float FOVdiff, float duration)
