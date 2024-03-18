@@ -37,6 +37,11 @@ public class GameManager : NetworkBehaviour
     public TMP_Text RedTeamScoreText;
     public TMP_Text BlueTeamScoreText;
 
+    public Transform RedTeamHoopTransform;
+    public Transform BlueTeamHoopTransform;
+
+    public float LaunchFactor = 1000;
+
     private void Awake()
     {
         Singleton = this;
@@ -49,55 +54,35 @@ public class GameManager : NetworkBehaviour
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdatePlayers;
     }
 
-    public Transform RedTeamHoopTransform;
-    public Transform BlueTeamHoopTransform;
-
-    public float LaunchFactor = 1000;
-
-    float IntervalBetweenScore = 5;
-
-    float LastTimeScoreRed;
-    float LastTimeScoreBlue;
-
     public void ScorePoint(Teams team)
     {
         if(team == Teams.Red)
         {
-            if(Time.time - LastTimeScoreRed > IntervalBetweenScore)
+            BlueTeamScore++;
+
+            BlueTeamScoreText.text = BlueTeamScore.ToString();
+
+            foreach (PlayerManager i in BlueTeamPlayers)
             {
-                LastTimeScoreRed = Time.time;
-
-                BlueTeamScore++;
-
-                BlueTeamScoreText.text = BlueTeamScore.ToString();
-
-                foreach(PlayerManager i in BlueTeamPlayers)
-                {
-                    i.OnScore(
-                        LaunchFactor * 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - RedTeamHoopTransform.position).normalized
-                        );
-                }
-
-                return;
+                i.OnScore(
+                    LaunchFactor * 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - RedTeamHoopTransform.position).normalized
+                    );
             }
+
+            return;
         }
 
         if(team == Teams.Blue)
         {
-            if (Time.time - LastTimeScoreBlue > IntervalBetweenScore)
+            RedTeamScore++;
+
+            RedTeamScoreText.text = RedTeamScore.ToString();
+
+            foreach (PlayerManager i in RedTeamPlayers)
             {
-                LastTimeScoreBlue = Time.time;
-
-                RedTeamScore++;
-
-                RedTeamScoreText.text = RedTeamScore.ToString();
-
-                foreach (PlayerManager i in RedTeamPlayers)
-                {
-                    i.OnScore(
-                        LaunchFactor * 1 / Mathf.Clamp((i.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - BlueTeamHoopTransform.position).normalized
-                        );
-                }
+                i.OnScore(
+                    LaunchFactor * 1 / Mathf.Clamp((i.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - BlueTeamHoopTransform.position).normalized
+                    );
             }
         }
     }

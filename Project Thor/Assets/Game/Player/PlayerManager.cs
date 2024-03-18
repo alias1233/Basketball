@@ -464,6 +464,11 @@ public class PlayerManager : NetworkBehaviour
         Movement.OnScore(NewVelocity);
     }
 
+    public void TeleportTo(Vector3 pos)
+    {
+        transform.position = pos;
+    }
+
     private void SetGameLayerRecursive(GameObject gameObject, int layer)
     {
         var children = gameObject.GetComponentsInChildren<Transform>(includeInactive: true);
