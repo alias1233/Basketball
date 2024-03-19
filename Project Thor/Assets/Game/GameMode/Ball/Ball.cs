@@ -48,7 +48,7 @@ public class Ball : NetworkBehaviour
         Singleton = this;
 
         SelfTransform = transform;
-        ColliderRadius = GetComponent<SphereCollider>().radius;
+        ColliderRadius = GetComponent<SphereCollider>().radius - SkinWidth;
 
         DeltaTime = Time.fixedDeltaTime;
     }
@@ -276,7 +276,7 @@ public class Ball : NetworkBehaviour
 
         if (Physics.SphereCast(
             Pos,
-            ColliderRadius - SkinWidth,
+            ColliderRadius,
             Vel,
             out RaycastHit hit,
             Vel.magnitude + SkinWidth,
