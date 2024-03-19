@@ -532,8 +532,6 @@ public class WeaponManager : NetworkBehaviour
         ChargingStartTime = CurrentTimeStamp;
 
         FistChargeBar.enabled = true;
-
-        return;
     }
 
     private void ThrowBall()
@@ -592,12 +590,20 @@ public class WeaponManager : NetworkBehaviour
                     if (!stats.IsSameTeam(GetTeam()))
                     {
                         bHit2 = true;
+
+                        if (stats.GetIsHoldingBall())
+                        {
+                            Ball.Singleton.Attach(Player);
+                        }
                     }
                 }
 
                 if (Hits[i].transform.gameObject.TryGetComponent<Ball>(out Ball ball))
                 {
-                    ball.Attach(Player);
+                    if (!ball.bAttached)
+                    {
+                        ball.Attach(Player);
+                    }
                 }
             }
 
@@ -629,7 +635,7 @@ public class WeaponManager : NetworkBehaviour
                 {
                     bHit = true;
 
-                    if(Ball.Singleton.GetAttachedPlayer() == stats.GetClientID())
+                    if(stats.GetIsHoldingBall())
                     {
                         Ball.Singleton.Attach(Player);
                     }
@@ -638,7 +644,10 @@ public class WeaponManager : NetworkBehaviour
 
             if (Hits[i].transform.gameObject.TryGetComponent<Ball>(out Ball ball))
             {
-                Ball.Singleton.Attach(Player);
+                if (!ball.bAttached)
+                {
+                    ball.Attach(Player);
+                }
             }
         }
 
@@ -861,16 +870,23 @@ public class WeaponManager : NetworkBehaviour
 
     public void Attach()
     {
-        bHoldingBall = true;
-        ActiveWeapon.ChangeActive(false);
-        meleeanimation.HoldBall();
+        if(!bHoldingBall)
+        {
+            bHoldingBall = true;
+            ActiveWeapon.ChangeActive(false);
+            meleeanimation.HoldBall();
+            bIsCharging = false;
+        }
     }
 
     public void Detach()
     {
-        bHoldingBall = false;
-        ActiveWeapon.ChangeActive(true);
-        meleeanimation.UnholdBall();
-        meleeanimation.ExitDunk();
+        if (bHoldingBall)
+        {
+            bHoldingBall = false;
+            ActiveWeapon.ChangeActive(true);
+            meleeanimation.UnholdBall();
+            meleeanimation.ExitDunk();
+        }
     }
 }

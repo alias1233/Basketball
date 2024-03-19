@@ -6,13 +6,31 @@ using UnityEngine;
 public class Hoop : NetworkBehaviour
 {
     public Teams team;
+
     public Transform AfterScoreLocation;
 
     public float ScoreCooldown;
-
     private float LastTimeScored;
 
     public ParticleSystem OnScoreExplosion;
+    public AudioSource OnScoreSound;
+    public AudioSource CrowdCheer;
+
+    public GameObject BlueTeamParticle;
+    public GameObject RedTeamParticle;
+
+    private void Awake()
+    {
+        if(team == Teams.Red)
+        {
+            BlueTeamParticle.SetActive(false);
+        }
+
+        else
+        {
+            RedTeamParticle.SetActive(false);
+        }
+    }
 
     private void OnTriggerEnter(Collider other)
     {
@@ -32,13 +50,11 @@ public class Hoop : NetworkBehaviour
         {
             if(other.TryGetComponent(out Ball ball))
             {
-                if(ball.Velocity.y < 0 && !ball.bAttached)
+                if(!ball.bAttached)
                 {
                     GameManager.Singleton.ScorePoint(team);
 
                     ball.TeleportTo(AfterScoreLocation.position);
-
-                    OnScoreExplosion.Play();
                 }
             }
 
@@ -49,15 +65,12 @@ public class Hoop : NetworkBehaviour
         {
             if (other.TryGetComponent(out PlayerManager player))
             {
-                if (player.GetVelocity().y < 0 && player.GetIsHoldingBall())
+                if (player.GetIsHoldingBall())
                 {
                     GameManager.Singleton.ScorePoint(team);
 
                     Ball.Singleton.Detach();
-
                     Ball.Singleton.TeleportTo(AfterScoreLocation.position);
-
-                    OnScoreExplosion.Play();
 
                     return;
                 }
@@ -65,5 +78,12 @@ public class Hoop : NetworkBehaviour
                 player.TeleportTo(AfterScoreLocation.position);
             }
         }
+    }
+
+    public void OnScore()
+    {
+        OnScoreExplosion.Play();
+        OnScoreSound.Play();
+        CrowdCheer.Play();
     }
 }

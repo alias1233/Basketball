@@ -251,13 +251,18 @@ public class Ball : NetworkBehaviour
 
         if (playerGameObject.TryGet(out NetworkObject networkObject))
         {
+            PlayerManager newattachedplayer = networkObject.GetComponent<PlayerManager>();
+
             if (AttachedPlayer != null)
             {
-                AttachedPlayer.Unattach();
+                if(AttachedPlayer.GetClientID() != newattachedplayer.GetClientID())
+                {
+                    AttachedPlayer.Unattach();
+                }
             }
 
             bAttached = true;
-            AttachedPlayer = networkObject.GetComponent<PlayerManager>();
+            AttachedPlayer = newattachedplayer;
             AttachedPlayer.Attach();
         }
     }

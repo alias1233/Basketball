@@ -4,6 +4,7 @@ using Unity.Netcode;
 using System.Collections.Generic;
 using static ConnectionNotificationManager;
 using TMPro;
+using static UnityEngine.Rendering.DebugUI;
 
 public enum Teams
 { 
@@ -31,8 +32,11 @@ public class GameManager : NetworkBehaviour
     private List<PlayerManager> RedTeamPlayers = new List<PlayerManager>();
     private List<PlayerManager> BlueTeamPlayers = new List<PlayerManager>();
 
-    public int RedTeamScore;
-    public int BlueTeamScore;
+    public Hoop RedTeamHoop;
+    public Hoop BlueTeamHoop;
+
+    private NetworkVariable<int> RedTeamScore = new NetworkVariable<int>();
+    private NetworkVariable<int> BlueTeamScore = new NetworkVariable<int>();
 
     public TMP_Text RedTeamScoreText;
     public TMP_Text BlueTeamScoreText;
@@ -54,34 +58,60 @@ public class GameManager : NetworkBehaviour
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdatePlayers;
     }
 
+    public override void OnNetworkSpawn()
+    {
+        RedTeamScore.OnValueChanged += UpdateRedTeamScore;
+        BlueTeamScore.OnValueChanged += UpdateBlueTeamScore;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        RedTeamScore.OnValueChanged -= UpdateRedTeamScore;
+        BlueTeamScore.OnValueChanged -= UpdateBlueTeamScore;
+    }
+
     public void ScorePoint(Teams team)
     {
         if(team == Teams.Red)
         {
-            BlueTeamScore++;
-
-            BlueTeamScoreText.text = BlueTeamScore.ToString();
-
-            foreach (PlayerManager i in BlueTeamPlayers)
-            {
-                i.OnScore(
-                    LaunchFactor * 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - RedTeamHoopTransform.position).normalized
-                    );
-            }
+            BlueTeamScore.Value++;
 
             return;
         }
 
         if(team == Teams.Blue)
         {
-            RedTeamScore++;
+            RedTeamScore.Value++;
+        }
+    }
 
-            RedTeamScoreText.text = RedTeamScore.ToString();
+    private void UpdateRedTeamScore(int previous, int current)
+    {
+        RedTeamScoreText.text = current.ToString();
+        BlueTeamHoop.OnScore();
 
+        if(IsServer)
+        {
             foreach (PlayerManager i in RedTeamPlayers)
             {
                 i.OnScore(
                     LaunchFactor * 1 / Mathf.Clamp((i.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - BlueTeamHoopTransform.position).normalized
+                    );
+            }
+        }
+    }
+
+    private void UpdateBlueTeamScore(int previous, int current)
+    {
+        BlueTeamScoreText.text = current.ToString();
+        RedTeamHoop.OnScore();
+
+        if(IsServer)
+        {
+            foreach (PlayerManager i in BlueTeamPlayers)
+            {
+                i.OnScore(
+                    LaunchFactor * 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - RedTeamHoopTransform.position).normalized
                     );
             }
         }

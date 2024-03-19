@@ -329,7 +329,7 @@ MonoBehaviour:
   Bounces: 0
   Velocity: {x: 0, y: 0, z: 0}
   TimeStamp: 0
-  DamagesPlayer: 0
+  DamagesPlayer: 1
   OwningPlayerTeam: 0
   Lifetime: 25
   StartTime: 0

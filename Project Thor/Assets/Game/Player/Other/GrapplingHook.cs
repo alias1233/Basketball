@@ -55,10 +55,17 @@ public class GrapplingHook : BaseProjectile
         }
     }
 
-    public override void OnHitPlayer()
+    public override void OnHitPlayerWithTarget(PlayerManager player)
     {
         if (IsServer)
         {
+            if(player.GetIsHoldingBall())
+            {
+                Ball.Singleton.Attach(OwningPlayerMovement.GetPlayer());
+
+                return;
+            }
+
             OwningPlayerMovement.StartGrapple(SelfTransform.position);
 
             bHit = true;

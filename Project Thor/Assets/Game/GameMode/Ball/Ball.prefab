@@ -166,12 +166,12 @@ MonoBehaviour:
   ResolvePenetrationDistance: 0.1
   ReplicatePositionInterval: 0.1
   IgnoreReplicatedMovementTime: 0.25
-  XPos: 5
-  NXPos: -5
-  YPos: 5
-  NYPos: 0
-  ZPos: 5
-  NZPos: -5
+  XPos: 50
+  NXPos: -50
+  YPos: 50
+  NYPos: 4
+  ZPos: 50
+  NZPos: -50
 --- !u!135 &4892704901192779872
 SphereCollider:
   m_ObjectHideFlags: 0

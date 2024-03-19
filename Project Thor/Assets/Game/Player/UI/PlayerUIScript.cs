@@ -17,8 +17,6 @@ public class PlayerUIScript : MonoBehaviour
 
     private bool bIsChangingDash;
 
-    private bool bIsChangingFist;
-
     private void FixedUpdate()
     {
         tick++;
@@ -52,7 +50,7 @@ public class PlayerUIScript : MonoBehaviour
         if(weaponmanager.GetIsChargingFist())
         {
             float maxchargingtime = weaponmanager.MaxChargingTime;
-            float chargingtime = (CurrentTimeStamp - weaponmanager.GetFistStartChargeTime());
+            float chargingtime = CurrentTimeStamp - weaponmanager.GetFistStartChargeTime();
 
             if(chargingtime > maxchargingtime)
             {

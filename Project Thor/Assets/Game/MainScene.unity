@@ -1666,6 +1666,18 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 640615655}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &679981541 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7934975551868026632, guid: d25c3f11ae3fbf54bbdbdb4699fa2ce2,
+    type: 3}
+  m_PrefabInstance: {fileID: 6523425323875574358}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7116c221bbf218c439c79f4c2bbac145, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &731449642
 GameObject:
   m_ObjectHideFlags: 0
@@ -1951,6 +1963,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &820198009 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7934975551868026632, guid: d25c3f11ae3fbf54bbdbdb4699fa2ce2,
+    type: 3}
+  m_PrefabInstance: {fileID: 2031284746}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7116c221bbf218c439c79f4c2bbac145, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -2569,9 +2593,19 @@ PrefabInstance:
       objectReference: {fileID: 417140932}
     - target: {fileID: 5195604565897691615, guid: 3d4dab97a0d27e94cae3150055264928,
         type: 3}
+      propertyPath: RedTeamHoop
+      value: 
+      objectReference: {fileID: 679981541}
+    - target: {fileID: 5195604565897691615, guid: 3d4dab97a0d27e94cae3150055264928,
+        type: 3}
       propertyPath: TESTINGTEXT
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 5195604565897691615, guid: 3d4dab97a0d27e94cae3150055264928,
+        type: 3}
+      propertyPath: BlueTeamHoop
+      value: 
+      objectReference: {fileID: 820198009}
     - target: {fileID: 5195604565897691615, guid: 3d4dab97a0d27e94cae3150055264928,
         type: 3}
       propertyPath: LaunchFactor

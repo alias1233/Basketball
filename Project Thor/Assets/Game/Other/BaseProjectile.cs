@@ -119,29 +119,25 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
             if (Physics.SphereCast(SelfTransform.position, ColliderRadius, Velocity.normalized, out Hit, (Velocity * DeltaTime).magnitude, PlayerObjectLayer))
             {
-                if (DamagesPlayer)
+                if (Hit.transform.gameObject.layer == 0)
                 {
-                    if (Hit.transform.TryGetComponent<PlayerManager>(out PlayerManager player))
-                    {
-                        SelfTransform.position = Hit.point;
-                        OnHitPlayerWithTarget(player);
+                    SelfTransform.position = Hit.point;
+                    OnHitGround();
 
-                        return;
-                    }
-
-                    else
-                    {
-                        SelfTransform.position = Hit.point;
-                        OnHitGround();
-
-                        return;
-                    }
+                    return;
                 }
 
-                else
+                if (Hit.transform.gameObject.layer == 3)
                 {
                     if (Hit.transform.TryGetComponent<PlayerManager>(out PlayerManager player))
                     {
+                        if(DamagesPlayer)
+                        {
+                            OnHitPlayerWithTarget(player);
+
+                            return;
+                        }
+
                         if (OwningPlayerTeam != player.GetTeam())
                         {
                             SelfTransform.position = Hit.point;
@@ -149,14 +145,6 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
                             return;
                         }
-                    }
-
-                    else
-                    {
-                        SelfTransform.position = Hit.point;
-                        OnHitGround();
-
-                        return;
                     }
                 }
             }
