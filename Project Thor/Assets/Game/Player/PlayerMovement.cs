@@ -485,7 +485,7 @@ public class PlayerMovement : NetworkBehaviour
 
             if(MoveDirection == Vector3.zero)
             {
-                DashingStartRotation = Rotation * Vector3.forward;
+                DashingStartRotation = ForwardRotation * Vector3.forward;
             }
 
             else
