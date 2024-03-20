@@ -70,9 +70,11 @@ public class PlayerManager : NetworkBehaviour
     private bool Dead;
 
     [SerializeField]
+    private ProgressBar FirstPersonHealthBar;
+    [SerializeField]
     private TMP_Text FirstPersonHealthBarText;
     [SerializeField]
-    private TMP_Text ThirdPersonHealthBarText;
+    private ProgressBar ThirdPersonHealthBar;
 
     public AudioSource DeathSound;
 
@@ -87,14 +89,23 @@ public class PlayerManager : NetworkBehaviour
     {
         List<PlayerInformation> PlayerList = GameManager.Singleton.GetAllPlayerInformation();
 
+        bool bfound = false;
+
         foreach (PlayerInformation playerInfo in PlayerList)
         {
             if (playerInfo.Id == OwnerClientId)
             {
                 Team = playerInfo.Team;
 
+                bfound = true;
+
                 break;
             }
+        }
+
+        if(!bfound)
+        {
+            Invoke(nameof(TryInitAgain), 1);
         }
 
         if(!IsServer)
@@ -106,12 +117,12 @@ public class PlayerManager : NetworkBehaviour
         {
             if (Team == Teams.Red)
             {
-                FirstPersonHealthBarText.color = Color.red;
+                FirstPersonHealthBar.GetFillImage().color = Color.red;
             }
 
             else if (Team == Teams.Blue)
             {
-                FirstPersonHealthBarText.color = Color.blue;
+                FirstPersonHealthBar.GetFillImage().color = Color.blue;
             }
 
             return;
@@ -119,14 +130,14 @@ public class PlayerManager : NetworkBehaviour
 
         if (Team == Teams.Red)
         {
-            ThirdPersonHealthBarText.color = Color.red;
+            ThirdPersonHealthBar.GetFillImage().color = Color.red;
 
             return;
         }
 
         if (Team == Teams.Blue)
         {
-            ThirdPersonHealthBarText.color = Color.blue;
+            ThirdPersonHealthBar.GetFillImage().color = Color.blue;
 
             return;
         }
@@ -215,11 +226,12 @@ public class PlayerManager : NetworkBehaviour
         if (IsOwner)
         {
             FirstPersonHealthBarText.text = ((int)current).ToString();
+            FirstPersonHealthBar.UpdateProgressBar(current / MaxHealth);
         }
 
         else
         {
-            ThirdPersonHealthBarText.text = ((int)current).ToString();
+            ThirdPersonHealthBar.UpdateProgressBar(current / MaxHealth);
         }
 
         if (previous > 0 && current <= 0)
@@ -476,6 +488,61 @@ public class PlayerManager : NetworkBehaviour
         foreach (var child in children)
         {
             child.gameObject.layer = layer;
+        }
+    }
+
+    private void TryInitAgain()
+    {
+        List<PlayerInformation> PlayerList = GameManager.Singleton.GetAllPlayerInformation();
+
+        bool bfound = false;
+
+        foreach (PlayerInformation playerInfo in PlayerList)
+        {
+            if (playerInfo.Id == OwnerClientId)
+            {
+                Team = playerInfo.Team;
+
+                bfound = true;
+
+                break;
+            }
+        }
+
+        if (!bfound)
+        {
+            Invoke(nameof(TryInitAgain), 1);
+
+            return;
+        }
+
+        if (IsOwner)
+        {
+            if (Team == Teams.Red)
+            {
+                FirstPersonHealthBar.GetFillImage().color = Color.red;
+            }
+
+            else if (Team == Teams.Blue)
+            {
+                FirstPersonHealthBar.GetFillImage().color = Color.blue;
+            }
+
+            return;
+        }
+
+        if (Team == Teams.Red)
+        {
+            ThirdPersonHealthBar.GetFillImage().color = Color.red;
+
+            return;
+        }
+
+        if (Team == Teams.Blue)
+        {
+            ThirdPersonHealthBar.GetFillImage().color = Color.blue;
+
+            return;
         }
     }
 }

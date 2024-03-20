@@ -5,17 +5,18 @@ using UnityEngine;
 
 public class PlayerUIScript : MonoBehaviour
 {
-    public TMP_Text DashAbilityBar;
-    public TMP_Text FistChargeBar;
+    public ProgressBar DashAbilityBar;
+    public ProgressBar GrappleAbilityBar;
 
     public PlayerManager Player;
     public PlayerMovement playermovement;
-    public WeaponManager weaponmanager;
 
     public int UpdateUIInterval;
     private int tick;
 
     private bool bIsChangingDash;
+
+    private bool bIsChangingGrapple;
 
     private void FixedUpdate()
     {
@@ -35,32 +36,33 @@ public class PlayerUIScript : MonoBehaviour
 
         if (TimeBetweenDash <= DashCooldown)
         {
-            DashAbilityBar.text = (TimeBetweenDash / DashCooldown).ToString();
+            DashAbilityBar.UpdateProgressBar(TimeBetweenDash / DashCooldown);
 
             bIsChangingDash = true;
         }
 
         else if(bIsChangingDash)
         {
-            DashAbilityBar.text = "1";
+            DashAbilityBar.UpdateProgressBar(1);
 
             bIsChangingDash = false;
         }
 
-        if(weaponmanager.GetIsChargingFist())
+        float TimeBetweenGrapple = CurrentTimeStamp - playermovement.GetLastTimeGrapple();
+        int GrappleCooldown = playermovement.GrappleShootCooldown;
+
+        if (TimeBetweenGrapple <= GrappleCooldown)
         {
-            float maxchargingtime = weaponmanager.MaxChargingTime;
-            float chargingtime = CurrentTimeStamp - weaponmanager.GetFistStartChargeTime();
+            GrappleAbilityBar.UpdateProgressBar(TimeBetweenGrapple / GrappleCooldown);
 
-            if(chargingtime > maxchargingtime)
-            {
-                FistChargeBar.text = "1";
-            }
+            bIsChangingGrapple = true;
+        }
 
-            else
-            {
-                FistChargeBar.text = (chargingtime / maxchargingtime).ToString();
-            }
+        else if (bIsChangingGrapple)
+        {
+            GrappleAbilityBar.UpdateProgressBar(1);
+
+            bIsChangingGrapple = false;
         }
     }
 }

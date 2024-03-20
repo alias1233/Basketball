@@ -83,7 +83,7 @@ public class LaserBlaster : BaseWeapon
             }
         }
 
-        int NumHits = Physics.SphereCastNonAlloc(laserRay, Radius2, Hits, Range1, PlayerLayer);
+        int NumHits = Physics.SphereCastNonAlloc(laserRay, Radius2, Hits, Range2, PlayerLayer);
 
         for (int i = 0; i < NumHits; i++)
         {

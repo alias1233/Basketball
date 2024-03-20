@@ -69,7 +69,8 @@ public class WeaponManager : NetworkBehaviour
     public Transform FistParentTransform;
     public Transform FistParentParentTransform;
 
-    public TMP_Text FistChargeBar;
+    public GameObject FistChargeBar;
+    private ProgressBar ThrowChargeBar;
 
     public LayerMask PlayerAndBallLayer;
 
@@ -115,6 +116,7 @@ public class WeaponManager : NetworkBehaviour
     {
         Player = GetComponent<PlayerManager>();
         PlayerMovementComponent = GetComponent<PlayerMovement>();
+        ThrowChargeBar = FistChargeBar.GetComponent<ProgressBar>();
 
         LocalRole = Player.GetLocalRole();
 
@@ -525,13 +527,26 @@ public class WeaponManager : NetworkBehaviour
     {
         if (bIsCharging)
         {
+            float chargingtime = CurrentTimeStamp - ChargingStartTime;
+
+            if (chargingtime > MaxChargingTime)
+            {
+                ThrowChargeBar.UpdateProgressBar(1);
+            }
+
+            else
+            {
+                ThrowChargeBar.UpdateProgressBar(chargingtime / MaxChargingTime);
+            }
+
             return;
         }
 
         bIsCharging = true;
         ChargingStartTime = CurrentTimeStamp;
 
-        FistChargeBar.enabled = true;
+        ThrowChargeBar.UpdateProgressBar(0);
+        FistChargeBar.SetActive(true);
     }
 
     private void ThrowBall()
@@ -545,7 +560,7 @@ public class WeaponManager : NetworkBehaviour
 
         LastTimeMelee = CurrentTimeStamp - MeleeCooldown / 4;
 
-        FistChargeBar.enabled = false;
+        FistChargeBar.SetActive(false);
 
         MeleeVisual();
 
@@ -885,6 +900,7 @@ public class WeaponManager : NetworkBehaviour
         {
             bHoldingBall = false;
             ActiveWeapon.ChangeActive(true);
+            FistChargeBar.SetActive(false);
             meleeanimation.UnholdBall();
             meleeanimation.ExitDunk();
         }

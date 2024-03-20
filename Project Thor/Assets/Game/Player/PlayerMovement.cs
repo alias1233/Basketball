@@ -1618,6 +1618,11 @@ public class PlayerMovement : NetworkBehaviour
         return StartDashTime;
     }
 
+    public float GetLastTimeGrapple()
+    {
+        return GrappleShootTime;
+    }
+
     public ulong GetOwnerID()
     {
         return OwnerClientId;
