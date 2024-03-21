@@ -44,14 +44,14 @@ public class Hoop : NetworkBehaviour
             return;
         }
 
-        LastTimeScored = Time.time;
-
         if (other.gameObject.layer == 8)
         {
             if(other.TryGetComponent(out Ball ball))
             {
                 if(!ball.bAttached)
                 {
+                    LastTimeScored = Time.time;
+
                     GameManager.Singleton.ScorePoint(team);
 
                     ball.TeleportTo(AfterScoreLocation.position);
@@ -67,6 +67,8 @@ public class Hoop : NetworkBehaviour
             {
                 if (player.GetIsHoldingBall())
                 {
+                    LastTimeScored = Time.time;
+
                     GameManager.Singleton.ScorePoint(team);
 
                     Ball.Singleton.Detach();
