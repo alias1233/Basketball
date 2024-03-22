@@ -263,6 +263,7 @@ GameObject:
   - component: {fileID: 8807399255455045489}
   - component: {fileID: 8046281422456951327}
   - component: {fileID: 7603032215464076100}
+  - component: {fileID: 4160335047732379617}
   - component: {fileID: 704084098073366882}
   m_Layer: 7
   m_Name: GrapplingHook
@@ -321,7 +322,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bisactive: 0
   SelfTransform: {fileID: 0}
+  Tick: {fileID: 4160335047732379617}
   Model: {fileID: 5939826294115142725}
+  OwningPlayerTeam: 0
+  Damage: 0
+  PlayerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 9
+  OwningPlayerMovement: {fileID: 0}
+  grapple: {fileID: 481190368044843331}
+  bHit: 0
+--- !u!114 &4160335047732379617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9160842119327351832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70910d3a18251a24d99f1fbd66dab7e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SelfTransform: {fileID: 0}
+  Projectile: {fileID: 7603032215464076100}
+  bIsServer: 0
+  PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 9
   InitialSpeed: 50
   bGravity: 0
   Gravity: 0
@@ -336,15 +367,7 @@ MonoBehaviour:
   ReplicatePositionInterval: 2
   LastTimeReplicatedPosition: 0
   bUpdatedThisFrame: 0
-  Damage: 0
-  PlayerLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  PlayerObjectLayer:
-    serializedVersion: 2
-    m_Bits: 9
-  OwningPlayerMovement: {fileID: 0}
-  grapple: {fileID: 481190368044843331}
+  Grapple: {fileID: 7603032215464076100}
 --- !u!135 &704084098073366882
 SphereCollider:
   m_ObjectHideFlags: 0

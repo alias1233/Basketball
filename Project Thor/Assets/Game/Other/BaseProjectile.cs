@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 {
+    [HideInInspector]
     public bool bIsActive
     {
         get
@@ -17,7 +18,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
             bisactive = value;
         }
     }
-
+    [HideInInspector]
     public bool bisactive;
 
     public void Spawn()
@@ -37,11 +38,13 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     virtual public void Activate()
     {
         Model.SetActive(true);
+        Tick.enabled = true;
     }
 
     virtual public void Deactivate()
     {
         Model.SetActive(false);
+        Tick.enabled = false;
     }
 
     [Header("Cached Components")]
@@ -51,44 +54,11 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
     [Header("Components")]
 
+    public BaseProjectileTick Tick;
     public GameObject Model;
-
-    [Header("Movement")]
-
-    public float InitialSpeed;
-    public bool bGravity;
-    public float Gravity;
-    public bool bBounce;
-    public int Bounces;
-
-    [HideInInspector]
-    public Vector3 Velocity;
-
-    private float DeltaTime;
-
-    [Header("Stats")]
-
-    [HideInInspector]
-    public int TimeStamp;
-
-    public bool DamagesPlayer;
-
-    private float ColliderRadius;
 
     [HideInInspector]
     public Teams OwningPlayerTeam;
-
-    public int Lifetime;
-
-    [HideInInspector]
-    public int StartTime;
-
-    public float ReplicatePositionInterval;
-
-    [HideInInspector]
-    public float LastTimeReplicatedPosition;
-    [HideInInspector]
-    public bool bUpdatedThisFrame;
 
     public float Damage;
     public LayerMask PlayerLayer;
@@ -97,91 +67,12 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     public virtual void Awake()
     {
         SelfTransform = transform;
-        ColliderRadius = GetComponent<SphereCollider>().radius;
-        DeltaTime = Time.fixedDeltaTime;
+        Tick.enabled = false;
     }
 
-    // Update is called once per frame
-    public virtual void FixedUpdate()
+    public virtual void Start()
     {
-        TimeStamp++;
-
-        if (!bIsActive)
-        {
-            return;
-        }
-
-        if (IsServer)
-        {
-            Velocity += Vector3.down * Gravity;
-
-            RaycastHit Hit;
-
-            if (Physics.SphereCast(SelfTransform.position, ColliderRadius, Velocity.normalized, out Hit, (Velocity * DeltaTime).magnitude, PlayerObjectLayer))
-            {
-                if (Hit.transform.gameObject.layer == 0)
-                {
-                    SelfTransform.position = Hit.point;
-                    OnHitGround();
-
-                    return;
-                }
-
-                if (Hit.transform.gameObject.layer == 3)
-                {
-                    if (Hit.transform.TryGetComponent<PlayerManager>(out PlayerManager player))
-                    {
-                        if(DamagesPlayer)
-                        {
-                            OnHitPlayerWithTarget(player);
-
-                            return;
-                        }
-
-                        if (OwningPlayerTeam != player.GetTeam())
-                        {
-                            SelfTransform.position = Hit.point;
-                            OnHitPlayer();
-
-                            return;
-                        }
-                    }
-                }
-            }
-
-            SelfTransform.position += Velocity * DeltaTime;
-
-            if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
-            {
-                LastTimeReplicatedPosition = Time.time;
-
-                ReplicatePositionClientRpc(SelfTransform.position);
-            }
-
-            if (TimeStamp - StartTime >= Lifetime)
-            {
-                ReplicateDisableClientRpc();
-
-                Despawn();
-            }
-
-            return;
-        }
-
-        if (TimeStamp - StartTime >= Lifetime)
-        {
-            Despawn();
-        }
-
-        if (bUpdatedThisFrame)
-        {
-            bUpdatedThisFrame = false;
-
-            return;
-        }
-
-        Velocity += Vector3.down * Gravity;
-        SelfTransform.position += Velocity * DeltaTime;
+        Tick.bIsServer = IsServer;
     }
 
     public virtual void OnHitGround() { }
@@ -192,32 +83,32 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
     public virtual void Init(Teams team, Vector3 pos, Vector3 dir)
     {
-        LastTimeReplicatedPosition = Time.time;
         InitClientRpc(team, pos, dir);
-        StartTime = TimeStamp;
-
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
-        Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+        Tick.LastTimeReplicatedPosition = Time.time;
+        Tick.StartTime = Tick.TimeStamp;
+        Tick.Velocity = dir * Tick.InitialSpeed;
     }
 
     public virtual void InitAndSimulateForward(Teams team, Vector3 pos, Vector3 dir, int tickstosimulate)
     {
-        LastTimeReplicatedPosition = Time.time;
-        StartTime = TimeStamp;
-
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
-        Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
         for(int i = 0; i < tickstosimulate; i++)
         {
-            FixedUpdate();
+            Tick.FixedUpdate();
         }
 
         ReplicatePositionClientRpc(SelfTransform.position);
+
+        Tick.Velocity = dir * Tick.InitialSpeed;
+        Tick.LastTimeReplicatedPosition = Time.time;
+        Tick.StartTime = Tick.TimeStamp;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -232,7 +123,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    private void ReplicatePositionClientRpc(Vector3 pos)
+    public void ReplicatePositionClientRpc(Vector3 pos)
     {
         if(IsServer)
         {
@@ -258,13 +149,12 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
             Spawn();
         }
 
-        bUpdatedThisFrame = true;
-
-        StartTime = TimeStamp;
-
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
-        Velocity = dir * InitialSpeed;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+        Tick.bUpdatedThisFrame = true;
+        Tick.StartTime = Tick.TimeStamp;
+        Tick.Velocity = dir * Tick.InitialSpeed;
     }
 }

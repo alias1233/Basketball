@@ -4,16 +4,15 @@ using UnityEngine;
 
 public class CameraVisualsScript : MonoBehaviour
 {
+    private Transform selftransform;
+
     [SerializeField]
     private Transform CameraTransform;
     [SerializeField]
     private Camera PlayerCamera;
-    [SerializeField]
-    private Transform FPAllTransform;
 
     private float OriginalFOV;
 
-    private Transform selftransform;
     private Vector3 OriginalPosition = new Vector3(0, 0.6f, 0);
 
     private void Awake()
@@ -28,14 +27,12 @@ public class CameraVisualsScript : MonoBehaviour
 
     public void ChangePosition(Vector3 offset)
     {
-        CameraTransform.localPosition = offset;
-        FPAllTransform.localPosition = offset;
+        selftransform.localPosition = OriginalPosition + offset;
     }
 
     public void ResetPosition()
     {
-        CameraTransform.localPosition = Vector3.zero;
-        FPAllTransform.localPosition = Vector3.zero;
+        selftransform.localPosition = OriginalPosition;
     }
 
     public void Tilt(float amount)
@@ -66,13 +63,13 @@ public class CameraVisualsScript : MonoBehaviour
 
         while (elapsed < duration)
         {
-            selftransform.localPosition = new Vector3((Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude, (Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude + 0.6f, 0);
+            CameraTransform.localPosition = new Vector3((Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude, (Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude + 0.6f, 0);
 
             elapsed += Time.deltaTime;
 
             yield return null;
         }
 
-        selftransform.localPosition = OriginalPosition;
+        CameraTransform.localPosition = Vector3.zero;
     }
 }

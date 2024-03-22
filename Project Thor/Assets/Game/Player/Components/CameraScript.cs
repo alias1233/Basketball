@@ -4,14 +4,17 @@ using UnityEngine;
 
 public class CameraScript : MonoBehaviour
 {
-    [SerializeField]
-    private Camera PlayerCamera;
+    private Transform SelfTransform;
 
     public float Sens;
-    public Transform Orientation;
 
     float xRotation;
     float yRotation;
+
+    private void Awake()
+    {
+        SelfTransform = transform;
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -24,10 +27,10 @@ public class CameraScript : MonoBehaviour
     void Update()
     {
         yRotation += Input.GetAxis("Mouse X") * Sens;
-        xRotation += -Input.GetAxis("Mouse Y") * Sens;
+        xRotation -= Input.GetAxis("Mouse Y") * Sens;
 
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        transform.rotation = Quaternion.Euler(xRotation, yRotation, 0);
+        SelfTransform.rotation = Quaternion.Euler(xRotation, yRotation, 0);
     }
 }

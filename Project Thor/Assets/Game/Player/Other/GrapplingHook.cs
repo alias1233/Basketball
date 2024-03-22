@@ -8,7 +8,8 @@ public class GrapplingHook : BaseProjectile
     public PlayerMovement OwningPlayerMovement;
     public LineRenderer grapple;
 
-    private bool bHit;
+    [HideInInspector]
+    public bool bHit;
 
     public override void OnNetworkSpawn()
     {
@@ -99,25 +100,6 @@ public class GrapplingHook : BaseProjectile
         grapple.enabled = false;
 
         bHit = false;
-    }
-
-    public override void FixedUpdate()
-    {
-        if(!bIsActive)
-        {
-            if(bHit)
-            {
-                grapple.SetPosition(0, OwningPlayerMovement.GetPosition());
-                grapple.SetPosition(1, SelfTransform.position);
-            }
-
-            return;
-        }
-
-        base.FixedUpdate();
-
-        grapple.SetPosition(0, OwningPlayerMovement.GetPosition());
-        grapple.SetPosition(1, SelfTransform.position);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]

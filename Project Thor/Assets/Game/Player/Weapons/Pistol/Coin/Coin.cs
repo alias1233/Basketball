@@ -42,14 +42,15 @@ public class Coin : BaseProjectile
 
     public void CoinInit(Teams team, Vector3 pos, Vector3 dir, Vector3 initalvel)
     {
-        LastTimeReplicatedPosition = Time.time;
         CoinInitClientRpc(team, pos, dir, initalvel);
-        StartTime = TimeStamp;
 
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
-        Velocity = dir * InitialSpeed + initalvel;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+        Tick.Velocity = dir * Tick.InitialSpeed + initalvel;
+        Tick.LastTimeReplicatedPosition = Time.time;
+        Tick.StartTime = Tick.TimeStamp;
     }
 
     public void OnShoot()
@@ -102,14 +103,13 @@ public class Coin : BaseProjectile
             Spawn();
         }
 
-        bUpdatedThisFrame = true;
-
-        StartTime = TimeStamp;
-
         OwningPlayerTeam = team;
         SelfTransform.position = pos;
-        Velocity = dir * InitialSpeed + initialvel;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+
+        Tick.bUpdatedThisFrame = true;
+        Tick.StartTime = Tick.TimeStamp;
+        Tick.Velocity = dir * Tick.InitialSpeed + initialvel;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]

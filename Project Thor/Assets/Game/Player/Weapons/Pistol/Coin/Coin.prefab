@@ -273,6 +273,7 @@ GameObject:
   - component: {fileID: 4337555071095403111}
   - component: {fileID: 7868402681162088721}
   - component: {fileID: 106530036943314900}
+  - component: {fileID: 4214780071434354251}
   - component: {fileID: 7723791826989599489}
   m_Layer: 7
   m_Name: Coin
@@ -331,7 +332,38 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bisactive: 0
   SelfTransform: {fileID: 0}
+  Tick: {fileID: 4214780071434354251}
   Model: {fileID: 2189115012632885549}
+  OwningPlayerTeam: 0
+  Damage: 15
+  PlayerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 9
+  Ricochet: {fileID: 5533292053385235406}
+  CoinTrail: {fileID: 4295925237713458683}
+  ShootCoinSound: {fileID: 0}
+  CoinRange: 10
+--- !u!114 &4214780071434354251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2892120337144841498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0be8400b289ede47b350b6d0a2dd3f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SelfTransform: {fileID: 0}
+  Projectile: {fileID: 106530036943314900}
+  bIsServer: 0
+  PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 9
   InitialSpeed: 15
   bGravity: 1
   Gravity: 0.3
@@ -346,17 +378,6 @@ MonoBehaviour:
   ReplicatePositionInterval: 10
   LastTimeReplicatedPosition: 0
   bUpdatedThisFrame: 0
-  Damage: 15
-  PlayerLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  PlayerObjectLayer:
-    serializedVersion: 2
-    m_Bits: 9
-  Ricochet: {fileID: 5533292053385235406}
-  CoinTrail: {fileID: 4295925237713458683}
-  ShootCoinSound: {fileID: 0}
-  CoinRange: 10
 --- !u!135 &7723791826989599489
 SphereCollider:
   m_ObjectHideFlags: 0

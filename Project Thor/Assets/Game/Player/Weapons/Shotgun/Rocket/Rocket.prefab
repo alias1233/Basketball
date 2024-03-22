@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 64583282711464061}
   - component: {fileID: 2240875838856615501}
   - component: {fileID: 510766946014450081}
+  - component: {fileID: 3064190746862477706}
   - component: {fileID: 927925702825796876}
   m_Layer: 7
   m_Name: Rocket
@@ -154,7 +155,38 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bisactive: 0
   SelfTransform: {fileID: 0}
+  Tick: {fileID: 3064190746862477706}
   Model: {fileID: 809271689842028591}
+  OwningPlayerTeam: 0
+  Damage: 75
+  PlayerLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 9
+  Explosion: {fileID: 2156937033313898048}
+  Radius: 5
+  Impulse: 50
+  Offset: {x: 0, y: 0.6, z: 0}
+--- !u!114 &3064190746862477706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1385817711339267225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0be8400b289ede47b350b6d0a2dd3f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SelfTransform: {fileID: 0}
+  Projectile: {fileID: 510766946014450081}
+  bIsServer: 0
+  PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 9
   InitialSpeed: 15
   bGravity: 1
   Gravity: 0.5
@@ -169,17 +201,6 @@ MonoBehaviour:
   ReplicatePositionInterval: 1
   LastTimeReplicatedPosition: 0
   bUpdatedThisFrame: 0
-  Damage: 75
-  PlayerLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  PlayerObjectLayer:
-    serializedVersion: 2
-    m_Bits: 9
-  Explosion: {fileID: 2156937033313898048}
-  Radius: 5
-  Impulse: 50
-  Offset: {x: 0, y: 0.6, z: 0}
 --- !u!135 &927925702825796876
 SphereCollider:
   m_ObjectHideFlags: 0

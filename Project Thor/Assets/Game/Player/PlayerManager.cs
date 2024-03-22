@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using TMPro;
+using static ConnectionNotificationManager;
 
 public enum NetworkRole
 {
@@ -23,6 +24,7 @@ public class PlayerManager : NetworkBehaviour
     [Header("Networking")]
 
     private ClientRpcParams OwningClientID;
+    private List<ulong> ClientIDList = new List<ulong>();
 
     private int TotalTimes;
     private int TotalTimeDifference;
@@ -103,12 +105,12 @@ public class PlayerManager : NetworkBehaviour
             }
         }
 
-        if(!bfound)
+        if (!bfound)
         {
             Invoke(nameof(TryInitAgain), 1);
         }
 
-        if(!IsServer)
+        if (!IsServer)
         {
             OnHealthChanged(MaxHealth, MaxHealth);
         }
@@ -144,8 +146,8 @@ public class PlayerManager : NetworkBehaviour
     }
 
     public override void OnNetworkSpawn()
-    { 
-        if(IsServer)
+    {
+        if (IsServer)
         {
             TimeStamp = -ServerDelay;
 
@@ -156,6 +158,27 @@ public class PlayerManager : NetworkBehaviour
                     TargetClientIds = new ulong[] { OwnerClientId }
                 }
             };
+
+            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
+
+            foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (i != OwnerClientId && i != 0)
+                {
+                    ClientIDList.Add(i);
+                }
+            }
+
+            ClientRpcParams IgnoreOwnerRPCParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = ClientIDList
+                }
+            };
+
+            Movement.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
+            Weapons.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
 
             Health.Value = MaxHealth;
 
@@ -173,7 +196,7 @@ public class PlayerManager : NetworkBehaviour
 
             ThirdPersonComponents.SetActive(false);
 
-            foreach(var i in RenderOnTop)
+            foreach (var i in RenderOnTop)
             {
                 SetGameLayerRecursive(i, 6);
             }
@@ -193,13 +216,38 @@ public class PlayerManager : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         Health.OnValueChanged -= OnHealthChanged;
+        ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+    }
+
+    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
+    {
+        if (connection == ConnectionStatus.Connected)
+        {
+            ClientIDList.Add(clientId);
+        }
+
+        else
+        {
+            ClientIDList.Remove(clientId);
+        }
+
+        ClientRpcParams IgnoreOwnerRPCParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = ClientIDList
+            }
+        };
+
+        Movement.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
+        Weapons.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
     }
 
     void FixedUpdate()
     {
         TimeStamp++;
 
-        if(Dead)
+        if (Dead)
         {
             return;
         }
@@ -207,7 +255,7 @@ public class PlayerManager : NetworkBehaviour
         Movement.FixedTick(TimeStamp);
         Weapons.FixedTick(TimeStamp);
 
-        if(!IsServer)
+        if (!IsServer)
         {
             return;
         }
@@ -215,7 +263,7 @@ public class PlayerManager : NetworkBehaviour
         RewindDataDictionary.Add(TimeStamp, transform.position);
         RewindDataDictionary.Remove(TimeStamp - 40);
 
-        if(transform.position.y < -10)
+        if (transform.position.y < -10)
         {
             Health.Value = -1;
         }
@@ -223,6 +271,18 @@ public class PlayerManager : NetworkBehaviour
 
     public void OnHealthChanged(float previous, float current)
     {
+        if (previous > 0 && current <= 0)
+        {
+            Die();
+
+            return;
+        }
+
+        if (previous <= 0 && current > 0)
+        {
+            Respawn();
+        }
+
         if (IsOwner)
         {
             FirstPersonHealthBarText.text = ((int)current).ToString();
@@ -233,29 +293,6 @@ public class PlayerManager : NetworkBehaviour
         {
             ThirdPersonHealthBar.UpdateProgressBar(current / MaxHealth);
         }
-
-        if (previous > 0 && current <= 0)
-        {
-            Die();
-
-            return;
-        }
-
-        if(previous <= 0 && current > 0)
-        {
-            Dead = false;
-
-            if (IsOwner)
-            {
-                DeathManager.Singleton.UnpossessGhost();
-
-                FPPlayerCamera.SetActive(true);
-                FirstPersonPlayerUI.SetActive(true);
-            }
-
-            transform.position = GameManager.Singleton.GetSpawnLocation(Team);
-            Movement.ChangeVelocity(Vector3.zero);
-        }
     }
 
     private void Die()
@@ -264,7 +301,7 @@ public class PlayerManager : NetworkBehaviour
 
         DeathSound.Play();
 
-        if(Weapons.bHoldingBall)
+        if (Weapons.bHoldingBall)
         {
             Ball.Singleton.Detach();
         }
@@ -283,7 +320,7 @@ public class PlayerManager : NetworkBehaviour
         {
             transform.position = GameManager.Singleton.GetGraveyardLocation();
 
-            Invoke(nameof(Respawn), RespawnTime);
+            Invoke(nameof(ResetHealth), RespawnTime);
 
             RewindDataDictionary.Clear();
 
@@ -291,6 +328,27 @@ public class PlayerManager : NetworkBehaviour
         }
 
         Invoke(nameof(DieOnClient), 0.5f);
+    }
+
+    private void ResetHealth()
+    {
+        Health.Value = MaxHealth;
+    }
+
+    private void Respawn()
+    {
+        Dead = false;
+
+        if (IsOwner)
+        {
+            DeathManager.Singleton.UnpossessGhost();
+
+            FPPlayerCamera.SetActive(true);
+            FirstPersonPlayerUI.SetActive(true);
+        }
+
+        transform.position = GameManager.Singleton.GetSpawnLocation(Team);
+        Movement.ChangeVelocity(Vector3.zero);
     }
 
     public bool Damage(Teams team, float damage)
@@ -307,15 +365,10 @@ public class PlayerManager : NetworkBehaviour
 
     public void DieOnClient()
     {
-        if(Health.Value < 0)
+        if (Health.Value < 0)
         {
             transform.position = GameManager.Singleton.GetGraveyardLocation();
         }
-    }
-
-    public void Respawn()
-    {
-        Health.Value = MaxHealth;
     }
 
     public bool RewindToPosition(Teams team, int pingintick)
@@ -446,7 +499,17 @@ public class PlayerManager : NetworkBehaviour
         return ThrowBallLocationTransform.position;
     }
 
-    public void Attach()
+    public void EnterDunk()
+    {
+        Weapons.EnterDunk();
+    }
+
+    public void ExitDunk()
+    {
+        Weapons.ExitDunk();
+    }
+
+public void Attach()
     {
         Weapons.Attach();
     }

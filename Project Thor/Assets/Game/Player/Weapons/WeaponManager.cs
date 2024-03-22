@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 using static ConnectionNotificationManager;
 
@@ -41,7 +39,6 @@ public class WeaponManager : NetworkBehaviour
     private NetworkRole LocalRole;
     private ClientRpcParams OwningClientID;
     private ClientRpcParams IgnoreOwnerRPCParams;
-    private List<ulong> ClientIDList = new List<ulong>();
 
     public float SendInputCooldown = 0.1f;
     private float LastTimeSentInputs;
@@ -134,8 +131,6 @@ public class WeaponManager : NetworkBehaviour
     {
         if (IsServer)
         {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification += UpdateClientSendRPCParams;
-
             OwningClientID = new ClientRpcParams
             {
                 Send = new ClientRpcSendParams
@@ -143,52 +138,7 @@ public class WeaponManager : NetworkBehaviour
                     TargetClientIds = new ulong[] { OwnerClientId }
                 }
             };
-
-            foreach (ulong i in NetworkManager.Singleton.ConnectedClientsIds)
-            {
-                if (i != OwnerClientId && i != 0)
-                {
-                    ClientIDList.Add(i);
-                }
-            }
-
-            IgnoreOwnerRPCParams = new ClientRpcParams
-            {
-                Send = new ClientRpcSendParams
-                {
-                    TargetClientIds = ClientIDList
-                }
-            };
         }
-    }
-
-    public override void OnNetworkDespawn()
-    {
-        if (IsServer)
-        {
-            ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
-        }
-    }
-
-    private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
-    {
-        if (connection == ConnectionStatus.Connected)
-        {
-            ClientIDList.Add(clientId);
-        }
-
-        else
-        {
-            ClientIDList.Remove(clientId);
-        }
-
-        IgnoreOwnerRPCParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = ClientIDList
-            }
-        };
     }
 
     public void FixedTick(int timestamp)
@@ -846,6 +796,11 @@ public class WeaponManager : NetworkBehaviour
             );
 
         FistParentTransform.position = FistParentParentTransform.position + moveamount;
+    }
+
+    public void UpdateIgnoreOwnerRPCParams(ClientRpcParams newIgnoreOwnerRPCParams)
+    {
+        IgnoreOwnerRPCParams = newIgnoreOwnerRPCParams;
     }
 
     public Vector3 GetAimPointLocation()
