@@ -99,16 +99,16 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         SelfTransform.position = pos;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
-        for(int i = 0; i < tickstosimulate; i++)
+        Tick.Velocity = dir * Tick.InitialSpeed;
+        Tick.LastTimeReplicatedPosition = Time.time;
+        Tick.StartTime = Tick.TimeStamp;
+
+        for (int i = 0; i < tickstosimulate; i++)
         {
             Tick.FixedUpdate();
         }
 
         ReplicatePositionClientRpc(SelfTransform.position);
-
-        Tick.Velocity = dir * Tick.InitialSpeed;
-        Tick.LastTimeReplicatedPosition = Time.time;
-        Tick.StartTime = Tick.TimeStamp;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -134,6 +134,8 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         {
             Spawn();
         }
+
+        SelfTransform.position = pos;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]

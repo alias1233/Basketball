@@ -9,11 +9,20 @@ public class Ball : NetworkBehaviour
 
     Transform SelfTransform;
 
+    [HideInInspector]
     public PlayerManager AttachedPlayer;
+
+    [SerializeField]
+    Transform ModelTransform;
+    [HideInInspector]
     public bool bAttached;
 
+    public Transform SpawnLocationTransform;
+
+    public Transform[] RespawnLocations;
+
     public float GravityAcceleration;
-    public float FrictionFactor;
+    [HideInInspector]
     public Vector3 Velocity;
 
     private float DeltaTime;
@@ -27,8 +36,6 @@ public class Ball : NetworkBehaviour
     public float ResolvePenetrationDistance = 0.1f;
 
     private Collider[] Penetrations = new Collider[1];
-
-    private bool bUpdatedThisFrame;
 
     public float ReplicatePositionInterval;
     private float LastTimeReplicatedPosition;
@@ -67,6 +74,20 @@ public class Ball : NetworkBehaviour
         {
             Vector3 pos = SelfTransform.position;
 
+            if (pos.y < NYPos)
+            {
+                if (bAttached)
+                {
+                    Detach();
+                }
+
+
+
+                SelfTransform.position = SpawnLocationTransform.position;
+                Velocity = Vector3.zero;
+            }
+
+            /*
             if(pos.x < NXPos)
             {
                 if(bAttached)
@@ -121,6 +142,7 @@ public class Ball : NetworkBehaviour
                 SelfTransform.position = new Vector3(SelfTransform.position.x, SelfTransform.position.y, ZPos - 2);
                 Velocity = Vector3.zero;
             }
+            */
 
             if (bAttached)
             {
@@ -134,9 +156,13 @@ public class Ball : NetworkBehaviour
                 return;
             }
 
-            Velocity = (Velocity + GravityAcceleration * Vector3.down * DeltaTime) * FrictionFactor;
+            Velocity = Velocity + GravityAcceleration * Vector3.down * DeltaTime;
 
             SelfTransform.position += CollideAndBounce(SelfTransform.position, Velocity * DeltaTime, 0);
+
+            ModelTransform.Rotate(Vector3.Cross(Vector3.up, Velocity.normalized),
+                Mathf.Abs(Velocity.x) + Mathf.Abs(Velocity.z),
+                Space.World);
 
             if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
             {
@@ -153,9 +179,13 @@ public class Ball : NetworkBehaviour
             return;
         }
 
-        Velocity = (Velocity + GravityAcceleration * Vector3.down * DeltaTime) * FrictionFactor;
+        Velocity = Velocity + GravityAcceleration * Vector3.down * DeltaTime;
 
         SelfTransform.position += CollideAndBounce(SelfTransform.position, Velocity * DeltaTime, 0);
+
+        ModelTransform.Rotate(Vector3.Cross(Vector3.up, Velocity.normalized),
+                 Mathf.Abs(Velocity.x) + Mathf.Abs(Velocity.z),
+                 Space.World);
     }
 
     public void Detach()

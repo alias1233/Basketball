@@ -484,6 +484,7 @@ public class PlayerMovement : NetworkBehaviour
 
         bNoMovement = true;
 
+        ExitGroundPound(false);
         ExitSlide();
 
         if (IsServer)
@@ -495,7 +496,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (IsOwner)
         {
-            FirstPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * 3;
+            FirstPersonDashParticles.transform.position = FPOrientation.position + DashingStartRotation * 2;
             FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
             FirstPersonDashParticles.Play();
 
@@ -568,6 +569,7 @@ public class PlayerMovement : NetworkBehaviour
             Ball.Singleton.Detach();
         }
 
+        ExitGroundPound(false);
         ExitSlide();
 
         bDashing = false;
@@ -581,7 +583,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (IsOwner)
         {
-            FirstPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 3;
+            FirstPersonDashParticles.transform.position = FPOrientation.position + (GrappleLocation - SelfTransform.position).normalized * 2;
             FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
             FirstPersonDashParticles.Play();
 
@@ -637,6 +639,9 @@ public class PlayerMovement : NetworkBehaviour
 
     private void MovePlayer()
     {
+        bWallRight = false;
+        bWallLeft = false;
+
         PreviousPosition = SelfTransform.position;
 
         AbilityTick();
@@ -686,7 +691,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (!bGroundPound)
         {
-            if (bTrySlideGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown && !Physics.Raycast(SelfTransform.position, Vector3.down, MinHeightToGroundPound, WhatIsGround))
+            if (bTrySlideGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown * 2 && !Physics.Raycast(SelfTransform.position, Vector3.down, MinHeightToGroundPound, WhatIsGround))
             {
                 EnterGroundPound();
             }
@@ -719,7 +724,9 @@ public class PlayerMovement : NetworkBehaviour
 
                     if (CurrentTimeStamp - TimeStartSlideGroundPound < 50)
                     {
-                        JumpVel = (Vector3.up * 2f + SlideDirection).normalized * SlideJumpForce;
+                        JumpVel = (Vector3.up * 2.5f + SlideDirection).normalized * SlideJumpForce;
+
+                        Velocity = Vector3.ClampMagnitude(Velocity, SlideMoveSpeed * 1.5f);
                     }
 
                     else
@@ -736,9 +743,22 @@ public class PlayerMovement : NetworkBehaviour
 
             if (bSliding)
             {
-                Delta = Velocity.magnitude >= SlideMoveSpeed
-                    ? ((SlideDirection * Velocity.magnitude) * (1 - SlideFriction * DeltaTime) + JumpVel) * DeltaTime
-                    : ((SlideDirection * SlideMoveSpeed) + JumpVel) * DeltaTime;
+                float Mag = Velocity.magnitude;
+
+                if(Mag < SlideMoveSpeed)
+                {
+                    Delta = ((SlideDirection * SlideMoveSpeed)) * DeltaTime;
+                }
+
+                else if(Mag > SlideMoveSpeed * 2)
+                {
+                    Delta = ((SlideDirection * SlideMoveSpeed * 2) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
+                }
+
+                else
+                {
+                    Delta = ((SlideDirection * Mag) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
+                }
             }
 
             else
@@ -832,7 +852,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (bGroundPound)
         {
-            ExitGroundPound();
+            ExitGroundPound(true);
 
             if (bTryJump)
             {
@@ -870,7 +890,7 @@ public class PlayerMovement : NetworkBehaviour
 
         CameraVisuals.ChangePosition(SlideCameraOffset);
 
-        SlideParticles.transform.position = SelfTransform.position + MoveDirection + Vector3.down * SlideParticleOffset;
+        SlideParticles.transform.position = SelfTransform.position + MoveDirection * 0.5f + Vector3.down * SlideParticleOffset;
         SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
         SlideParticles.Play();
         SlideSmoke.Play();
@@ -917,32 +937,35 @@ public class PlayerMovement : NetworkBehaviour
         Player.EnterDunk();
     }
 
-    private void ExitGroundPound()
+    private void ExitGroundPound(bool bHitGround)
     {
         if(bGroundPound)
         {
             bGroundPound = false;
 
-            if (IsServer)
+            if(bHitGround)
             {
-                int NumHits = Physics.OverlapSphereNonAlloc(SelfTransform.position, GroundPoundRadius, GroundPoundHits, PlayerLayer);
-
-                for (int i = 0; i < NumHits; i++)
+                if (IsServer)
                 {
-                    GroundPoundHits[i].GetComponent<PlayerManager>().Damage(Player.GetTeam(), GroundPoundDamage);
+                    int NumHits = Physics.OverlapSphereNonAlloc(SelfTransform.position, GroundPoundRadius, GroundPoundHits, PlayerLayer);
+
+                    for (int i = 0; i < NumHits; i++)
+                    {
+                        GroundPoundHits[i].GetComponent<PlayerManager>().Damage(Player.GetTeam(), GroundPoundDamage);
+                    }
                 }
-            }
 
-            if (IsOwner)
-            {
-                StartCoroutine(CameraVisuals.Shake(1, 0.15f));
-            }
+                if (IsOwner)
+                {
+                    StartCoroutine(CameraVisuals.Shake(1, 0.15f));
+                }
 
-            GroundPoundImpactParticle.Play();
+                GroundPoundImpactParticle.Play();
+                GroundPoundLandAudio.Play();
+            }
 
             GroundPoundTrails.Stop();
             GroundPoundTrails.Clear();
-            GroundPoundLandAudio.Play();
 
             Player.ExitDunk();
         }
@@ -1399,7 +1422,7 @@ public class PlayerMovement : NetworkBehaviour
 
             CameraVisuals.ChangePosition(SlideCameraOffset);
 
-            SlideParticles.transform.position = FPOrientation.position + Velocity.normalized + Vector3.down * SlideParticleOffset;
+            SlideParticles.transform.position = SelfTransform.position + MoveDirection * 0.5f + Vector3.down * SlideParticleOffset;
             SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
             SlideParticles.Play();
             SlideSmoke.Play();
@@ -1426,7 +1449,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if(!isgroundpounding && bGroundPound)
         {
-            ExitGroundPound();
+            ExitGroundPound(true);
         }
     }
 
@@ -1507,7 +1530,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         ExitSlide();
         ExitGrapple(false);
-        ExitGroundPound();
+        ExitGroundPound(false);
         ExitDash();
 
         Velocity = Vector3.zero;
@@ -1515,44 +1538,58 @@ public class PlayerMovement : NetworkBehaviour
 
     private void HandleCameraTilt()
     {
-        if (CurrentInput.A && !CurrentInput.D)
+        if(bWallLeft)
         {
-            if (bSliding)
-            {
-                CameraVisuals.Tilt(2f);
-
-                return;
-            }
-
-            if (bDashing)
-            {
-                CameraVisuals.Tilt(5f);
-
-                return;
-            }
-
-            CameraVisuals.Tilt(1f);
+            CameraVisuals.Tilt(-6);
 
             return;
         }
 
-        if (CurrentInput.D && !CurrentInput.A)
+        if (bWallRight)
+        {
+            CameraVisuals.Tilt(6);
+
+            return;
+        }
+
+        if (CurrentInput.A && !CurrentInput.D)
         {
             if (bSliding)
             {
-                CameraVisuals.Tilt(-2.5f);
+                CameraVisuals.Tilt(3);
 
                 return;
             }
 
             if (bDashing)
             {
-                CameraVisuals.Tilt(-5);
+                CameraVisuals.Tilt(6);
 
                 return;
             }
 
-            CameraVisuals.Tilt(-1f);
+            CameraVisuals.Tilt(1.5f);
+
+            return;
+        }
+
+        if (CurrentInput.D)
+        {
+            if (bSliding)
+            {
+                CameraVisuals.Tilt(-3);
+
+                return;
+            }
+
+            if (bDashing)
+            {
+                CameraVisuals.Tilt(-6);
+
+                return;
+            }
+
+            CameraVisuals.Tilt(-1.5f);
 
             return;
         }

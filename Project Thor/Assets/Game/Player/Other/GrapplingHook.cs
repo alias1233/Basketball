@@ -49,10 +49,8 @@ public class GrapplingHook : BaseProjectile
 
             bHit = true;
 
-            Invoke(nameof(DisableGrapple), 0.5f);
-
+            Invoke(nameof(Despawn), 0.5f);
             ReplicateHitClientRpc();
-            Despawn();
         }
     }
 
@@ -71,10 +69,8 @@ public class GrapplingHook : BaseProjectile
 
             bHit = true;
 
-            Invoke(nameof(DisableGrapple), 0.5f);
-
+            Invoke(nameof(Despawn), 0.5f);
             ReplicateHitClientRpc();
-            Despawn();
         }
     }
 
@@ -89,17 +85,9 @@ public class GrapplingHook : BaseProjectile
     {
         base.Deactivate();
 
-        if(!bHit)
-        {
-            grapple.enabled = false;
-        }
-    }
-
-    private void DisableGrapple()
-    {
-        grapple.enabled = false;
-
         bHit = false;
+
+        grapple.enabled = false;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -112,8 +100,6 @@ public class GrapplingHook : BaseProjectile
 
         bHit = true;
 
-        Invoke(nameof(DisableGrapple), 0.5f);
-
-        Despawn();
+        Invoke(nameof(Despawn), 0.5f);
     }
 }

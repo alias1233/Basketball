@@ -4,7 +4,6 @@ using Unity.Netcode;
 using System.Collections.Generic;
 using static ConnectionNotificationManager;
 using TMPro;
-using static UnityEngine.Rendering.DebugUI;
 
 public enum Teams
 { 
@@ -72,6 +71,8 @@ public class GameManager : NetworkBehaviour
 
     public void ScorePoint(Teams team)
     {
+        Ball.Singleton.Velocity = Vector3.zero;
+
         if(team == Teams.Red)
         {
             BlueTeamScore.Value++;

@@ -23093,7 +23093,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_RenderShadows: 0
+  m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
   m_CameraType: 0
@@ -45401,7 +45401,7 @@ MonoBehaviour:
   JumpForce: 23
   JumpCooldown: 10
   SlideMoveSpeed: 9
-  SlideJumpForce: 16
+  SlideJumpForce: 18
   SlideMinSpeed: 3
   SlideCooldown: 10
   GroundPoundSpeed: 25
@@ -45425,7 +45425,7 @@ MonoBehaviour:
   LandAudioCooldown: 0.5
   SlideCameraOffset: {x: 0, y: -1, z: 0}
   SlideCameraDuration: 0.02
-  SlideParticleOffset: 1
+  SlideParticleOffset: 0.8
   SlideParticles: {fileID: 5071389493854812485}
   SlideSmoke: {fileID: 5272365689722746257}
   SlideSound: {fileID: 1705113134537999296}
@@ -50793,7 +50793,7 @@ Transform:
   m_GameObject: {fileID: 8964809994279903361}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 0, y: -0.5, z: 1}
+  m_LocalPosition: {x: 0, y: -0.8, z: 0.25}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -50872,7 +50872,7 @@ ParticleSystem:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  moveWithTransform: 1
+  moveWithTransform: 0
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
   randomSeed: 0
@@ -50935,7 +50935,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 15
+      scalar: 3
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -50989,7 +50989,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 1, g: 0.94680935, b: 0.6745283, a: 0.39215687}
+      maxColor: {r: 1, g: 0.94680935, b: 0.6745283, a: 0.19607843}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -51430,7 +51430,7 @@ ParticleSystem:
   ShapeModule:
     serializedVersion: 6
     enabled: 1
-    type: 10
+    type: 4
     angle: 0
     length: 5
     boxThickness: {x: 0, y: 0, z: 0}
@@ -51636,7 +51636,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0
+      scalar: 100
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -51689,7 +51689,7 @@ ParticleSystem:
     rateOverDistance:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 10
+      scalar: 0
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -52738,7 +52738,7 @@ ParticleSystem:
     radial:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 25
+      scalar: 15
       minScalar: 0
       maxCurve:
         serializedVersion: 2
