@@ -31,6 +31,8 @@ public struct ClientCorrection : INetworkSerializable
     public int GrappleStartTime;
     public Vector3 GrappleLocation;
 
+
+
     public ClientCorrection(int timestamp, Vector3 position, Vector3 velocity,
         bool bnomovement,
         int lasttimejumped,
@@ -49,6 +51,7 @@ public struct ClientCorrection : INetworkSerializable
         bool bgrapple,
         int grapplestarttime,
         Vector3 grapplelocation
+
         )
     {
         TimeStamp = timestamp;
@@ -71,6 +74,7 @@ public struct ClientCorrection : INetworkSerializable
         bGrapple = bgrapple;
         GrappleStartTime = grapplestarttime;
         GrappleLocation = grapplelocation;
+
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter

@@ -9,9 +9,12 @@ public class CharacterModelAnimScript : MonoBehaviour
     [SerializeField]
     private Animator anim;
     [SerializeField]
+    private Animator WingAnim;
+    [SerializeField]
     private GameObject Parent;
 
     private bool bWasSliding;
+    private bool bWasFlying;
 
     private void FixedUpdate()
     {
@@ -34,6 +37,31 @@ public class CharacterModelAnimScript : MonoBehaviour
             transform.rotation = Parent.transform.rotation;
 
             bWasSliding = false;
+
+            return;
+        }
+
+        if(playermovement.GetIsFlying())
+        {
+            if(!bWasFlying)
+            {
+                WingAnim.SetInteger("Mode", 2);
+                anim.SetFloat("MoveSpeed", 2);
+                anim.SetFloat("MoveFactor", 1);
+
+                bWasFlying = true;
+            }
+
+            WingAnim.SetFloat("FlightSpeed", 1 + playermovement.GetVelocity().magnitude / 10);
+
+            return;
+        }
+
+        if(bWasFlying)
+        {
+            bWasFlying = false;
+
+            WingAnim.SetInteger("Mode", 1);
         }
 
         Vector3 Vel = playermovement.GetVelocity();
@@ -46,7 +74,7 @@ public class CharacterModelAnimScript : MonoBehaviour
         float Dir = Vector2.Dot(TransformXY, VelXY);
         float Mag = VelMagnitude;
 
-        if(Dir < 0)
+        if (Dir < 0)
         {
             Mag = -Mag;
         }

@@ -35,6 +35,11 @@ public class PlayerManager : NetworkBehaviour
     private PlayerMovement Movement;
     private WeaponManager Weapons;
 
+    public GameObject CharacterModel;
+
+    private Vector3 CharacterModelOriginalPosition;
+    private Quaternion CharacterModelOriginalRotation;
+
     [SerializeField]
     private Transform HandTransform;
     [SerializeField]
@@ -84,6 +89,9 @@ public class PlayerManager : NetworkBehaviour
     {
         Movement = GetComponent<PlayerMovement>();
         Weapons = GetComponent<WeaponManager>();
+
+        CharacterModelOriginalPosition = CharacterModel.transform.localPosition;
+        CharacterModelOriginalRotation = CharacterModel.transform.localRotation;
     }
 
     // Start is called before the first frame update
@@ -371,6 +379,24 @@ public class PlayerManager : NetworkBehaviour
         }
     }
 
+    public void EnterFirstPerson()
+    {
+        CharacterModel.transform.localPosition = CharacterModelOriginalPosition;
+        CharacterModel.transform.localRotation = CharacterModelOriginalRotation;
+        ThirdPersonComponents.SetActive(false);
+
+        Weapons.EnableFist();
+    }
+
+    public void EnterThirdPerson()
+    {
+        CharacterModel.transform.localPosition = CharacterModelOriginalPosition;
+        CharacterModel.transform.localRotation = CharacterModelOriginalRotation;
+        ThirdPersonComponents.SetActive(true);
+
+        Weapons.DisableFist();
+    }
+
     public bool RewindToPosition(Teams team, int pingintick)
     {
         if (Team == team)
@@ -509,7 +535,17 @@ public class PlayerManager : NetworkBehaviour
         Weapons.ExitDunk();
     }
 
-public void Attach()
+    public bool GetIsDunking()
+    {
+        return Weapons.bHoldingBall && Movement.GetIsGroundPounding();
+    }
+
+    public bool GetIsFlying()
+    {
+        return Movement.GetIsFlying();
+    }
+
+    public void Attach()
     {
         Weapons.Attach();
     }

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using static ConnectionNotificationManager;
+using UnityEngine.UIElements;
 
 struct ExternalMoveCorrection
 {
@@ -37,6 +37,9 @@ public class PlayerMovement : NetworkBehaviour
 
     [SerializeField]
     private CameraVisualsScript CameraVisuals;
+
+    [SerializeField]
+    private Transform CharacterModelTransform;
 
     [Header("Ticking")]
 
@@ -107,10 +110,14 @@ public class PlayerMovement : NetworkBehaviour
     public LayerMask PlayerLayer;
     public LayerMask PlayerObjectLayer;
 
-    public float WalkMoveSpeed = 4f;
+    public float WalkMoveSpeed = 4;
 
-    public float JumpForce = 10f;
+    public float JumpForce = 10;
     public int JumpCooldown = 30;
+
+    public float FlyMoveSpeed = 10;
+    public float FlySprintSpeed = 15;
+    public float FlyFriction = 5;
 
     public float SlideMoveSpeed = 8f;
     public float SlideJumpForce = 12f;
@@ -215,6 +222,9 @@ public class PlayerMovement : NetworkBehaviour
 
     private int GrappleShootTime;
 
+    public int FlyCooldown;
+    public int FlyDuration;
+
     /*
     * 
     * Variables That Need To Be Sent For Client Corrections
@@ -228,6 +238,9 @@ public class PlayerMovement : NetworkBehaviour
     private bool bGrapple;
     private int GrappleStartTime;
     private Vector3 GrappleLocation;
+
+    private bool bFly;
+    private int LastTimeFly;
 
     [Header("Visuals")]
 
@@ -330,8 +343,7 @@ public class PlayerMovement : NetworkBehaviour
         HandleInputs(ref CurrentInput);
 
         MovePlayer();
-
-        HandleCameraTilt();
+        HandleOwnerVisuals();
     }
 
     private void ServerTickForOtherPlayers()
@@ -393,7 +405,7 @@ public class PlayerMovement : NetworkBehaviour
             SelfTransform.position = Vector3.Lerp(StartCorrectionPosition, CorrectedPosition, (float)(CurrentTimeStamp - StartSmoothingCorrectionTime) / CorrectionSmoothTime);
         }
 
-        HandleCameraTilt();
+        HandleOwnerVisuals();
     }
 
     private void ServerTickForAll()
@@ -430,6 +442,19 @@ public class PlayerMovement : NetworkBehaviour
 
     private void AbilityTick()
     {
+        if (CurrentInput.R && CurrentTimeStamp - LastTimeFly >= FlyCooldown)
+        {
+            EnterFly();
+        }
+
+        if (bFly)
+        {
+            if (CurrentTimeStamp - LastTimeFly > FlyDuration)
+            {
+                ExitFly();
+            }
+        }
+
         if (CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown && !bGrapple)
         {
             EnterDash();
@@ -464,6 +489,32 @@ public class PlayerMovement : NetworkBehaviour
             {
                 ExitGrapple(false);
             }
+        }
+    }
+
+    private void EnterFly()
+    {
+        bFly = true;
+        LastTimeFly = CurrentTimeStamp;
+
+        ExitSlide();
+        ExitGroundPound(false);
+
+        if(IsOwner)
+        {
+            StartCoroutine(CameraVisuals.EnterThirdPerson(0.1f));
+            Player.EnterThirdPerson();
+        }
+    }
+
+    private void ExitFly()
+    {
+        bFly = false;
+
+        if (IsOwner)
+        {
+            StartCoroutine(CameraVisuals.EnterFirstPerson(0.1f));
+            Player.EnterFirstPerson();
         }
     }
 
@@ -502,7 +553,10 @@ public class PlayerMovement : NetworkBehaviour
 
             DashTrails.emitting = true;
 
-            StartCoroutine(CameraVisuals.ChangeFOV(DashFOVOffset, DashFOVDuration));
+            if(!bFly)
+            {
+                StartCoroutine(CameraVisuals.ChangeFOV(DashFOVOffset, DashFOVDuration));
+            }
         }
 
         else
@@ -520,7 +574,16 @@ public class PlayerMovement : NetworkBehaviour
         bDashing = false;
         bNoMovement = false;
 
-        Velocity *= AfterDashVelocityMagnitude;
+        if(bFly)
+        {
+            Velocity *= AfterDashVelocityMagnitude * 2;
+        }
+
+        else
+        {
+            Velocity *= AfterDashVelocityMagnitude;
+        }
+
         bChangingVelocity = true;
 
         if (IsOwner)
@@ -661,174 +724,214 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        JumpVel = Vector3.zero;
+        Vector3 Delta;
 
-        if (Physics.Raycast(SelfTransform.position, Vector3.down, ColliderHeight * 0.5f + 0.2f, WhatIsGround))
+        if(bFly)
         {
-            if (!bIsGrounded)
+            Vector3 FlyDirection = Vector3.zero;
+
+            if (CurrentInput.W)
             {
-                EnterGrounded();
+                FlyDirection += Rotation * Vector3.forward;
             }
-        }
 
-        else if (bIsGrounded)
-        {
-            bIsGrounded = false;
-        }
-
-        if (!bSliding)
-        {
-            if (bTrySlideGroundPound && Velocity.magnitude >= SlideMinSpeed && bIsGrounded && CurrentTimeStamp - LastTimeSlide >= SlideCooldown && LastTimeJumped != CurrentTimeStamp)
+            if (CurrentInput.A)
             {
-                EnterSlide();
+                FlyDirection -= Rotation * Vector3.right;
             }
-        }
 
-        else if (!CurrentInput.CTRL || Velocity.magnitude < SlideMinSpeed)
-        {
-            ExitSlide();
-        }
-
-        if (!bGroundPound)
-        {
-            if (bTrySlideGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown * 2 && !Physics.Raycast(SelfTransform.position, Vector3.down, MinHeightToGroundPound, WhatIsGround))
+            if (CurrentInput.S)
             {
-                EnterGroundPound();
+                FlyDirection -= Rotation * Vector3.forward;
+            }
+
+            if (CurrentInput.D)
+            {
+                FlyDirection += Rotation * Vector3.right;
+            }
+
+            FlyDirection.Normalize();
+
+            if(CurrentInput.CTRL)
+            {
+                Delta = (Velocity * (1 - FlyFriction * DeltaTime) + ((FlyDirection * FlySprintSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
+            }
+
+            else
+            {
+                Delta = (Velocity * (1 - FlyFriction * DeltaTime) + ((FlyDirection * FlyMoveSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
             }
         }
 
         else
         {
-            Velocity.y -= GroundPoundAcceleration * DeltaTime;
+            JumpVel = Vector3.zero;
 
-            if (Velocity.y < -GroundPoundSpeed)
+            if (Physics.Raycast(SelfTransform.position, Vector3.down, ColliderHeight * 0.5f + 0.2f, WhatIsGround))
             {
-                Velocity.y = -GroundPoundSpeed;
-            }
-        }
-
-        Vector3 Delta;
-
-        if (bIsGrounded)
-        {
-            if (bTryJump && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
-            {
-                LastTimeJumped = CurrentTimeStamp;
-                bTryJump = false;
-
-                Velocity.y = 0;
-
-                if (bSliding)
+                if (!bIsGrounded)
                 {
-                    ExitSlide();
+                    EnterGrounded();
+                }
+            }
 
-                    if (CurrentTimeStamp - TimeStartSlideGroundPound < 50)
+            else if (bIsGrounded)
+            {
+                bIsGrounded = false;
+            }
+
+            if (!bSliding)
+            {
+                if (bTrySlideGroundPound && Velocity.magnitude >= SlideMinSpeed && bIsGrounded && CurrentTimeStamp - LastTimeSlide >= SlideCooldown && LastTimeJumped != CurrentTimeStamp)
+                {
+                    EnterSlide();
+                }
+            }
+
+            else if (!CurrentInput.CTRL || Velocity.magnitude < SlideMinSpeed)
+            {
+                ExitSlide();
+            }
+
+            if (!bGroundPound)
+            {
+                if (bTrySlideGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown * 2 && !Physics.Raycast(SelfTransform.position, Vector3.down, MinHeightToGroundPound, WhatIsGround))
+                {
+                    EnterGroundPound();
+                }
+            }
+
+            else
+            {
+                Velocity.y -= GroundPoundAcceleration * DeltaTime;
+
+                if (Velocity.y < -GroundPoundSpeed)
+                {
+                    Velocity.y = -GroundPoundSpeed;
+                }
+            }
+
+            if (bIsGrounded)
+            {
+                if (bTryJump && CurrentTimeStamp - LastTimeJumped > JumpCooldown)
+                {
+                    LastTimeJumped = CurrentTimeStamp;
+                    bTryJump = false;
+
+                    Velocity.y = 0;
+
+                    if (bSliding)
                     {
-                        JumpVel = (Vector3.up * 2.5f + SlideDirection).normalized * SlideJumpForce;
+                        ExitSlide();
 
-                        Velocity = Vector3.ClampMagnitude(Velocity, SlideMoveSpeed * 1.5f);
+                        if (CurrentTimeStamp - TimeStartSlideGroundPound < 75)
+                        {
+                            JumpVel = (Vector3.up * 2.5f + SlideDirection).normalized * SlideJumpForce;
+
+                            Velocity = Vector3.ClampMagnitude(Velocity, SlideMoveSpeed * 1.5f);
+                        }
+
+                        else
+                        {
+                            JumpVel = Vector3.up * JumpForce * 1.75f;
+                        }
                     }
 
                     else
                     {
-                        JumpVel = Vector3.up * JumpForce * 1.75f;
+                        JumpVel = Vector3.up * JumpForce;
+                    }
+                }
+
+                if (bSliding)
+                {
+                    float Mag = Velocity.magnitude;
+
+                    if (Mag < SlideMoveSpeed)
+                    {
+                        Delta = ((SlideDirection * SlideMoveSpeed)) * DeltaTime;
+                    }
+
+                    else if (Mag > SlideMoveSpeed * 2)
+                    {
+                        Delta = ((SlideDirection * SlideMoveSpeed * 2) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
+                    }
+
+                    else
+                    {
+                        Delta = ((SlideDirection * Mag) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
                     }
                 }
 
                 else
                 {
-                    JumpVel = Vector3.up * JumpForce;
-                }
-            }
-
-            if (bSliding)
-            {
-                float Mag = Velocity.magnitude;
-
-                if(Mag < SlideMoveSpeed)
-                {
-                    Delta = ((SlideDirection * SlideMoveSpeed)) * DeltaTime;
-                }
-
-                else if(Mag > SlideMoveSpeed * 2)
-                {
-                    Delta = ((SlideDirection * SlideMoveSpeed * 2) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
-                }
-
-                else
-                {
-                    Delta = ((SlideDirection * Mag) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
+                    Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
                 }
             }
 
             else
             {
-                Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
-            }
-        }
-
-        else
-        {
-            if (CurrentInput.D && !bGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown && Velocity.magnitude >= MinWallRunSpeed && CheckForRightWall())
-            {
-                ExitSlide();
-
-                Vector3 WallNormal = RightWallHit.normal;
-                Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
-                Vector3 ForwardVector = ForwardRotation * Vector3.forward;
-
-                Velocity.y *= 1 - WallRunDampen * DeltaTime;
-
-                if ((ForwardVector - WallForward).magnitude > (ForwardVector + WallForward).magnitude)
+                if (CurrentInput.D && !bGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown && Velocity.magnitude >= MinWallRunSpeed && CheckForRightWall())
                 {
-                    WallForward = -WallForward;
+                    ExitSlide();
+
+                    Vector3 WallNormal = RightWallHit.normal;
+                    Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
+                    Vector3 ForwardVector = ForwardRotation * Vector3.forward;
+
+                    Velocity.y *= 1 - WallRunDampen * DeltaTime;
+
+                    if ((ForwardVector - WallForward).magnitude > (ForwardVector + WallForward).magnitude)
+                    {
+                        WallForward = -WallForward;
+                    }
+
+                    if (bTryJump)
+                    {
+                        LastTimeJumped = CurrentTimeStamp;
+                        bTryJump = false;
+                        JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
+                    }
+
+                    Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
                 }
 
-                if (bTryJump)
+                else if (CurrentInput.A && !bGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown && Velocity.magnitude >= MinWallRunSpeed && CheckForLeftWall())
                 {
-                    LastTimeJumped = CurrentTimeStamp;
-                    bTryJump = false;
-                    JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
-                }
+                    ExitSlide();
 
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
-            }
+                    Vector3 WallNormal = LeftWallHit.normal;
+                    Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
+                    Vector3 ForwardVector = ForwardRotation * Vector3.forward;
 
-            else if (CurrentInput.A && !bGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown && Velocity.magnitude >= MinWallRunSpeed && CheckForLeftWall())
-            {
-                ExitSlide();
+                    Velocity.y *= 1 - WallRunDampen * DeltaTime;
 
-                Vector3 WallNormal = LeftWallHit.normal;
-                Vector3 WallForward = Vector3.Cross(WallNormal, Vector3.up);
-                Vector3 ForwardVector = ForwardRotation * Vector3.forward;
+                    if ((ForwardVector - WallForward).magnitude > (ForwardVector + WallForward).magnitude)
+                    {
+                        WallForward = -WallForward;
+                    }
 
-                Velocity.y *= 1 - WallRunDampen * DeltaTime;
+                    if (bTryJump)
+                    {
+                        LastTimeJumped = CurrentTimeStamp;
+                        bTryJump = false;
+                        JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
+                    }
 
-                if ((ForwardVector - WallForward).magnitude > (ForwardVector + WallForward).magnitude)
-                {
-                    WallForward = -WallForward;
-                }
-
-                if (bTryJump)
-                {
-                    LastTimeJumped = CurrentTimeStamp;
-                    bTryJump = false;
-                    JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
-                }
-
-                Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
-            }
-
-            else
-            {
-                if (bGroundPound)
-                {
-                    Delta = Velocity * DeltaTime;
+                    Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
                 }
 
                 else
                 {
-                    Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+                    if (bGroundPound)
+                    {
+                        Delta = Velocity * DeltaTime;
+                    }
+
+                    else
+                    {
+                        Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+                    }
                 }
             }
         }
@@ -945,6 +1048,9 @@ public class PlayerMovement : NetworkBehaviour
 
             if(bHitGround)
             {
+                Velocity.x = 0;
+                Velocity.z = 0;
+
                 if (IsServer)
                 {
                     int NumHits = Physics.OverlapSphereNonAlloc(SelfTransform.position, GroundPoundRadius, GroundPoundHits, PlayerLayer);
@@ -1303,6 +1409,7 @@ public class PlayerMovement : NetworkBehaviour
         input.Shift = Input.GetKey(KeyCode.CapsLock);
         input.CTRL = Input.GetKey(KeyCode.LeftShift);
         input.E = Input.GetKey(KeyCode.E);
+        input.R = Input.GetKey(KeyCode.R);
     }
 
     private void HandleInputs(ref Inputs input)
@@ -1317,6 +1424,7 @@ public class PlayerMovement : NetworkBehaviour
             input.Shift = false;
             input.CTRL = false;
             input.E = false;
+            input.R = false;
 
             if (CurrentTimeStamp - LastTimeStunned > StunDuration)
             {
@@ -1422,7 +1530,7 @@ public class PlayerMovement : NetworkBehaviour
 
             CameraVisuals.ChangePosition(SlideCameraOffset);
 
-            SlideParticles.transform.position = SelfTransform.position + MoveDirection * 0.5f + Vector3.down * SlideParticleOffset;
+            SlideParticles.transform.position = SelfTransform.position + Velocity.normalized * 0.5f + Vector3.down * SlideParticleOffset;
             SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
             SlideParticles.Play();
             SlideSmoke.Play();
@@ -1530,15 +1638,33 @@ public class PlayerMovement : NetworkBehaviour
     {
         ExitSlide();
         ExitGrapple(false);
-        ExitGroundPound(false);
+        ExitGroundPound(true);
         ExitDash();
+        ExitFly();
 
         Velocity = Vector3.zero;
     }
 
-    private void HandleCameraTilt()
+    private void HandleOwnerVisuals()
     {
-        if(bWallLeft)
+        if(bFly)
+        {
+            if(MoveDirection == Vector3.zero)
+            {
+                CharacterModelTransform.rotation = Quaternion.RotateTowards(CharacterModelTransform.rotation, ForwardRotation, 4f);
+            }
+
+            else
+            {
+                CharacterModelTransform.rotation = Quaternion.LookRotation(Velocity.normalized, Vector3.up) * Quaternion.AngleAxis(60f, Vector3.right);
+            }
+
+            CameraVisuals.Offset(Velocity.magnitude);
+
+            return;
+        }
+
+        if (bWallLeft)
         {
             CameraVisuals.Tilt(-6);
 
@@ -1635,6 +1761,16 @@ public class PlayerMovement : NetworkBehaviour
     public bool GetIsSliding()
     {
         return bSliding;
+    }
+
+    public bool GetIsGroundPounding()
+    {
+        return bGroundPound;
+    }
+
+    public bool GetIsFlying()
+    {
+        return bFly;
     }
 
     public float GetLastTimeDash()

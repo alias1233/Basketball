@@ -94,6 +94,8 @@ public class WeaponManager : NetworkBehaviour
 
     private RaycastHit[] Hits = new RaycastHit[5];
 
+    private Vector3 FistOriginalPosition;
+
     [Header("Visuals")]
 
     public float MaxSwayVelocity;
@@ -125,6 +127,8 @@ public class WeaponManager : NetworkBehaviour
         {
             Fist.SetActive(false);
         }
+
+        FistOriginalPosition = Fist.transform.localPosition;
     }
 
     public override void OnNetworkSpawn()
@@ -859,5 +863,17 @@ public class WeaponManager : NetworkBehaviour
             meleeanimation.UnholdBall();
             meleeanimation.ExitDunk();
         }
+    }
+
+    public void EnableFist()
+    {
+        Fist.transform.localPosition = FistOriginalPosition;
+        Fist.SetActive(true);
+    }
+
+    public void DisableFist()
+    {
+        Fist.transform.localPosition = FistOriginalPosition;
+        Fist.SetActive(false);
     }
 }

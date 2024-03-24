@@ -95,8 +95,12 @@ public class GameManager : NetworkBehaviour
         {
             foreach (PlayerManager i in RedTeamPlayers)
             {
+                float LaunchMagnitude = 1 / Mathf.Clamp((i.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100);
+                Vector3 LaunchDirection = i.transform.position - BlueTeamHoopTransform.position;
+                Vector3 LaunchDirectionNormalized = new Vector3(LaunchDirection.x, 0, LaunchDirection.z).normalized;
+
                 i.OnScore(
-                    LaunchFactor * 1 / Mathf.Clamp((i.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - BlueTeamHoopTransform.position).normalized
+                    LaunchFactor * new Vector3(LaunchDirectionNormalized.x, 0.5f, LaunchDirectionNormalized.z) * LaunchMagnitude
                     );
             }
         }
@@ -111,8 +115,12 @@ public class GameManager : NetworkBehaviour
         {
             foreach (PlayerManager i in BlueTeamPlayers)
             {
+                float LaunchMagnitude = 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100);
+                Vector3 LaunchDirection = i.transform.position - RedTeamHoopTransform.position;
+                Vector3 LaunchDirectionNormalized = new Vector3(LaunchDirection.x, 0, LaunchDirection.z).normalized;
+
                 i.OnScore(
-                    LaunchFactor * 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100) * (i.transform.position - RedTeamHoopTransform.position).normalized
+                    LaunchFactor * new Vector3(LaunchDirectionNormalized.x, 0.5f, LaunchDirectionNormalized.z) * LaunchMagnitude
                     );
             }
         }

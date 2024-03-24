@@ -81,9 +81,22 @@ public class Ball : NetworkBehaviour
                     Detach();
                 }
 
+                float MinDistance = 9999999999999;
+                Vector3 RespawnLocation = Vector3.zero;
+                Vector3 Pos = SelfTransform.position;
 
+                foreach (Transform i in RespawnLocations)
+                {
+                    float distance = (i.position - Pos).magnitude;
 
-                SelfTransform.position = SpawnLocationTransform.position;
+                    if (distance < MinDistance)
+                    {
+                        MinDistance = distance;
+                        RespawnLocation = i.position;
+                    }
+                }
+
+                SelfTransform.position = RespawnLocation;
                 Velocity = Vector3.zero;
             }
 
