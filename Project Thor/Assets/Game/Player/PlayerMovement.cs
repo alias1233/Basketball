@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using UnityEngine.UIElements;
 
 struct ExternalMoveCorrection
 {
@@ -10,6 +9,7 @@ struct ExternalMoveCorrection
     public Vector3 Velocity;
     public int LastTimeJumped;
     public bool bWasSliding;
+    public bool bWasGroundPounding;
 }
 
 struct GrappleMoveCorrection
@@ -37,9 +37,6 @@ public class PlayerMovement : NetworkBehaviour
 
     [SerializeField]
     private CameraVisualsScript CameraVisuals;
-
-    [SerializeField]
-    private Transform CharacterModelTransform;
 
     [Header("Ticking")]
 
@@ -118,6 +115,8 @@ public class PlayerMovement : NetworkBehaviour
     public float FlyMoveSpeed = 10;
     public float FlySprintSpeed = 15;
     public float FlyFriction = 5;
+    public float FlyGravityFactor = 0.1f;
+    public float FlyInputInfluence = 0.5f;
 
     public float SlideMoveSpeed = 8f;
     public float SlideJumpForce = 12f;
@@ -184,6 +183,8 @@ public class PlayerMovement : NetworkBehaviour
     private int TimeStartSlideGroundPound;
 
     private bool bGroundPound;
+
+    private bool bPrevR;
 
     [Header("Visuals")]
 
@@ -260,6 +261,11 @@ public class PlayerMovement : NetworkBehaviour
     public AudioSource GrappleHit;
     public AudioSource GrappleLoop;
 
+    [SerializeField]
+    private GameObject Wings;
+    public GameObject FlightProgressBarObject;
+    private ProgressBar FlightProgressBar;
+
     [Header("External Movement")]
 
     private ExternalMoveCorrection ExternalMoveServerState;
@@ -280,6 +286,8 @@ public class PlayerMovement : NetworkBehaviour
         ColliderHeight = Collider.height;
 
         DeltaTime = Time.fixedDeltaTime;
+
+        FlightProgressBar = FlightProgressBarObject.GetComponent<ProgressBar>();
     }
 
     // Start is called before the first frame update
@@ -364,6 +372,8 @@ public class PlayerMovement : NetworkBehaviour
             ClientDataDictionary.Remove(CurrentTimeStamp);
             CheckClientPositionError(SelfTransform.position, clientposition);
         }
+
+        HandleOtherPlayerVisuals();
     }
 
     private void AutonomousProxyTick()
@@ -413,7 +423,16 @@ public class PlayerMovement : NetworkBehaviour
         if (Time.time - LastTimeReplicatedPosition >= ReplicatePositionInterval)
         {
             LastTimeReplicatedPosition = Time.time;
-            ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bSliding, bGroundPound, IgnoreOwnerRPCParams);
+
+            if(bFly)
+            {
+                ReplicateFlyClientRpc(SelfTransform.position, Velocity, Rotation, IgnoreOwnerRPCParams);
+            }
+
+            else
+            {
+                ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bSliding, bGroundPound, IgnoreOwnerRPCParams);
+            }
         }
     }
 
@@ -440,20 +459,123 @@ public class PlayerMovement : NetworkBehaviour
         SafeMovePlayer(Velocity * DeltaTime);
     }
 
+    private void HandleOwnerVisuals()
+    {
+        if (bFly)
+        {
+            if (MoveDirection == Vector3.zero)
+            {
+                TPOrientation.rotation = Quaternion.RotateTowards(TPOrientation.rotation, ForwardRotation, 4f);
+            }
+
+            else
+            {
+                TPOrientation.rotation = Quaternion.LookRotation(Velocity.normalized, Vector3.up) * Quaternion.AngleAxis(60f, Vector3.right);
+            }
+
+            CameraVisuals.Offset(Mathf.Clamp(Velocity.magnitude, 0, 25));
+
+            return;
+        }
+
+        if (bWallLeft)
+        {
+            CameraVisuals.Tilt(-6);
+
+            return;
+        }
+
+        if (bWallRight)
+        {
+            CameraVisuals.Tilt(6);
+
+            return;
+        }
+
+        if (CurrentInput.A && !CurrentInput.D)
+        {
+            if (bSliding)
+            {
+                CameraVisuals.Tilt(3);
+
+                return;
+            }
+
+            if (bDashing)
+            {
+                CameraVisuals.Tilt(6);
+
+                return;
+            }
+
+            CameraVisuals.Tilt(1.5f);
+
+            return;
+        }
+
+        if (CurrentInput.D)
+        {
+            if (bSliding)
+            {
+                CameraVisuals.Tilt(-3);
+
+                return;
+            }
+
+            if (bDashing)
+            {
+                CameraVisuals.Tilt(-6);
+
+                return;
+            }
+
+            CameraVisuals.Tilt(-1.5f);
+
+            return;
+        }
+
+        CameraVisuals.Tilt(0);
+    }
+
+    private void HandleOtherPlayerVisuals()
+    {
+        if (bFly)
+        {
+            if (MoveDirection == Vector3.zero)
+            {
+                TPOrientation.rotation = Quaternion.RotateTowards(TPOrientation.rotation, ForwardRotation, 4f);
+            }
+
+            else
+            {
+                TPOrientation.rotation = Quaternion.LookRotation(Velocity.normalized, Vector3.up) * Quaternion.AngleAxis(60f, Vector3.right);
+            }
+        }
+    }
+
     private void AbilityTick()
     {
         if (CurrentInput.R && CurrentTimeStamp - LastTimeFly >= FlyCooldown)
         {
             EnterFly();
+
+            bPrevR = true;
         }
 
         if (bFly)
         {
-            if (CurrentTimeStamp - LastTimeFly > FlyDuration)
+            if (IsOwner)
+            {
+                FlightProgressBar.UpdateProgressBar((float)(CurrentTimeStamp - LastTimeFly) / FlyDuration);
+            }
+
+            if (CurrentTimeStamp - LastTimeFly > FlyDuration || (CurrentInput.R && !bPrevR && CurrentTimeStamp - LastTimeFly > 50))
             {
                 ExitFly();
             }
         }
+
+        bPrevR = CurrentInput.R;
 
         if (CurrentInput.Shift && CurrentTimeStamp - StartDashTime >= DashCooldown && !bGrapple)
         {
@@ -504,18 +626,27 @@ public class PlayerMovement : NetworkBehaviour
         {
             StartCoroutine(CameraVisuals.EnterThirdPerson(0.1f));
             Player.EnterThirdPerson();
+            FlightProgressBarObject.SetActive(true);
         }
+
+        Wings.SetActive(true);
     }
 
     private void ExitFly()
     {
         bFly = false;
 
+        bTrySlideGroundPound = false;
+
         if (IsOwner)
         {
             StartCoroutine(CameraVisuals.EnterFirstPerson(0.1f));
             Player.EnterFirstPerson();
+            FlightProgressBarObject.SetActive(false);
         }
+
+        Wings.SetActive(false);
+        TPOrientation.rotation = ForwardRotation;
     }
 
     private void EnterDash()
@@ -622,7 +753,7 @@ public class PlayerMovement : NetworkBehaviour
 
     public void StartGrapple(Vector3 HitPos)
     {
-        if (bStunned)
+        if (bStunned || Player.GetIsDead())
         {
             return;
         }
@@ -728,38 +859,26 @@ public class PlayerMovement : NetworkBehaviour
 
         if(bFly)
         {
-            Vector3 FlyDirection = Vector3.zero;
-
-            if (CurrentInput.W)
-            {
-                FlyDirection += Rotation * Vector3.forward;
-            }
-
-            if (CurrentInput.A)
-            {
-                FlyDirection -= Rotation * Vector3.right;
-            }
-
-            if (CurrentInput.S)
-            {
-                FlyDirection -= Rotation * Vector3.forward;
-            }
-
-            if (CurrentInput.D)
-            {
-                FlyDirection += Rotation * Vector3.right;
-            }
-
-            FlyDirection.Normalize();
-
             if(CurrentInput.CTRL)
             {
-                Delta = (Velocity * (1 - FlyFriction * DeltaTime) + ((FlyDirection * FlySprintSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
+                Delta = (Velocity.magnitude * (Velocity.normalized + MoveDirection * FlyInputInfluence).normalized * (1 - FlyFriction * DeltaTime) + ((MoveDirection * FlySprintSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
             }
 
             else
             {
-                Delta = (Velocity * (1 - FlyFriction * DeltaTime) + ((FlyDirection * FlyMoveSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
+                Delta = (Velocity.magnitude * (Velocity.normalized + MoveDirection * FlyInputInfluence).normalized * (1 - FlyFriction * DeltaTime) + ((MoveDirection * FlyMoveSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
+            }
+
+            float GravityFactor = Vector3.Dot(Delta, Vector3.down);
+
+            if (GravityFactor < 0)
+            {
+                Delta = Delta + GravityFactor * Velocity.normalized * FlyGravityFactor * 0.5f;
+            }
+
+            else
+            {
+                Delta = Delta + GravityFactor * Velocity.normalized * FlyGravityFactor;
             }
         }
 
@@ -1201,7 +1320,10 @@ public class PlayerMovement : NetworkBehaviour
             bGroundPound,
             bGrapple,
             GrappleStartTime,
-            GrappleLocation
+            GrappleLocation,
+            bPrevR,
+            bFly,
+            LastTimeFly
             ),
             OwningClientID);
 
@@ -1239,6 +1361,19 @@ public class PlayerMovement : NetworkBehaviour
         bGrapple = ServerState.bGrapple;
         GrappleStartTime = ServerState.GrappleStartTime;
         GrappleLocation = ServerState.GrappleLocation;
+        bPrevR = ServerState.bPrevR;
+        
+        if(bFly && !ServerState.bFly)
+        {
+            ExitFly();
+        }
+
+        if(!bFly && ServerState.bFly)
+        {
+            EnterFly();
+        }
+
+        LastTimeFly = ServerState.LastTimeFly;
     }
 
     private void ReplayMovesAfterCorrection()
@@ -1325,11 +1460,19 @@ public class PlayerMovement : NetworkBehaviour
     {
         LastTimeSentCorrection = Time.time;
 
-        ReplicateReplicateExternalMovementClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity, LastTimeJumped, bSliding, OwningClientID);
+        ReplicateExternalMovementClientrpc(CurrentTimeStamp, SelfTransform.position, Velocity,
+            LastTimeJumped,
+            bSliding,
+            bGroundPound,
+            OwningClientID);
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicateReplicateExternalMovementClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel, int lasttimejumped, bool bwassliding, ClientRpcParams clientRpcParams = default)
+    public void ReplicateExternalMovementClientrpc(int replaytimestamp, Vector3 pos, Vector3 vel,
+        int lasttimejumped, 
+        bool bwassliding,
+        bool bwasgroundpounding,
+        ClientRpcParams clientRpcParams = default)
     {
         AfterCorrectionReceived(replaytimestamp);
 
@@ -1339,6 +1482,7 @@ public class PlayerMovement : NetworkBehaviour
         ExternalMoveServerState.Velocity = vel;
         ExternalMoveServerState.LastTimeJumped = lasttimejumped;
         ExternalMoveServerState.bWasSliding = bwassliding;
+        ExternalMoveServerState.bWasGroundPounding = bwasgroundpounding;
     }
 
     private void SetToExternaMoveState()
@@ -1352,6 +1496,16 @@ public class PlayerMovement : NetworkBehaviour
             ExitSlide();
 
             LastTimeSlide = SimulateTimeStamp;
+        }
+
+        if(bGroundPound && !ExternalMoveServerState.bWasGroundPounding)
+        {
+            ExitGroundPound(false);
+        }
+
+        else
+        {
+            bGroundPound = ExternalMoveServerState.bWasGroundPounding;
         }
     }
 
@@ -1438,26 +1592,55 @@ public class PlayerMovement : NetworkBehaviour
         float a = Mathf.Sqrt((Rotation.w * Rotation.w) + (Rotation.y * Rotation.y));
         ForwardRotation = new Quaternion(0, Rotation.y / a, 0, Rotation.w / a);
 
-        TPOrientation.rotation = ForwardRotation;
-
-        if (input.W)
+        if(bFly)
         {
-            MoveDirection += ForwardRotation * Vector3.forward;
+            if (input.W)
+            {
+                MoveDirection += Rotation * Vector3.forward;
+            }
+
+            if (input.A)
+            {
+                MoveDirection -= Rotation * Vector3.right;
+            }
+
+            if (input.S)
+            {
+                MoveDirection -= Rotation * Vector3.forward;
+            }
+
+            if (input.D)
+            {
+                MoveDirection += Rotation * Vector3.right;
+            }
         }
 
-        if (input.A)
+        else
         {
-            MoveDirection -= ForwardRotation * Vector3.right;
-        }
+            if (input.W)
+            {
+                MoveDirection += ForwardRotation * Vector3.forward;
+            }
 
-        if (input.S)
-        {
-            MoveDirection -= ForwardRotation * Vector3.forward;
-        }
+            if (input.A)
+            {
+                MoveDirection -= ForwardRotation * Vector3.right;
+            }
 
-        if (input.D)
-        {
-            MoveDirection += ForwardRotation * Vector3.right;
+            if (input.S)
+            {
+                MoveDirection -= ForwardRotation * Vector3.forward;
+            }
+
+            if (input.D)
+            {
+                MoveDirection += ForwardRotation * Vector3.right;
+            }
+
+            if(!IsOwner)
+            {
+                TPOrientation.rotation = ForwardRotation;
+            }
         }
 
         MoveDirection.Normalize();
@@ -1526,26 +1709,12 @@ public class PlayerMovement : NetworkBehaviour
 
         if (issliding && !bSliding)
         {
-            bSliding = true;
-
-            CameraVisuals.ChangePosition(SlideCameraOffset);
-
-            SlideParticles.transform.position = SelfTransform.position + Velocity.normalized * 0.5f + Vector3.down * SlideParticleOffset;
-            SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
-            SlideParticles.Play();
-            SlideSmoke.Play();
-
-            SlideSound.Play();
+            EnterSlide();
         }
 
         if (!issliding && bSliding)
         {
-            bSliding = false;
-
-            CameraVisuals.ResetPosition();
-            SlideParticles.Stop();
-            SlideSmoke.Stop();
-            SlideSound.Stop();
+            ExitSlide();
         }
 
         if(isgroundpounding && !bGroundPound)
@@ -1556,6 +1725,57 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         if(!isgroundpounding && bGroundPound)
+        {
+            ExitGroundPound(true);
+        }
+
+        if(bFly)
+        {
+            ExitFly();
+        }
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicateFlyClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, ClientRpcParams clientRpcParams = default)
+    {
+        if (Player.GetIsDead())
+        {
+            return;
+        }
+
+        bUpdatedThisFrame = true;
+
+        SelfTransform.position = position;
+        Velocity = velocity;
+
+        Rotation = rotation;
+        float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
+        ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
+
+        TPOrientation.rotation = ForwardRotation;
+        FPOrientation.rotation = rotation;
+
+        if(!bFly)
+        {
+            EnterFly();
+        }
+
+        if (Velocity.magnitude < 2.5f)
+        {
+            TPOrientation.rotation = Quaternion.RotateTowards(TPOrientation.rotation, ForwardRotation, 4f);
+        }
+
+        else
+        {
+            TPOrientation.rotation = Quaternion.LookRotation(Velocity.normalized, Vector3.up) * Quaternion.AngleAxis(60f, Vector3.right);
+        }
+
+        if (bSliding)
+        {
+            ExitSlide();
+        }
+
+        if (bGroundPound)
         {
             ExitGroundPound(true);
         }
@@ -1577,6 +1797,7 @@ public class PlayerMovement : NetworkBehaviour
         if (IsOwner)
         {
             ExitSlide();
+            ExitGroundPound(false);
 
             return;
         }
@@ -1645,84 +1866,6 @@ public class PlayerMovement : NetworkBehaviour
         Velocity = Vector3.zero;
     }
 
-    private void HandleOwnerVisuals()
-    {
-        if(bFly)
-        {
-            if(MoveDirection == Vector3.zero)
-            {
-                CharacterModelTransform.rotation = Quaternion.RotateTowards(CharacterModelTransform.rotation, ForwardRotation, 4f);
-            }
-
-            else
-            {
-                CharacterModelTransform.rotation = Quaternion.LookRotation(Velocity.normalized, Vector3.up) * Quaternion.AngleAxis(60f, Vector3.right);
-            }
-
-            CameraVisuals.Offset(Velocity.magnitude);
-
-            return;
-        }
-
-        if (bWallLeft)
-        {
-            CameraVisuals.Tilt(-6);
-
-            return;
-        }
-
-        if (bWallRight)
-        {
-            CameraVisuals.Tilt(6);
-
-            return;
-        }
-
-        if (CurrentInput.A && !CurrentInput.D)
-        {
-            if (bSliding)
-            {
-                CameraVisuals.Tilt(3);
-
-                return;
-            }
-
-            if (bDashing)
-            {
-                CameraVisuals.Tilt(6);
-
-                return;
-            }
-
-            CameraVisuals.Tilt(1.5f);
-
-            return;
-        }
-
-        if (CurrentInput.D)
-        {
-            if (bSliding)
-            {
-                CameraVisuals.Tilt(-3);
-
-                return;
-            }
-
-            if (bDashing)
-            {
-                CameraVisuals.Tilt(-6);
-
-                return;
-            }
-
-            CameraVisuals.Tilt(-1.5f);
-
-            return;
-        }
-
-        CameraVisuals.Tilt(0);
-    }
-
     public void UpdateIgnoreOwnerRPCParams(ClientRpcParams newIgnoreOwnerRPCParams)
     {
         IgnoreOwnerRPCParams = newIgnoreOwnerRPCParams;
@@ -1781,6 +1924,11 @@ public class PlayerMovement : NetworkBehaviour
     public float GetLastTimeGrapple()
     {
         return GrappleShootTime;
+    }
+
+    public float GetLastTimeFly()
+    {
+        return LastTimeFly;
     }
 
     public ulong GetOwnerID()

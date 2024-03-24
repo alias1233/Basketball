@@ -95,6 +95,7 @@ public class WeaponManager : NetworkBehaviour
     private RaycastHit[] Hits = new RaycastHit[5];
 
     private Vector3 FistOriginalPosition;
+    private Quaternion FistOriginalRotation;
 
     [Header("Visuals")]
 
@@ -129,6 +130,7 @@ public class WeaponManager : NetworkBehaviour
         }
 
         FistOriginalPosition = Fist.transform.localPosition;
+        FistOriginalRotation = Fist.transform.localRotation;
     }
 
     public override void OnNetworkSpawn()
@@ -868,12 +870,14 @@ public class WeaponManager : NetworkBehaviour
     public void EnableFist()
     {
         Fist.transform.localPosition = FistOriginalPosition;
+        Fist.transform.localRotation = FistOriginalRotation;
         Fist.SetActive(true);
     }
 
     public void DisableFist()
     {
         Fist.transform.localPosition = FistOriginalPosition;
+        Fist.transform.localRotation = FistOriginalRotation;
         Fist.SetActive(false);
     }
 }

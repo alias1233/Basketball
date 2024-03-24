@@ -10,6 +10,8 @@ public class CameraVisualsScript : MonoBehaviour
     private Transform CameraTransform;
     [SerializeField]
     private Camera PlayerCamera;
+    [SerializeField]
+    private Camera OverlayCamera;
 
     private bool bThirdPerson;
 
@@ -50,6 +52,7 @@ public class CameraVisualsScript : MonoBehaviour
     {
         bThirdPerson = false;
         PlayerCamera.fieldOfView = OriginalFOV;
+        OverlayCamera.fieldOfView = OriginalFOV;
         float elapsed = 0;
 
         while (elapsed < duration)
@@ -92,7 +95,11 @@ public class CameraVisualsScript : MonoBehaviour
     public void Offset(float amount)
     {
         CameraTransform.localPosition = Vector3.MoveTowards(CameraTransform.localPosition, ThirdPersonOffset + ThirdPersonOffset.normalized * amount * 0.15f, 1f);
-        PlayerCamera.fieldOfView = Mathf.MoveTowards(PlayerCamera.fieldOfView, OriginalFOV + amount, 1f);
+
+        float NewFOV = Mathf.MoveTowards(PlayerCamera.fieldOfView, OriginalFOV + amount, 1f);
+
+        PlayerCamera.fieldOfView = NewFOV;
+        OverlayCamera.fieldOfView = NewFOV;
     }
 
     public IEnumerator ChangeFOV(float FOVdiff, float duration)
@@ -102,7 +109,10 @@ public class CameraVisualsScript : MonoBehaviour
 
         while (elapsed < duration)
         {
-            PlayerCamera.fieldOfView = Mathf.Lerp(TargetFOV, OriginalFOV, elapsed / duration);
+            float NewFOV = Mathf.Lerp(TargetFOV, OriginalFOV, elapsed / duration);
+
+            PlayerCamera.fieldOfView = NewFOV;
+            OverlayCamera.fieldOfView = NewFOV;
 
             elapsed += Time.deltaTime;
 
@@ -110,6 +120,7 @@ public class CameraVisualsScript : MonoBehaviour
         }
 
         PlayerCamera.fieldOfView = OriginalFOV;
+        OverlayCamera.fieldOfView = OriginalFOV;
     }
 
     public IEnumerator Shake(float Magnitude, float duration)

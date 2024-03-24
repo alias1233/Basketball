@@ -81,6 +81,8 @@ public class PlayerManager : NetworkBehaviour
     [SerializeField]
     private TMP_Text FirstPersonHealthBarText;
     [SerializeField]
+    private GameObject ThirdPersonHealthBarObject;
+    [SerializeField]
     private ProgressBar ThirdPersonHealthBar;
 
     public AudioSource DeathSound;
@@ -208,6 +210,8 @@ public class PlayerManager : NetworkBehaviour
             {
                 SetGameLayerRecursive(i, 6);
             }
+
+            ThirdPersonHealthBarObject.SetActive(false);
 
             return;
         }

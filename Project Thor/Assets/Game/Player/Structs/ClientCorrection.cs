@@ -31,7 +31,9 @@ public struct ClientCorrection : INetworkSerializable
     public int GrappleStartTime;
     public Vector3 GrappleLocation;
 
-
+    public bool bPrevR;
+    public bool bFly;
+    public int LastTimeFly;
 
     public ClientCorrection(int timestamp, Vector3 position, Vector3 velocity,
         bool bnomovement,
@@ -50,8 +52,10 @@ public struct ClientCorrection : INetworkSerializable
         bool bgroundpound,
         bool bgrapple,
         int grapplestarttime,
-        Vector3 grapplelocation
-
+        Vector3 grapplelocation,
+        bool bprevr,
+        bool bfly,
+        int lasttimefly
         )
     {
         TimeStamp = timestamp;
@@ -74,7 +78,9 @@ public struct ClientCorrection : INetworkSerializable
         bGrapple = bgrapple;
         GrappleStartTime = grapplestarttime;
         GrappleLocation = grapplelocation;
-
+        bPrevR = bprevr;
+        bFly = bfly;
+        LastTimeFly = lasttimefly;
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -103,6 +109,9 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferWriter.WriteValueSafe(bGrapple);
             fastBufferWriter.WriteValueSafe(GrappleStartTime);
             fastBufferWriter.WriteValueSafe(GrappleLocation);
+            fastBufferWriter.WriteValueSafe(bPrevR);
+            fastBufferWriter.WriteValueSafe(bFly);
+            fastBufferWriter.WriteValueSafe(LastTimeFly);
         }
 
         if (serializer.IsReader)
@@ -129,6 +138,9 @@ public struct ClientCorrection : INetworkSerializable
             fastBufferReader.ReadValueSafe(out bool bgrapple);
             fastBufferReader.ReadValueSafe(out int grapplestarttime);
             fastBufferReader.ReadValueSafe(out Vector3 grapplelocation);
+            fastBufferReader.ReadValueSafe(out bool bprevr);
+            fastBufferReader.ReadValueSafe(out bool bfly);
+            fastBufferReader.ReadValueSafe(out int lasttimefly);
 
             TimeStamp = timestamp;
             Position = position;
@@ -150,6 +162,9 @@ public struct ClientCorrection : INetworkSerializable
             bGrapple = bgrapple;
             GrappleStartTime = grapplestarttime;
             GrappleLocation = grapplelocation;
+            bPrevR = bprevr;
+            bFly = bfly;
+            LastTimeFly = lasttimefly;
         }
     }
 }

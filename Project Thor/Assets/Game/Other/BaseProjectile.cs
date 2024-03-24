@@ -67,12 +67,18 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     public virtual void Awake()
     {
         SelfTransform = transform;
-        Tick.enabled = false;
     }
 
     public virtual void Start()
     {
+
+    }
+
+    public override void OnNetworkSpawn()
+    {
         Tick.bIsServer = IsServer;
+
+        Despawn();
     }
 
     public virtual void OnHitGround() { }
