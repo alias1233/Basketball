@@ -52,7 +52,7 @@ public class CharacterModelAnimScript : MonoBehaviour
                 bWasFlying = true;
             }
 
-            WingAnim.SetFloat("FlightSpeed", 1 + playermovement.GetVelocity().magnitude / 10);
+            WingAnim.SetFloat("FlightSpeed", 1 + playermovement.GetVelocity().magnitude / 15);
 
             return;
         }
