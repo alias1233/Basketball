@@ -561,11 +561,6 @@ public class WeaponManager : NetworkBehaviour
                     if (!stats.IsSameTeam(GetTeam()))
                     {
                         bHit2 = true;
-
-                        if (stats.GetIsHoldingBall())
-                        {
-                            Ball.Singleton.Attach(Player);
-                        }
                     }
                 }
 
@@ -608,6 +603,7 @@ public class WeaponManager : NetworkBehaviour
 
                     if(stats.GetIsHoldingBall())
                     {
+                        Ball.Singleton.Detach();
                         Ball.Singleton.Attach(Player);
                     }
                 }

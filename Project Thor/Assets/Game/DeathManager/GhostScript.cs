@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class GhostScript : MonoBehaviour
@@ -10,10 +11,17 @@ public class GhostScript : MonoBehaviour
     public float sprintSpeed;
     float currentSpeed;
 
+    public TMP_Text RespawnText;
+
+    private int RespawnTime;
+    private float TimeDie;
+
     void Update()
     {
         Movement();
         Rotation();
+
+        RespawnText.text = ((int)(RespawnTime - Time.time + TimeDie)).ToString();
     }
 
     public void Rotation()
@@ -40,5 +48,13 @@ public class GhostScript : MonoBehaviour
             currentSpeed = normalSpeed;
         }
         transform.Translate(input * currentSpeed * Time.deltaTime);
+    }
+
+    public void SetRespawnTime(int respawnTime)
+    {
+        TimeDie = Time.time;
+        RespawnTime = respawnTime;
+
+        RespawnText.text = RespawnTime.ToString();
     }
 }

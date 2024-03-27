@@ -117,6 +117,7 @@ public class PlayerMovement : NetworkBehaviour
     public float FlyFriction = 5;
     public float FlyGravityFactor = 0.1f;
     public float FlyInputInfluence = 0.5f;
+    public float AfterFlyVelocityFactor = 2.5f;
 
     public float SlideMoveSpeed = 8f;
     public float SlideJumpForce = 12f;
@@ -463,7 +464,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (bFly)
         {
-            if (MoveDirection == Vector3.zero)
+            if (MoveDirection == Vector3.zero || MoveDirection == Vector3.up)
             {
                 TPOrientation.rotation = Quaternion.RotateTowards(TPOrientation.rotation, ForwardRotation, 4f);
             }
@@ -541,7 +542,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (bFly)
         {
-            if (MoveDirection == Vector3.zero)
+            if (MoveDirection == Vector3.zero || MoveDirection == Vector3.up)
             {
                 TPOrientation.rotation = Quaternion.RotateTowards(TPOrientation.rotation, ForwardRotation, 4f);
             }
@@ -550,6 +551,8 @@ public class PlayerMovement : NetworkBehaviour
             {
                 TPOrientation.rotation = Quaternion.LookRotation(Velocity.normalized, Vector3.up) * Quaternion.AngleAxis(60f, Vector3.right);
             }
+
+            return;
         }
     }
 
@@ -609,7 +612,7 @@ public class PlayerMovement : NetworkBehaviour
 
             else
             {
-                ExitGrapple(false);
+                ExitGrapple();
             }
         }
     }
@@ -619,10 +622,20 @@ public class PlayerMovement : NetworkBehaviour
         bFly = true;
         LastTimeFly = CurrentTimeStamp;
 
+        if(Player.GetIsHoldingBall())
+        {
+            Ball.Singleton.Detach();
+        }
+
         ExitSlide();
         ExitGroundPound(false);
 
-        if(IsOwner)
+        EnterFlyVisuals();
+    }
+
+    private void EnterFlyVisuals()
+    {
+        if (IsOwner)
         {
             StartCoroutine(CameraVisuals.EnterThirdPerson(0.1f));
             Player.EnterThirdPerson();
@@ -638,6 +651,13 @@ public class PlayerMovement : NetworkBehaviour
 
         bTrySlideGroundPound = false;
 
+        Velocity = Velocity * AfterFlyVelocityFactor + Vector3.up * 25;
+
+        ExitFlyVisuals();
+    }
+
+    private void ExitFlyVisuals()
+    {
         if (IsOwner)
         {
             StartCoroutine(CameraVisuals.EnterFirstPerson(0.1f));
@@ -810,11 +830,11 @@ public class PlayerMovement : NetworkBehaviour
 
             LastTimeJumped = CurrentTimeStamp;
 
-            ExitGrapple(true);
+            ExitGrapple();
         }
     }
 
-    private void ExitGrapple(bool bjump)
+    private void ExitGrapple()
     {
         bGrapple = false;
         bNoMovement = false;
@@ -1110,6 +1130,11 @@ public class PlayerMovement : NetworkBehaviour
 
         SlideDirection = MoveDirection;
 
+        EnterSlideVisuals();
+    }
+
+    private void EnterSlideVisuals()
+    {
         CameraVisuals.ChangePosition(SlideCameraOffset);
 
         SlideParticles.transform.position = SelfTransform.position + MoveDirection * 0.5f + Vector3.down * SlideParticleOffset;
@@ -1130,6 +1155,11 @@ public class PlayerMovement : NetworkBehaviour
         bSliding = false;
         LastTimeSlide = CurrentTimeStamp;
 
+        ExitSlideVisuals();
+    }
+
+    private void ExitSlideVisuals()
+    {
         CameraVisuals.ResetPosition();
 
         if (Time.time - LastTimePlayedSlideExitAudio >= LandAudioCooldown)
@@ -1344,13 +1374,15 @@ public class PlayerMovement : NetworkBehaviour
 
         if (bSliding && !ServerState.bSliding)
         {
-            ExitSlide();
+            ExitSlideVisuals();
         }
 
-        else
+        else if(!bSliding && ServerState.bSliding)
         {
-            bSliding = ServerState.bSliding;
+            EnterSlideVisuals();
         }
+
+        bSliding = ServerState.bSliding;
 
         SlideDirection = ServerState.SlideDirection;
         LastTimeSlide = ServerState.LastTimeSlide;
@@ -1362,16 +1394,18 @@ public class PlayerMovement : NetworkBehaviour
         GrappleStartTime = ServerState.GrappleStartTime;
         GrappleLocation = ServerState.GrappleLocation;
         bPrevR = ServerState.bPrevR;
-        
-        if(bFly && !ServerState.bFly)
+
+        if (bFly && !ServerState.bFly)
         {
             ExitFly();
         }
 
-        if(!bFly && ServerState.bFly)
+        else if (!bFly && ServerState.bFly)
         {
             EnterFly();
         }
+
+        bFly = ServerState.bFly;
 
         LastTimeFly = ServerState.LastTimeFly;
     }
@@ -1613,6 +1647,11 @@ public class PlayerMovement : NetworkBehaviour
             {
                 MoveDirection += Rotation * Vector3.right;
             }
+
+            if(input.SpaceBar)
+            {
+                MoveDirection += Vector3.up;
+            }
         }
 
         else
@@ -1639,7 +1678,15 @@ public class PlayerMovement : NetworkBehaviour
 
             if(!IsOwner)
             {
-                TPOrientation.rotation = ForwardRotation;
+                if(!bSliding)
+                {
+                    TPOrientation.rotation = ForwardRotation;
+                }
+
+                else
+                {
+                    TPOrientation.rotation = Quaternion.LookRotation(Velocity);
+                }
             }
         }
 
@@ -1701,10 +1748,6 @@ public class PlayerMovement : NetworkBehaviour
         Velocity = velocity;
 
         Rotation = rotation;
-        float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
-        ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
-
-        TPOrientation.rotation = ForwardRotation;
         FPOrientation.rotation = rotation;
 
         if (issliding && !bSliding)
@@ -1712,9 +1755,22 @@ public class PlayerMovement : NetworkBehaviour
             EnterSlide();
         }
 
-        if (!issliding && bSliding)
+        else if (!issliding && bSliding)
         {
             ExitSlide();
+        }
+
+        if(!bSliding)
+        {
+            float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
+            ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
+
+            TPOrientation.rotation = ForwardRotation;
+        }
+
+        else
+        {
+            TPOrientation.rotation = Quaternion.LookRotation(Velocity);
         }
 
         if(isgroundpounding && !bGroundPound)
@@ -1724,7 +1780,7 @@ public class PlayerMovement : NetworkBehaviour
             GroundPoundTrails.Play();
         }
 
-        if(!isgroundpounding && bGroundPound)
+        else if(!isgroundpounding && bGroundPound)
         {
             ExitGroundPound(true);
         }
@@ -1760,7 +1816,7 @@ public class PlayerMovement : NetworkBehaviour
             EnterFly();
         }
 
-        if (Velocity.magnitude < 2.5f)
+        if (Velocity.magnitude < 2.5f || Vector3.Dot(Velocity, Vector3.up) > 0.9f)
         {
             TPOrientation.rotation = Quaternion.RotateTowards(TPOrientation.rotation, ForwardRotation, 4f);
         }
@@ -1858,8 +1914,8 @@ public class PlayerMovement : NetworkBehaviour
     public void ResetMovement()
     {
         ExitSlide();
-        ExitGrapple(false);
-        ExitGroundPound(true);
+        ExitGrapple();
+        ExitGroundPound(false);
         ExitDash();
         ExitFly();
 

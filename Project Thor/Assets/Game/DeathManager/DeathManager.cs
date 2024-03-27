@@ -7,10 +7,12 @@ public class DeathManager : MonoBehaviour
 {
     public static DeathManager Singleton { get; internal set; }
     public GameObject Ghost;
+    private GhostScript ghostscript;
 
     private void Awake()
     {
         Singleton = this;
+        ghostscript = Ghost.GetComponent<GhostScript>();
     }
 
     public void PossessGhost(Vector3 placeofdeath, Quaternion rotation)
@@ -23,5 +25,10 @@ public class DeathManager : MonoBehaviour
     public void UnpossessGhost()
     {
         Ghost.SetActive(false);
+    }
+
+    public void SetRespawnTime(int RespawnTime)
+    {
+        ghostscript.SetRespawnTime(RespawnTime);
     }
 }

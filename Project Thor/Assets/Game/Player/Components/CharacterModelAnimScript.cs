@@ -18,9 +18,9 @@ public class CharacterModelAnimScript : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if(playermovement.GetIsSliding())
+        if (playermovement.GetIsSliding())
         {
-            if(!bWasSliding)
+            if (!bWasSliding)
             {
                 anim.SetBool("bSliding", true);
 
@@ -30,7 +30,7 @@ public class CharacterModelAnimScript : MonoBehaviour
             return;
         }
 
-        if(bWasSliding)
+        if (bWasSliding)
         {
             anim.SetBool("bSliding", false);
 
@@ -41,9 +41,9 @@ public class CharacterModelAnimScript : MonoBehaviour
             return;
         }
 
-        if(playermovement.GetIsFlying())
+        if (playermovement.GetIsFlying())
         {
-            if(!bWasFlying)
+            if (!bWasFlying)
             {
                 WingAnim.SetInteger("Mode", 2);
                 anim.SetFloat("MoveSpeed", 2);
@@ -57,7 +57,7 @@ public class CharacterModelAnimScript : MonoBehaviour
             return;
         }
 
-        if(bWasFlying)
+        if (bWasFlying)
         {
             bWasFlying = false;
 
@@ -82,11 +82,8 @@ public class CharacterModelAnimScript : MonoBehaviour
         anim.SetFloat("MoveFactor", Mag);
     }
 
-    private void LateUpdate()
+    public void Die()
     {
-        if (bWasSliding)
-        {
-            transform.rotation = Quaternion.LookRotation(playermovement.GetVelocity(), Vector3.up);
-        }
+        anim.SetTrigger("Die");
     }
 }

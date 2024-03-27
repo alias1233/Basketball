@@ -36,6 +36,7 @@ public class PlayerManager : NetworkBehaviour
     private WeaponManager Weapons;
 
     public GameObject CharacterModel;
+    public CharacterModelAnimScript CharacterAnimations;
 
     private Vector3 CharacterModelOriginalPosition;
     private Quaternion CharacterModelOriginalRotation;
@@ -287,6 +288,17 @@ public class PlayerManager : NetworkBehaviour
         {
             Die();
 
+            if (IsOwner)
+            {
+                FirstPersonHealthBarText.text = "0";
+                FirstPersonHealthBar.UpdateProgressBar(0);
+            }
+
+            else
+            {
+                ThirdPersonHealthBar.UpdateProgressBar(0);
+            }
+
             return;
         }
 
@@ -311,6 +323,7 @@ public class PlayerManager : NetworkBehaviour
     {
         Dead = true;
 
+        CharacterAnimations.Die();
         DeathSound.Play();
 
         if (Weapons.bHoldingBall)
@@ -320,26 +333,27 @@ public class PlayerManager : NetworkBehaviour
 
         Movement.ResetMovement();
 
-        if (IsOwner)
-        {
-            DeathManager.Singleton.PossessGhost(transform.position, FPPlayerCamera.transform.rotation);
-
-            FPPlayerCamera.SetActive(false);
-            FirstPersonPlayerUI.SetActive(false);
-        }
-
         if (IsServer)
         {
-            transform.position = GameManager.Singleton.GetGraveyardLocation();
-
             Invoke(nameof(ResetHealth), RespawnTime);
 
             RewindDataDictionary.Clear();
+        }
+
+        if (IsOwner)
+        {
+            DeathManager.Singleton.PossessGhost(transform.position, FPPlayerCamera.transform.rotation);
+            DeathManager.Singleton.SetRespawnTime(RespawnTime);
+
+            FPPlayerCamera.SetActive(false);
+            FirstPersonPlayerUI.SetActive(false);
+
+            SendToGraveyard();
 
             return;
         }
 
-        Invoke(nameof(DieOnClient), 0.5f);
+        Invoke(nameof(SendToGraveyard), 1.5f);
     }
 
     private void ResetHealth()
@@ -375,9 +389,9 @@ public class PlayerManager : NetworkBehaviour
         return true;
     }
 
-    public void DieOnClient()
+    public void SendToGraveyard()
     {
-        if (Health.Value < 0)
+        if (Health.Value <= 0)
         {
             transform.position = GameManager.Singleton.GetGraveyardLocation();
         }

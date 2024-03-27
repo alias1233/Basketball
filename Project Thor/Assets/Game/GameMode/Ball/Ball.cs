@@ -43,12 +43,7 @@ public class Ball : NetworkBehaviour
     public float IgnoreReplicatedMovementTime;
     private float LastTimePredictedMovement;
 
-    public float XPos;
-    public float NXPos;
-    public float YPos;
     public float NYPos;
-    public float ZPos;
-    public float NZPos;
 
     private void Awake()
     {
@@ -212,6 +207,11 @@ public class Ball : NetworkBehaviour
 
     public void Attach(PlayerManager player)
     {
+        if(player.GetIsFlying())
+        {
+            return;
+        }
+
         bAttached = true;
 
         if(AttachedPlayer != null)
@@ -236,7 +236,7 @@ public class Ball : NetworkBehaviour
         bAttached = false;
         AttachedPlayer.Unattach();
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 4;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
 
         for (int i = 0; i < PingInTick; i++)
         {
@@ -271,7 +271,7 @@ public class Ball : NetworkBehaviour
             AttachedPlayer.Unattach();
         }
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 4;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
 
         for (int i = 0; i < PingInTick; i++)
         {
