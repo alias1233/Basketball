@@ -127,7 +127,7 @@ public class Pistol : BaseWeapon
 
             coin.CoinInit(Manager.GetTeam(), Manager.GetAimPointLocation(),
                 PlayerMovementComponent.GetRotation() * Vector3.forward * 0.5f + Vector3.up * 0.5f,
-                new Vector3(vel.x, 0, vel.z));
+                new Vector3(vel.x, vel.y / 4, vel.z));
             coin.Spawn();
         }
     }
