@@ -236,7 +236,7 @@ public class Ball : NetworkBehaviour
         bAttached = false;
         AttachedPlayer.Unattach();
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 2;
 
         for (int i = 0; i < PingInTick; i++)
         {
@@ -271,7 +271,7 @@ public class Ball : NetworkBehaviour
             AttachedPlayer.Unattach();
         }
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 2;
 
         for (int i = 0; i < PingInTick; i++)
         {

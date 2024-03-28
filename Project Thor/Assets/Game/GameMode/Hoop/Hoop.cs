@@ -75,7 +75,7 @@ public class Hoop : NetworkBehaviour
                 {
                     LastTimeScored = Time.time;
 
-                    if (player.GetIsDunking() || player.GetIsFlying())
+                    if (player.GetIsDunking())
                     {
                         OnDunk(player.GetClientID());
                     }

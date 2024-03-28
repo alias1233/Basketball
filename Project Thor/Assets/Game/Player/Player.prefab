@@ -1044,6 +1044,10 @@ MonoBehaviour:
   LastTimeShot2: 0
   Damage: 6
   Damage2: 0
+  RecoilRotationAmount1: {x: -15, y: 0, z: 0}
+  RecoilPositionAmount1: {x: 0, y: 0, z: -0.5}
+  RecoilRotationAmount2: {x: -10, y: 0, z: 0}
+  RecoilPositionAmount2: {x: 0, y: 0, z: -0.75}
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -17548,6 +17552,10 @@ MonoBehaviour:
   LastTimeShot2: 0
   Damage: 0
   Damage2: 25
+  RecoilRotationAmount1: {x: 0, y: 0, z: 0}
+  RecoilPositionAmount1: {x: 0, y: 0, z: 0}
+  RecoilRotationAmount2: {x: 0, y: 0, z: 0}
+  RecoilPositionAmount2: {x: 0, y: 0, z: 0}
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -18089,6 +18097,10 @@ MonoBehaviour:
   LastTimeShot2: 0
   Damage: 15
   Damage2: 25
+  RecoilRotationAmount1: {x: 0, y: 0, z: 0}
+  RecoilPositionAmount1: {x: 0, y: 0, z: -0.5}
+  RecoilRotationAmount2: {x: 0, y: 0, z: 0}
+  RecoilPositionAmount2: {x: 0, y: 0, z: 0}
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -23854,7 +23866,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1921586955477415833}
-  m_Father: {fileID: 245901753364132158}
+  m_Father: {fileID: 4416519836424651475}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &188663263730116120
 Camera:
@@ -24168,6 +24180,38 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &4851926479541994929
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4416519836424651475}
+  m_Layer: 3
+  m_Name: CameraParentTransform
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4416519836424651475
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4851926479541994929}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7143213653962872233}
+  m_Father: {fileID: 245901753364132158}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4935691055142638147
 GameObject:
   m_ObjectHideFlags: 0
@@ -46554,7 +46598,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7143213653962872233}
+  - {fileID: 4416519836424651475}
   - {fileID: 6870187436196183879}
   - {fileID: 3899882630906304647}
   m_Father: {fileID: 3525563439652999784}
@@ -46780,7 +46824,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6ce33f90c760ba449105ccc45ae4aaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ServerDelay: 3
+  ServerDelay: 2
   CharacterModel: {fileID: 866809311650528061}
   CharacterAnimations: {fileID: 1686462406465213082}
   HandTransform: {fileID: 9123796275599009219}
@@ -46889,19 +46933,19 @@ MonoBehaviour:
   AfterDashVelocityMagnitude: 0.3
   GrapplePool: {fileID: 8108908747167435706}
   GrappleDuration: 50
-  GrappleShootCooldown: 250
+  GrappleShootCooldown: 300
   GrappleSpeed: 25
   MinGrappleTimeBeforeJumping: 10
-  FlyCooldown: 1500
+  FlyCooldown: 1000
   FlyDuration: 500
   DashFOVOffset: 15
-  DashFOVDuration: 0.5
+  DashFOVDuration: 0.25
   FirstPersonDashParticles: {fileID: 7429191906427250410}
   ThirdPersonDashParticles: {fileID: 7142454795173292616}
   DashTrails: {fileID: 3087438247527566822}
   DashSound: {fileID: 9118582997608574433}
   GrappleFOVOffset: 10
-  GrappleFOVDuration: 1
+  GrappleFOVDuration: 0.5
   GrappleThrowStart: {fileID: 763110860330991138}
   GrappleHit: {fileID: 5957654724499714865}
   GrappleLoop: {fileID: 2922597831688011253}
@@ -46953,6 +46997,10 @@ MonoBehaviour:
   Radius: 1.25
   MaxSwayVelocity: 100
   MaxSwayAmount: 0.25
+  CameraParentTransform: {fileID: 4416519836424651475}
+  WeaponsTransform: {fileID: 4800420808349165395}
+  ReturnSpeed: 0.125
+  SnapSpeed: 0.2
   ObjectLayer:
     serializedVersion: 2
     m_Bits: 1

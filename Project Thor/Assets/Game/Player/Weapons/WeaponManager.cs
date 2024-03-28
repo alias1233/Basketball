@@ -102,6 +102,20 @@ public class WeaponManager : NetworkBehaviour
     public float MaxSwayVelocity;
     public float MaxSwayAmount;
 
+    [SerializeField]
+    private Transform CameraParentTransform;
+    [SerializeField]
+    private Transform WeaponsTransform;
+
+    private Vector3 TargetRotation;
+    private Vector3 CurrentRotation;
+
+    public float ReturnSpeed;
+    public float SnapSpeed;
+
+    private Vector3 TargetPosition;
+    private Vector3 CurrentPosition;
+
     [Header("Other")]
 
     public LayerMask ObjectLayer;
@@ -158,7 +172,7 @@ public class WeaponManager : NetworkBehaviour
                 HostTick();
                 ServerTickForAll();
 
-                WeaponSway();
+                HandleOwnerVisuals();
 
                 break;
 
@@ -173,7 +187,7 @@ public class WeaponManager : NetworkBehaviour
 
                 AutonomousProxyTick();
 
-                WeaponSway();
+                HandleOwnerVisuals();
 
                 break;
 
@@ -438,6 +452,34 @@ public class WeaponManager : NetworkBehaviour
 
             ReplicateWeaponSwitchClientRpc(ActiveWeaponIndex, IgnoreOwnerRPCParams);
         }
+    }
+
+    private void HandleOwnerVisuals()
+    {
+        // Handle Weapon Sway
+        Vector3 moveamount = -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() / MaxSwayVelocity, MaxSwayAmount);
+
+        ActiveWeapon.SetWeaponModelPos(
+            moveamount
+            );
+
+        FistParentTransform.position = FistParentParentTransform.position + moveamount;
+
+        // Handle Recoil
+        TargetRotation = Vector3.Lerp(TargetRotation, Vector3.zero, ReturnSpeed);
+        CurrentRotation = Vector3.Slerp(CurrentRotation, TargetRotation, SnapSpeed);
+        CameraParentTransform.localRotation = Quaternion.Euler(CurrentRotation);
+        WeaponsTransform.localRotation = Quaternion.Euler(CurrentRotation * 2);
+
+        TargetPosition = Vector3.Lerp(TargetPosition, Vector3.zero, ReturnSpeed);
+        CurrentPosition = Vector3.Slerp(CurrentPosition, TargetPosition, SnapSpeed);
+        WeaponsTransform.localPosition = CurrentPosition;
+    }
+
+    public void Recoil(Vector3 Rot, Vector3 Pos)
+    {
+        TargetRotation += Rot;
+        TargetPosition += Pos;
     }
 
     void OnChangeActiveWeapon(ActiveWeaponNumber previous, ActiveWeaponNumber newweapon)
@@ -787,17 +829,6 @@ public class WeaponManager : NetworkBehaviour
     public void ReplicateHitClientRpc(ClientRpcParams clientRpcParams = default)
     {
         HitSound.Play();
-    }
-
-    private void WeaponSway()
-    {
-        Vector3 moveamount = -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() / MaxSwayVelocity, MaxSwayAmount);
-
-        ActiveWeapon.SetWeaponModelPos(
-            moveamount
-            );
-
-        FistParentTransform.position = FistParentParentTransform.position + moveamount;
     }
 
     public void UpdateIgnoreOwnerRPCParams(ClientRpcParams newIgnoreOwnerRPCParams)

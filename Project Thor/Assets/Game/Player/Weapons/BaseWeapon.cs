@@ -45,6 +45,14 @@ public class BaseWeapon : MonoBehaviour
     public float Damage;
     public float Damage2;
 
+    [Header("Recoil")]
+
+    public Vector3 RecoilRotationAmount1;
+    public Vector3 RecoilPositionAmount1;
+
+    public Vector3 RecoilRotationAmount2;
+    public Vector3 RecoilPositionAmount2;
+
     [Header("Other")]
 
     public LayerMask PlayerLayer;

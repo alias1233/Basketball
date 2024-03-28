@@ -30,10 +30,46 @@ public class Pistol : BaseWeapon
         }
 
         Manager.ReplicateFire(1);
+
+        Ray CenterRay = new Ray(MuzzlePoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward);
+
+        if (!bIsOwner)
+        {
+            if (!RewindPlayers(CenterRay, Range1))
+            {
+                return;
+            }
+        }
+
+        bool bHit = false;
+        RaycastHit hit;
+
+        if (Physics.Raycast(CenterRay, out hit, Range1, PlayerLayer))
+        {
+            if (hit.transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            {
+                if (stats.Damage(Manager.GetTeam(), Damage))
+                {
+                    bHit = true;
+                }
+            }
+        }
+
+        if (bHit)
+        {
+            Manager.PlayHitSound();
+        }
+
+        ResetRewindedPlayers();
     }
 
     public override void Visuals1()
     {
+        if(bIsOwner)
+        {
+            Manager.Recoil(RecoilRotationAmount1, RecoilPositionAmount1);
+        }
+
         BulletRay = new Ray(Manager.GetAimPointLocation(), PlayerMovementComponent.GetRotation() * Vector3.forward);
         Vector3 HitPos = BulletRay.GetPoint(Range1);
         RaycastHit hit;

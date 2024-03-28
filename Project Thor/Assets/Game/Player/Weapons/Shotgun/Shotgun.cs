@@ -94,11 +94,8 @@ public class Shotgun : BaseWeapon
             else
             {
                 PelletRays[i] = new Ray(
-                    Manager.GetAimPointLocation() //+ PlayerMovementComponent.GetRotation() * (Offsets[i - 1] * RandomOffset),
-                    ,
+                    Manager.GetAimPointLocation(),
                     PlayerMovementComponent.GetRotation() * (Vector3.forward + Offsets[i - 1] * RandomOffset));
-
-                //PelletRays[i] = new Ray(Manager.GetAimPointLocation(), PlayerMovementComponent.GetRotation() * (Vector3.forward + Vector3.up * Random.Range(-RandomOffset, RandomOffset) + Vector3.right * Random.Range(-RandomOffset, RandomOffset)));
             }
 
             Vector3 HitPos = PelletRays[i].GetPoint(Range1);
@@ -130,6 +127,11 @@ public class Shotgun : BaseWeapon
                 Bullet.SetActive(true);
             }
         }
+
+        if(bIsOwner)
+        {
+            Manager.Recoil(RecoilRotationAmount1, RecoilPositionAmount1);
+        }
     }
 
     public override void Fire2()
@@ -155,6 +157,11 @@ public class Shotgun : BaseWeapon
         LastTimeShot2 = Manager.GetTimeStamp();
 
         bIsCharging = false;
+
+        if (bIsOwner)
+        {
+            Manager.Recoil(RecoilRotationAmount2, RecoilPositionAmount2);
+        }
 
         ChargingRocketParticleSystem.Clear();
         ChargingRocketParticleSystem.Stop();

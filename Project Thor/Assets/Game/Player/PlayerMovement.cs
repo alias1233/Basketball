@@ -801,7 +801,10 @@ public class PlayerMovement : NetworkBehaviour
             FirstPersonDashParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - FirstPersonDashParticles.transform.position), Vector3.up);
             FirstPersonDashParticles.Play();
 
-            StartCoroutine(CameraVisuals.ChangeFOV(GrappleFOVOffset, GrappleFOVDuration));
+            if (!bFly)
+            {
+                StartCoroutine(CameraVisuals.ChangeFOV(GrappleFOVOffset, GrappleFOVDuration));
+            }
         }
 
         else

@@ -89,7 +89,7 @@ public class CameraVisualsScript : MonoBehaviour
 
     public void Tilt(float amount)
     {
-        CameraTransform.localRotation = Quaternion.RotateTowards(CameraTransform.localRotation, Quaternion.Euler(0, 0, amount), Mathf.Clamp(Mathf.Abs(amount / 2), 0.5f, 5f));
+        CameraTransform.localRotation = Quaternion.RotateTowards(CameraTransform.localRotation, Quaternion.Euler(0, 0, amount), Mathf.Clamp(Mathf.Abs(amount / 4), 0.5f, 5f));
     }
 
     public void Offset(float amount)
@@ -139,13 +139,13 @@ public class CameraVisualsScript : MonoBehaviour
                 yield break;
             }
 
-            CameraTransform.localPosition = new Vector3((Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude, (Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude + 0.6f, 0);
+            selftransform.localPosition = new Vector3((Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude, (Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude + 0.6f, 0);
 
             elapsed += Time.deltaTime;
 
             yield return null;
         }
 
-        CameraTransform.localPosition = Vector3.zero;
+        selftransform.localPosition = Vector3.zero;
     }
 }
