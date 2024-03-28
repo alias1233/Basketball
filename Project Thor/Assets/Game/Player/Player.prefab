@@ -1044,7 +1044,7 @@ MonoBehaviour:
   LastTimeShot2: 0
   Damage: 6
   Damage2: 0
-  RecoilRotationAmount1: {x: -15, y: 0, z: 0}
+  RecoilRotationAmount1: {x: -7.5, y: 0, z: 0}
   RecoilPositionAmount1: {x: 0, y: 0, z: -0.5}
   RecoilRotationAmount2: {x: -10, y: 0, z: 0}
   RecoilPositionAmount2: {x: 0, y: 0, z: -0.75}
@@ -46999,8 +46999,8 @@ MonoBehaviour:
   MaxSwayAmount: 0.25
   CameraParentTransform: {fileID: 4416519836424651475}
   WeaponsTransform: {fileID: 4800420808349165395}
-  ReturnSpeed: 0.125
-  SnapSpeed: 0.2
+  ReturnSpeed: 0.15
+  SnapSpeed: 0.3
   ObjectLayer:
     serializedVersion: 2
     m_Bits: 1
