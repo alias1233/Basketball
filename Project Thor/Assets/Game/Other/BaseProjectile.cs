@@ -18,6 +18,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
             bisactive = value;
         }
     }
+
     [HideInInspector]
     public bool bisactive;
 
@@ -95,6 +96,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
         Tick.LastTimeReplicatedPosition = Time.time;
+        Tick.OwningPlayerTeam = team;
         Tick.StartTime = Tick.TimeStamp;
         Tick.Velocity = dir * Tick.InitialSpeed;
     }
@@ -106,6 +108,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
         Tick.Velocity = dir * Tick.InitialSpeed;
+        Tick.OwningPlayerTeam = team;
         Tick.LastTimeReplicatedPosition = Time.time;
         Tick.StartTime = Tick.TimeStamp;
 
@@ -163,6 +166,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
         Tick.bUpdatedThisFrame = true;
         Tick.StartTime = Tick.TimeStamp;
+        Tick.OwningPlayerTeam = team;
         Tick.Velocity = dir * Tick.InitialSpeed;
     }
 }

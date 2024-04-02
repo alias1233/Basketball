@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class CharacterModelAnimScript : MonoBehaviour
 {
+    private Transform SelfTransform;
+
     [SerializeField]
     private PlayerMovement playermovement;
     [SerializeField]
@@ -11,13 +13,23 @@ public class CharacterModelAnimScript : MonoBehaviour
     [SerializeField]
     private Animator WingAnim;
     [SerializeField]
-    private GameObject Parent;
+    private Transform Parent;
 
     private bool bWasSliding;
     private bool bWasFlying;
 
+    private void Awake()
+    {
+        SelfTransform = transform;
+    }
+
     private void FixedUpdate()
     {
+        if (playermovement.GetIsDead())
+        {
+            return;
+        }
+
         if (playermovement.GetIsSliding())
         {
             if (!bWasSliding)
@@ -34,7 +46,7 @@ public class CharacterModelAnimScript : MonoBehaviour
         {
             anim.SetBool("bSliding", false);
 
-            transform.rotation = Parent.transform.rotation;
+            SelfTransform.rotation = Parent.rotation;
 
             bWasSliding = false;
 
@@ -65,21 +77,18 @@ public class CharacterModelAnimScript : MonoBehaviour
         }
 
         Vector3 Vel = playermovement.GetVelocity();
-        float VelMagnitude = Vel.magnitude;
-
-        anim.SetFloat("MoveSpeed", VelMagnitude);
-
         Vector2 VelXY = new Vector2(Vel.x, Vel.z);
-        Vector2 TransformXY = new Vector2(transform.forward.x, transform.forward.z);
-        float Dir = Vector2.Dot(TransformXY, VelXY);
-        float Mag = VelMagnitude;
 
-        if (Dir < 0)
+        anim.SetFloat("MoveSpeed", VelXY.magnitude);
+
+        if (Vector2.Dot(new Vector2(SelfTransform.forward.x, SelfTransform.forward.z), VelXY) < 0)
         {
-            Mag = -Mag;
+            anim.SetFloat("MoveFactor", -VelXY.magnitude);
+
+            return;
         }
 
-        anim.SetFloat("MoveFactor", Mag);
+        anim.SetFloat("MoveFactor", VelXY.magnitude);
     }
 
     public void Die()

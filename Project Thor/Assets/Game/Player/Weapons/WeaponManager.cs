@@ -26,6 +26,7 @@ public class WeaponManager : NetworkBehaviour
     private List<BaseWeapon> WeaponList;
 
     public ObjectPool BulletPool;
+    public ObjectPool FadingBulletPool;
 
     public NetworkObjectPool RocketPool;
     public NetworkObjectPool CoinPool;
@@ -479,6 +480,11 @@ public class WeaponManager : NetworkBehaviour
     public void Recoil(Vector3 Rot, Vector3 Pos)
     {
         TargetRotation += Rot;
+        TargetPosition += Pos;
+    }
+
+    public void RecoilPosition(Vector3 Pos)
+    {
         TargetPosition += Pos;
     }
 

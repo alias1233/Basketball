@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class NetworkObjectPool : NetworkBehaviour
@@ -10,8 +11,7 @@ public class NetworkObjectPool : NetworkBehaviour
     public GameObject objectToPool;
     public int amountToPool;
 
-    // Start is called before the first frame update
-    void Start()
+    public override void OnNetworkSpawn()
     {
         if(!IsServer)
         {
@@ -43,6 +43,19 @@ public class NetworkObjectPool : NetworkBehaviour
                 pooledNetworkObjects.Add(Object);
                 pooledObjects.Add(tmp);
             }
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        for (int i = 0; i < amountToPool; i++)
+        {
+            //pooledObjects[i].GetComponent<NetworkObject>().Despawn(true);
         }
     }
 

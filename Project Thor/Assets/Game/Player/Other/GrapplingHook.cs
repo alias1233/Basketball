@@ -15,10 +15,13 @@ public class GrapplingHook : BaseProjectile
     {
         base.OnNetworkSpawn();
 
-        Invoke(nameof(TryFindOwnerAgain), 2);
+        if(!IsServer && IsOwner)
+        {
+            TryFindOwner();
+        }
     }
 
-    private void TryFindOwnerAgain()
+    private void TryFindOwner()
     {
         PlayerMovement[] playermovements = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
 
@@ -26,19 +29,14 @@ public class GrapplingHook : BaseProjectile
         {
             if (i.GetOwnerID() == OwnerClientId)
             {
-                OwningPlayerMovement = i;
-
-                if (IsOwner && !IsServer)
-                {
-                    i.GrapplePool.pooledObjects.Add(gameObject);
-                    i.GrapplePool.pooledNetworkObjects.Add(this);
-                }
+                i.GrapplePool.pooledObjects.Add(gameObject);
+                i.GrapplePool.pooledNetworkObjects.Add(this);
 
                 return;
             }
         }
 
-        Invoke(nameof(TryFindOwnerAgain), 1);
+        Invoke(nameof(TryFindOwner), 1);
     }
 
     public override void OnHitGround()

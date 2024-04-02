@@ -15,6 +15,8 @@ public enum NetworkRole
 
 public class PlayerManager : NetworkBehaviour
 {
+    private Transform SelfTransform;
+
     [Header("Ticking")]
 
     public int ServerDelay = 5;
@@ -73,6 +75,13 @@ public class PlayerManager : NetworkBehaviour
     public int MaxHealth;
     private NetworkVariable<float> Health = new NetworkVariable<float>();
 
+    public float TimeBeforeBeginHealing;
+    public float TimeBetweenHealing;
+    public float HealAmount;
+
+    private float LastTimeDamaged;
+    private float LastTimeHealed;
+
     public int RespawnTime;
 
     private bool Dead;
@@ -90,6 +99,8 @@ public class PlayerManager : NetworkBehaviour
 
     private void Awake()
     {
+        SelfTransform = transform;
+
         Movement = GetComponent<PlayerMovement>();
         Weapons = GetComponent<WeaponManager>();
 
@@ -214,6 +225,8 @@ public class PlayerManager : NetworkBehaviour
 
             ThirdPersonHealthBarObject.SetActive(false);
 
+            Ball.Singleton.SetOwningPlayer(SelfTransform);
+
             return;
         }
 
@@ -230,6 +243,11 @@ public class PlayerManager : NetworkBehaviour
     {
         Health.OnValueChanged -= OnHealthChanged;
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+
+        if(GetIsHoldingBall())
+        {
+            Ball.Singleton.Detach();
+        }
     }
 
     private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)
@@ -273,10 +291,12 @@ public class PlayerManager : NetworkBehaviour
             return;
         }
 
-        RewindDataDictionary.Add(TimeStamp, transform.position);
+        HandleRegeneration();
+
+        RewindDataDictionary.Add(TimeStamp, SelfTransform.position);
         RewindDataDictionary.Remove(TimeStamp - 40);
 
-        if (transform.position.y < -10)
+        if (SelfTransform.position.y < -20)
         {
             Health.Value = -1;
         }
@@ -342,7 +362,7 @@ public class PlayerManager : NetworkBehaviour
 
         if (IsOwner)
         {
-            DeathManager.Singleton.PossessGhost(transform.position, FPPlayerCamera.transform.rotation);
+            DeathManager.Singleton.PossessGhost(SelfTransform.position, FPPlayerCamera.transform.rotation);
             DeathManager.Singleton.SetRespawnTime(RespawnTime);
 
             FPPlayerCamera.SetActive(false);
@@ -373,7 +393,7 @@ public class PlayerManager : NetworkBehaviour
             FirstPersonPlayerUI.SetActive(true);
         }
 
-        transform.position = GameManager.Singleton.GetSpawnLocation(Team);
+        SelfTransform.position = GameManager.Singleton.GetSpawnLocation(Team);
         Movement.ChangeVelocity(Vector3.zero);
     }
 
@@ -386,14 +406,38 @@ public class PlayerManager : NetworkBehaviour
 
         Health.Value -= damage;
 
+        LastTimeDamaged = Time.time;
+
         return true;
+    }
+
+    private void HandleRegeneration()
+    {
+        if(Time.time - LastTimeDamaged < TimeBeforeBeginHealing)
+        {
+            return;
+        }
+
+        if(Time.time - LastTimeHealed > TimeBetweenHealing)
+        {
+            LastTimeHealed = Time.time;
+
+            if(Health.Value + HealAmount > MaxHealth)
+            {
+                Health.Value = MaxHealth;
+
+                return;
+            }
+
+            Health.Value += HealAmount;
+        }
     }
 
     public void SendToGraveyard()
     {
         if (Health.Value <= 0)
         {
-            transform.position = GameManager.Singleton.GetGraveyardLocation();
+            SelfTransform.position = GameManager.Singleton.GetGraveyardLocation();
         }
     }
 
@@ -426,8 +470,8 @@ public class PlayerManager : NetworkBehaviour
 
         if (RewindDataDictionary.TryGetValue(RewindToTime, out Vector3 RewindedPosition))
         {
-            OriginalPosition = transform.position;
-            transform.position = RewindedPosition;
+            OriginalPosition = SelfTransform.position;
+            SelfTransform.position = RewindedPosition;
 
             return true;
         }
@@ -442,7 +486,7 @@ public class PlayerManager : NetworkBehaviour
             return;
         }
 
-        transform.position = OriginalPosition;
+        SelfTransform.position = OriginalPosition;
     }
 
     public int GetPingInTick()
@@ -595,7 +639,7 @@ public class PlayerManager : NetworkBehaviour
 
     public void TeleportTo(Vector3 pos)
     {
-        transform.position = pos;
+        SelfTransform.position = pos;
     }
 
     private void SetGameLayerRecursive(GameObject gameObject, int layer)

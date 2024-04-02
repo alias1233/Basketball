@@ -13,7 +13,9 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField]
     public PlayerMovement PlayerMovementComponent;
 
+    [HideInInspector]
     public bool bIsOwner;
+    [HideInInspector]
     public bool bIsServer;
 
     [SerializeField]
@@ -29,11 +31,6 @@ public class BaseWeapon : MonoBehaviour
 
     [Header("Attributes")]
 
-    public int Range1;
-    public int Range2;
-
-    public int AmmoCount;
-
     public int FireCooldown1;
     public int FireCooldown2;
 
@@ -41,17 +38,6 @@ public class BaseWeapon : MonoBehaviour
     public int LastTimeShot1;
     [HideInInspector]
     public int LastTimeShot2;
-
-    public float Damage;
-    public float Damage2;
-
-    [Header("Recoil")]
-
-    public Vector3 RecoilRotationAmount1;
-    public Vector3 RecoilPositionAmount1;
-
-    public Vector3 RecoilRotationAmount2;
-    public Vector3 RecoilPositionAmount2;
 
     [Header("Other")]
 

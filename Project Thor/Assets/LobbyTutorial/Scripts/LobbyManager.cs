@@ -5,13 +5,13 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
-using Unity.Services.Relay.Models;
 using UnityEngine;
 
-public class LobbyManager : MonoBehaviour {
-
-
+public class LobbyManager : MonoBehaviour 
+{
     public static LobbyManager Instance { get; private set; }
+
+    public GameObject LobbyObject;
 
     public const string KEY_PLAYER_NAME = "PlayerName";
     public const string KEY_PLAYER_CHARACTER = "Character";
@@ -67,7 +67,7 @@ public class LobbyManager : MonoBehaviour {
 
     private void Update()
     {
-        //HandleRefreshLobbyList();
+        HandleRefreshLobbyList();
         HandleLobbyHeartbeat();
         HandleLobbyPolling();
     }
@@ -148,12 +148,10 @@ public class LobbyManager : MonoBehaviour {
                         InitializeRelay.Instance.joinrelay(joinedLobby.Data[KEY_START_GAME].Value);
                     }
 
-                    LobbyJoinUI.SetActive(false);
-                    LobbyCamera.SetActive(false);
-
+                    GameManager.Singleton.StartGame();
                     ScoreBoardUI.SetActive(true);
-
                     joinedLobby = null;
+                    LobbyObject.SetActive(false);
                 }
             }
         }

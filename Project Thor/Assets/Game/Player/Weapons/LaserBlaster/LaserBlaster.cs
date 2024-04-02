@@ -6,10 +6,16 @@ public class LaserBlaster : BaseWeapon
 {
     [Header("// LaserBlaster //")]
 
+    public int Range2;
+
+    public float Damage2;
+
     [SerializeField]
     private BigLaserScript BigLaser;
     [SerializeField]
     private ParticleSystem ChargingLaserParticleSystem;
+
+    public AudioSource BigLaserSFX;
 
     public int Radius2;
     public int MaxChargingTime;
@@ -110,6 +116,8 @@ public class LaserBlaster : BaseWeapon
         {
             BigLaser.ShootLaser(Range2 / 2, MuzzlePoint.rotation * Vector3.forward);
         }
+
+        BigLaserSFX.Play();
     }
 
     public override void OnActivate()

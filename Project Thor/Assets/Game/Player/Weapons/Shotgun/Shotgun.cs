@@ -6,6 +6,16 @@ public class Shotgun : BaseWeapon
 {
     [Header("// Shotgun //")]
 
+    public int Range1;
+
+    public float Damage;
+
+    public Vector3 RecoilRotationAmount1;
+    public Vector3 RecoilPositionAmount1;
+
+    public Vector3 RecoilRotationAmount2;
+    public Vector3 RecoilPositionAmount2;
+
     [SerializeField]
     private ParticleSystem ChargingRocketParticleSystem;
 

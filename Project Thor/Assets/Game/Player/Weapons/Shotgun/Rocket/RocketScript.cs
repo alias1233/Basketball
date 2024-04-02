@@ -8,7 +8,9 @@ public class RocketScript : BaseProjectile
     [Header("Components")]
 
     [SerializeField]
-    ParticleSystem Explosion;
+    private ParticleSystem Explosion;
+    [SerializeField]
+    private AudioSource ExplosionSound;
 
     public float Radius;
 
@@ -34,7 +36,7 @@ public class RocketScript : BaseProjectile
     {
         ExplodeVisuals();
         Model.SetActive(false);
-        Invoke(nameof(Despawn), 0.5f);
+        Despawn();
 
         int NumHits = Physics.OverlapSphereNonAlloc(SelfTransform.position, Radius, Hits, PlayerLayer);
 
@@ -50,6 +52,7 @@ public class RocketScript : BaseProjectile
     private void ExplodeVisuals()
     {
         Explosion.Play();
+        ExplosionSound.Play();
     }
 
     [ClientRpc]

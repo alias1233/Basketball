@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class ObjectPool : MonoBehaviour
@@ -18,6 +19,14 @@ public class ObjectPool : MonoBehaviour
             tmp = Instantiate(objectToPool);
             tmp.SetActive(false);
             pooledObjects.Add(tmp);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        for (int i = 0; i < amountToPool; i++)
+        {
+            Destroy(pooledObjects[i]);
         }
     }
 

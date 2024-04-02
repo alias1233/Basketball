@@ -8,11 +8,16 @@ public class Pistol : BaseWeapon
 {
     [Header("Pistol")]
 
+    public int Range1;
+
+    public float Damage;
+
+    public Vector3 RecoilPositionAmount1;
+
     public LayerMask ObjectProjectileLayer;
 
     private Ray BulletRay;
 
-    public AudioSource CoinFlipSound;
     public AudioSource CoinShootSound;
 
     public override void Start()
@@ -67,8 +72,10 @@ public class Pistol : BaseWeapon
     {
         if(bIsOwner)
         {
-            Manager.Recoil(RecoilRotationAmount1, RecoilPositionAmount1);
+            Manager.RecoilPosition(RecoilPositionAmount1);
         }
+
+        ShootSound1.Play();
 
         BulletRay = new Ray(Manager.GetAimPointLocation(), PlayerMovementComponent.GetRotation() * Vector3.forward);
         Vector3 HitPos = BulletRay.GetPoint(Range1);
@@ -94,7 +101,7 @@ public class Pistol : BaseWeapon
             }
         }
 
-        GameObject Bullet = Manager.BulletPool.GetPooledObject();
+        GameObject Bullet = Manager.FadingBulletPool.GetPooledObject();
 
         if (Bullet != null)
         {
@@ -134,6 +141,6 @@ public class Pistol : BaseWeapon
 
     public override void Visuals2()
     {
-        CoinFlipSound.Play();
+        ShootSound2.Play();
     }
 }

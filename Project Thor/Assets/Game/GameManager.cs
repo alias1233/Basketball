@@ -8,7 +8,7 @@ using TMPro;
 public enum Teams
 { 
     Red,
-    Blue
+    Blue,
 }
 
 public class GameManager : NetworkBehaviour
@@ -31,6 +31,9 @@ public class GameManager : NetworkBehaviour
     private List<PlayerManager> RedTeamPlayers = new List<PlayerManager>();
     private List<PlayerManager> BlueTeamPlayers = new List<PlayerManager>();
 
+    private bool bStartGame;
+    private bool bOvertime;
+
     public Hoop RedTeamHoop;
     public Hoop BlueTeamHoop;
 
@@ -45,11 +48,29 @@ public class GameManager : NetworkBehaviour
 
     public float LaunchFactor = 1000;
 
+    public TMP_Text MatchTimer;
+
+    public float MatchTime;
+    public int UpdateMatchTimeInterval;
+
+    private int UpdateMatchTimeTick;
+
+    private float DeltaTime;
+
+    public GameObject EndGameObject;
+    public TMP_Text EndGameText;
+
+    public GameObject Lebron;
+
+    public GameObject Tip;
+
     private void Awake()
     {
         Singleton = this;
 
         PlayerList = new NetworkList<PlayerInformation>();
+
+        DeltaTime = Time.fixedDeltaTime;
     }
 
     private void Start()
@@ -69,6 +90,149 @@ public class GameManager : NetworkBehaviour
         BlueTeamScore.OnValueChanged -= UpdateBlueTeamScore;
     }
 
+    public void StartGame()
+    {
+        bStartGame = true;
+
+        Invoke(nameof(DisableTip), 10);
+    }
+
+    private void DisableTip()
+    {
+        Tip.SetActive(false);
+    }
+
+    private void FixedUpdate()
+    {
+        if (!bStartGame)
+        {
+            return;
+        }
+
+        MatchTime -= DeltaTime;
+
+        UpdateTimer(MatchTime);
+
+        if (!IsServer)
+        {
+            return;
+        }
+
+        if (MatchTime < 0)
+        {
+            EndGame();
+        }
+
+        UpdateMatchTimeTick++;
+
+        if (UpdateMatchTimeTick >= UpdateMatchTimeInterval)
+        {
+            UpdateMatchTimeTick = 0;
+
+            UpdateMatchTimeClientRpc(MatchTime);
+        }
+    }
+
+    private void EndGame()
+    {
+        bStartGame = false;
+
+        if (RedTeamScore.Value == BlueTeamScore.Value)
+        {
+            StartOvertimeClientRpc();
+
+            return;
+        }
+
+        Teams WinningTeam;
+
+        if(RedTeamScore.Value > BlueTeamScore.Value)
+        {
+            WinningTeam = Teams.Red;
+        }
+
+        else
+        {
+            WinningTeam = Teams.Blue;
+        }
+
+        EndGameClientRpc(WinningTeam);
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Reliable)]
+    private void EndGameClientRpc(Teams team)
+    {
+        if (team == Teams.Red)
+        {
+            EndGameText.text = "RED TEAM WINS!";
+        }
+
+        else
+        {
+            EndGameText.text = "BLUE TEAM WINS!";
+        }
+
+        ulong ID = NetworkManager.LocalClientId;
+        List<PlayerInformation> PlayerList = GetAllPlayerInformation();
+
+        foreach (PlayerInformation i in PlayerList)
+        {
+            if(i.Id == ID)
+            {
+                if(i.Team == team)
+                {
+
+                }
+
+                else
+                {
+
+                }
+
+                break;
+            }
+        }
+
+        EndGameObject.SetActive(true);
+
+        Lebron.SetActive(true);
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Reliable)]
+    private void StartOvertimeClientRpc()
+    {
+        MatchTimer.text = "OVERTIME";
+
+        bOvertime = true;
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    private void UpdateMatchTimeClientRpc(float CurrentMatchTime)
+    {
+        if(IsServer || bOvertime)
+        {
+            return;
+        }
+
+        MatchTime = CurrentMatchTime;
+
+        UpdateTimer(MatchTime);
+    }
+
+    private void UpdateTimer(float CurrentMatchTime)
+    {
+        int seconds = (int)(CurrentMatchTime % 60);
+
+        if (seconds < 10)
+        {
+            MatchTimer.text = (int)(CurrentMatchTime / 60) + " : 0" + seconds;
+
+            return;
+        }
+
+        MatchTimer.text = (int)(CurrentMatchTime / 60) + " : " + (int)(CurrentMatchTime % 60);
+    }
+
     public void ScorePoint(Teams team)
     {
         Ball.Singleton.Velocity = Vector3.zero;
@@ -77,12 +241,22 @@ public class GameManager : NetworkBehaviour
         {
             BlueTeamScore.Value++;
 
+            if(bOvertime)
+            {
+                EndGameClientRpc(Teams.Blue);
+            }
+
             return;
         }
 
         if(team == Teams.Blue)
         {
             RedTeamScore.Value++;
+
+            if (bOvertime)
+            {
+                EndGameClientRpc(Teams.Red);
+            }
         }
     }
 

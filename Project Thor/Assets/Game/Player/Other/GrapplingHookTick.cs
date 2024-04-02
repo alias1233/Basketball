@@ -10,7 +10,7 @@ public class GrapplingHookTick : BaseProjectileTick
     {
         if(Grapple.bHit)
         {
-            Grapple.grapple.SetPosition(0, Grapple.OwningPlayerMovement.GetPosition());
+            Grapple.grapple.SetPosition(0, Grapple.OwningPlayerMovement.GetGrappleShootStartLocation());
             Grapple.grapple.SetPosition(1, SelfTransform.position);
 
             return;
@@ -18,7 +18,7 @@ public class GrapplingHookTick : BaseProjectileTick
 
         base.FixedUpdate();
 
-        Grapple.grapple.SetPosition(0, Grapple.OwningPlayerMovement.GetPosition());
+        Grapple.grapple.SetPosition(0, Grapple.OwningPlayerMovement.GetGrappleShootStartLocation());
         Grapple.grapple.SetPosition(1, SelfTransform.position);
     }
 }

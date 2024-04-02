@@ -45,12 +45,15 @@ public class Ball : NetworkBehaviour
 
     public float NYPos;
 
+    private BallIndicatorScript Indicator;
+
     private void Awake()
     {
         Singleton = this;
-
         SelfTransform = transform;
+
         ColliderRadius = GetComponent<SphereCollider>().radius - SkinWidth;
+        Indicator = GetComponent<BallIndicatorScript>();
 
         DeltaTime = Time.fixedDeltaTime;
     }
@@ -164,7 +167,7 @@ public class Ball : NetworkBehaviour
                 return;
             }
 
-            Velocity = Velocity + GravityAcceleration * Vector3.down * DeltaTime;
+            Velocity += GravityAcceleration * DeltaTime * Vector3.down;
 
             SelfTransform.position += CollideAndBounce(SelfTransform.position, Velocity * DeltaTime, 0);
 
@@ -187,7 +190,7 @@ public class Ball : NetworkBehaviour
             return;
         }
 
-        Velocity = Velocity + GravityAcceleration * Vector3.down * DeltaTime;
+        Velocity += GravityAcceleration * Vector3.down * DeltaTime;
 
         SelfTransform.position += CollideAndBounce(SelfTransform.position, Velocity * DeltaTime, 0);
 
@@ -236,7 +239,7 @@ public class Ball : NetworkBehaviour
         bAttached = false;
         AttachedPlayer.Unattach();
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 2;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
 
         for (int i = 0; i < PingInTick; i++)
         {
@@ -271,7 +274,7 @@ public class Ball : NetworkBehaviour
             AttachedPlayer.Unattach();
         }
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 2;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
 
         for (int i = 0; i < PingInTick; i++)
         {
@@ -329,7 +332,7 @@ public class Ball : NetworkBehaviour
 
             Vector3 SnapToSurface = Vel.normalized * (hit.distance + SkinWidth / Mathf.Cos(Vector3.Angle(Vel, hit.normal) * Mathf.PI / 180));
 
-            Velocity = Vector3.Reflect(Vel, hit.normal).normalized * Velocity.magnitude * BounceFactor;
+            Velocity = Velocity.magnitude * BounceFactor * Vector3.Reflect(Vel, hit.normal).normalized;
 
             return SnapToSurface + CollideAndBounce(Pos + SnapToSurface, Vector3.Reflect(Vel - SnapToSurface, hit.normal), depth + 1);
         }
@@ -344,11 +347,11 @@ public class Ball : NetworkBehaviour
             )
             == 1 && PenetrationAttempts <= MaxResolvePenetrationAttempts + 1)
         {
-            Vector3 ResolvePenetration = (Pos - Penetrations[0].ClosestPoint(Pos)).normalized * ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts;
+            Vector3 ResolvePenetration = ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts * (Pos - Penetrations[0].ClosestPoint(Pos)).normalized;
 
             if (ResolvePenetration == Vector3.zero)
             {
-                ResolvePenetration = (Pos - Penetrations[0].bounds.center).normalized * ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts;
+                ResolvePenetration = ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts * (Pos - Penetrations[0].bounds.center).normalized;
             }
 
             Vel += ResolvePenetration;
@@ -373,5 +376,11 @@ public class Ball : NetworkBehaviour
     public void TeleportTo(Vector3 pos)
     {
         SelfTransform.position = pos;
+    }
+
+    public void SetOwningPlayer(Transform OwningPlayer)
+    {
+        Indicator.SetOwningPlayer(OwningPlayer);
+        Indicator.enabled = true;
     }
 }

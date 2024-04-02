@@ -123,7 +123,9 @@ public class PlayerMovement : NetworkBehaviour
     public float SlideJumpForce = 12f;
     public float SlideMinSpeed = 3f;
     public int SlideCooldown;
+    public int SlideChargeJumpTime = 75;
 
+    public Transform GrappleShootLocationTransform;
     public float GroundPoundSpeed = 15f;
     public float GroundPoundAcceleration;
     public float MinHeightToGroundPound = 1;
@@ -192,9 +194,13 @@ public class PlayerMovement : NetworkBehaviour
     public AudioSource LandAudio;
     public float LandAudioCooldown;
     private float LastTimePlayedLandAudio;
+    public AudioSource JumpAudio;
+    public AudioSource BoostedJumpAudio;
 
     public Vector3 SlideCameraOffset;
     public float SlideCameraDuration;
+    public GameObject SlideChargeJumpUIObject;
+    public ProgressBar SlideChargeJumpProgressBar;
 
     public float SlideParticleOffset;
     public ParticleSystem SlideParticles;
@@ -222,7 +228,7 @@ public class PlayerMovement : NetworkBehaviour
     public float GrappleSpeed;
     public int MinGrappleTimeBeforeJumping;
 
-    private int GrappleShootTime;
+    private int GrappleShootTime = -9999;
 
     public int FlyCooldown;
     public int FlyDuration;
@@ -234,7 +240,7 @@ public class PlayerMovement : NetworkBehaviour
     */
 
     private bool bDashing;
-    private int StartDashTime;
+    private int StartDashTime = -9999;
     private Vector3 DashingStartRotation;
 
     private bool bGrapple;
@@ -242,7 +248,7 @@ public class PlayerMovement : NetworkBehaviour
     private Vector3 GrappleLocation;
 
     private bool bFly;
-    private int LastTimeFly;
+    private int LastTimeFly = -9999;
 
     [Header("Visuals")]
 
@@ -281,8 +287,8 @@ public class PlayerMovement : NetworkBehaviour
         Player = GetComponent<PlayerManager>();
         CapsuleCollider Collider = GetComponent<CapsuleCollider>();
 
-        ColliderOffset1 = Collider.center + Vector3.up * Collider.height * 0.5f + Vector3.down * Collider.radius;
-        ColliderOffset2 = Collider.center + Vector3.down * Collider.height * 0.5f + Vector3.up * Collider.radius;
+        ColliderOffset1 = Collider.center + Collider.height * 0.5f * Vector3.up + Vector3.down * Collider.radius;
+        ColliderOffset2 = Collider.center + Collider.height * 0.5f * Vector3.down + Vector3.up * Collider.radius;
         CollidingRadius = Collider.radius - SkinWidth;
         ColliderHeight = Collider.height;
 
@@ -572,7 +578,7 @@ public class PlayerMovement : NetworkBehaviour
                 FlightProgressBar.UpdateProgressBar((float)(CurrentTimeStamp - LastTimeFly) / FlyDuration);
             }
 
-            if (CurrentTimeStamp - LastTimeFly > FlyDuration || (CurrentInput.R && !bPrevR && CurrentTimeStamp - LastTimeFly > 50))
+            if (CurrentTimeStamp - LastTimeFly > FlyDuration || (CurrentInput.R && !bPrevR && CurrentTimeStamp - LastTimeFly > 25))
             {
                 ExitFly();
             }
@@ -589,7 +595,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             if (CurrentTimeStamp - StartDashTime <= DashDuration)
             {
-                SafeMovePlayer(DashingStartRotation * DashSpeed * DeltaTime);
+                SafeMovePlayer(DashSpeed * DeltaTime * DashingStartRotation);
             }
 
             else
@@ -756,15 +762,16 @@ public class PlayerMovement : NetworkBehaviour
             GrapplingHook grapplinghook = obj.GetComponent<GrapplingHook>();
 
             grapplinghook.Spawn();
+            grapplinghook.OwningPlayerMovement = this;
 
             if (IsServer && !IsOwner)
             {
-                grapplinghook.InitAndSimulateForward(Player.GetTeam(), SelfTransform.position + Vector3.up * 0.6f, Rotation * Vector3.forward, Player.GetHalfRTTInTick());
+                grapplinghook.InitAndSimulateForward(Player.GetTeam(), GrappleShootLocationTransform.position, Rotation * Vector3.forward, Player.GetHalfRTTInTick());
             }
 
             else
             {
-                grapplinghook.Init(Player.GetTeam(), SelfTransform.position + Vector3.up * 0.6f, Rotation * Vector3.forward);
+                grapplinghook.Init(Player.GetTeam(), GrappleShootLocationTransform.position, Rotation * Vector3.forward);
             }
         }
 
@@ -825,7 +832,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void Grapple()
     {
-        SafeMovePlayer(GrappleSpeed * (GrappleLocation - SelfTransform.position).normalized * DeltaTime);
+        SafeMovePlayer(DeltaTime * GrappleSpeed * (GrappleLocation - SelfTransform.position).normalized);
 
         if (bTryJump && CurrentTimeStamp - LastTimeJumped > JumpCooldown && CurrentTimeStamp - GrappleStartTime >= MinGrappleTimeBeforeJumping)
         {
@@ -842,7 +849,7 @@ public class PlayerMovement : NetworkBehaviour
         bGrapple = false;
         bNoMovement = false;
 
-        Velocity = Velocity * 0.25f + Vector3.up * JumpForce * 1.25f;
+        Velocity = Velocity * 0.25f + JumpForce * 1.25f * Vector3.up;
 
         bChangingVelocity = true;
 
@@ -884,24 +891,24 @@ public class PlayerMovement : NetworkBehaviour
         {
             if(CurrentInput.CTRL)
             {
-                Delta = (Velocity.magnitude * (Velocity.normalized + MoveDirection * FlyInputInfluence).normalized * (1 - FlyFriction * DeltaTime) + ((MoveDirection * FlySprintSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
+                Delta = ((1 - FlyFriction * DeltaTime) * Velocity.magnitude * (Velocity.normalized + MoveDirection * FlyInputInfluence).normalized + ((1 + FlyFriction) * DeltaTime * (MoveDirection * FlySprintSpeed))) * DeltaTime;
             }
 
             else
             {
-                Delta = (Velocity.magnitude * (Velocity.normalized + MoveDirection * FlyInputInfluence).normalized * (1 - FlyFriction * DeltaTime) + ((MoveDirection * FlyMoveSpeed) * (1 + FlyFriction) * DeltaTime)) * DeltaTime;
+                Delta = ((1 - FlyFriction * DeltaTime) * Velocity.magnitude * (Velocity.normalized + MoveDirection * FlyInputInfluence).normalized + ((1 + FlyFriction) * DeltaTime * (MoveDirection * FlyMoveSpeed))) * DeltaTime;
             }
 
             float GravityFactor = Vector3.Dot(Delta, Vector3.down);
 
             if (GravityFactor < 0)
             {
-                Delta = Delta + GravityFactor * Velocity.normalized * FlyGravityFactor * 0.5f;
+                Delta += 0.5f * FlyGravityFactor * GravityFactor * Velocity.normalized;
             }
 
             else
             {
-                Delta = Delta + GravityFactor * Velocity.normalized * FlyGravityFactor;
+                Delta += FlyGravityFactor * GravityFactor * Velocity.normalized;
             }
         }
 
@@ -930,9 +937,27 @@ public class PlayerMovement : NetworkBehaviour
                 }
             }
 
-            else if (!CurrentInput.CTRL || Velocity.magnitude < SlideMinSpeed)
+            else
             {
-                ExitSlide();
+                if (IsOwner)
+                {
+                    float SlideChargeTime = (float)(CurrentTimeStamp - TimeStartSlideGroundPound) / SlideChargeJumpTime;
+
+                    if (SlideChargeTime > 1)
+                    {
+                        SlideChargeJumpProgressBar.UpdateProgressBar(1);
+                    }
+
+                    else
+                    {
+                        SlideChargeJumpProgressBar.UpdateProgressBar(SlideChargeTime);
+                    }
+                }
+
+                if (!CurrentInput.CTRL || Velocity.magnitude < SlideMinSpeed)
+                {
+                    ExitSlide();
+                }
             }
 
             if (!bGroundPound)
@@ -966,22 +991,37 @@ public class PlayerMovement : NetworkBehaviour
                     {
                         ExitSlide();
 
-                        if (CurrentTimeStamp - TimeStartSlideGroundPound < 75)
+                        if (CurrentTimeStamp - TimeStartSlideGroundPound < SlideChargeJumpTime)
                         {
                             JumpVel = (Vector3.up * 2.5f + SlideDirection).normalized * SlideJumpForce;
 
                             Velocity = Vector3.ClampMagnitude(Velocity, SlideMoveSpeed * 1.5f);
+
+                            if (IsOwner)
+                            {
+                                JumpAudio.Play();
+                            }
                         }
 
                         else
                         {
-                            JumpVel = Vector3.up * JumpForce * 1.75f;
+                            JumpVel = 1.75f * JumpForce * Vector3.up;
+
+                            if (IsOwner)
+                            {
+                                BoostedJumpAudio.Play();
+                            }
                         }
                     }
 
                     else
                     {
                         JumpVel = Vector3.up * JumpForce;
+
+                        if (IsOwner)
+                        {
+                            JumpAudio.Play();
+                        }
                     }
                 }
 
@@ -996,7 +1036,7 @@ public class PlayerMovement : NetworkBehaviour
 
                     else if (Mag > SlideMoveSpeed * 2)
                     {
-                        Delta = ((SlideDirection * SlideMoveSpeed * 2) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
+                        Delta = ((2 * SlideMoveSpeed * SlideDirection) * (1 - SlideFriction * DeltaTime)) * DeltaTime;
                     }
 
                     else
@@ -1007,7 +1047,7 @@ public class PlayerMovement : NetworkBehaviour
 
                 else
                 {
-                    Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + GroundFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                    Delta = (Velocity * (1 - GroundFriction * DeltaTime) + ((1 + GroundFriction) * DeltaTime * (MoveDirection * WalkMoveSpeed)) + JumpVel) * DeltaTime;
                 }
             }
 
@@ -1033,9 +1073,14 @@ public class PlayerMovement : NetworkBehaviour
                         LastTimeJumped = CurrentTimeStamp;
                         bTryJump = false;
                         JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
+
+                        if (IsOwner)
+                        {
+                            JumpAudio.Play();
+                        }
                     }
 
-                    Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                    Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((1 + WallRunFriction) * DeltaTime * (WallForward * WallRunSpeed)) + JumpVel) * DeltaTime;
                 }
 
                 else if (CurrentInput.A && !bGroundPound && CurrentTimeStamp - LastTimeJumped > JumpCooldown && Velocity.magnitude >= MinWallRunSpeed && CheckForLeftWall())
@@ -1058,9 +1103,14 @@ public class PlayerMovement : NetworkBehaviour
                         LastTimeJumped = CurrentTimeStamp;
                         bTryJump = false;
                         JumpVel = (WallNormal + 2 * Vector3.up) * WallJumpForce;
+
+                        if (IsOwner)
+                        {
+                            JumpAudio.Play();
+                        }
                     }
 
-                    Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((WallForward * WallRunSpeed) * (1 + WallRunFriction) * DeltaTime) + JumpVel) * DeltaTime;
+                    Delta = (Velocity * (1 - WallRunFriction * DeltaTime) + ((1 + WallRunFriction) * DeltaTime * (WallForward * WallRunSpeed)) + JumpVel) * DeltaTime;
                 }
 
                 else
@@ -1072,7 +1122,7 @@ public class PlayerMovement : NetworkBehaviour
 
                     else
                     {
-                        Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((MoveDirection * WalkMoveSpeed) * (1 + AirFriction) * DeltaTime) + (Gravity * Vector3.down)) * DeltaTime;
+                        Delta = (Velocity * (1 - AirFriction * DeltaTime) + ((1 + AirFriction) * DeltaTime * (MoveDirection * WalkMoveSpeed)) + (Gravity * Vector3.down)) * DeltaTime;
                     }
                 }
             }
@@ -1108,12 +1158,17 @@ public class PlayerMovement : NetworkBehaviour
 
                 if (CurrentTimeStamp - TimeStartSlideGroundPound > MaxGroundPoundChargeJumpTime)
                 {
-                    JumpVel = Vector3.up * JumpForce * (MaxGroundPoundJumpForce + 0.25f);
+                    JumpVel = (MaxGroundPoundJumpForce + 0.25f) * JumpForce * Vector3.up;
                 }
 
                 else
                 {
-                    JumpVel = Vector3.up * JumpForce * (1.25f + (CurrentTimeStamp - TimeStartSlideGroundPound) / MaxGroundPoundChargeJumpTime * (MaxGroundPoundJumpForce - 1));
+                    JumpVel = (1.25f + (CurrentTimeStamp - TimeStartSlideGroundPound) / MaxGroundPoundChargeJumpTime * (MaxGroundPoundJumpForce - 1)) * JumpForce * Vector3.up;
+                }
+
+                if (IsOwner)
+                {
+                    BoostedJumpAudio.Play();
                 }
             }
         }
@@ -1140,6 +1195,12 @@ public class PlayerMovement : NetworkBehaviour
     {
         CameraVisuals.ChangePosition(SlideCameraOffset);
 
+        if (IsOwner)
+        {
+            SlideChargeJumpUIObject.SetActive(true);
+            SlideChargeJumpProgressBar.UpdateProgressBar(0);
+        }
+
         SlideParticles.transform.position = SelfTransform.position + MoveDirection * 0.5f + Vector3.down * SlideParticleOffset;
         SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
         SlideParticles.Play();
@@ -1164,6 +1225,11 @@ public class PlayerMovement : NetworkBehaviour
     private void ExitSlideVisuals()
     {
         CameraVisuals.ResetPosition();
+
+        if (IsOwner)
+        {
+            SlideChargeJumpUIObject.SetActive(false);
+        }
 
         if (Time.time - LastTimePlayedSlideExitAudio >= LandAudioCooldown)
         {
@@ -1278,11 +1344,11 @@ public class PlayerMovement : NetworkBehaviour
             )
             == 1 && PenetrationAttempts <= MaxResolvePenetrationAttempts + 1)
         {
-            Vector3 ResolvePenetration = (Pos - Penetrations[0].ClosestPoint(Pos)).normalized * ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts;
+            Vector3 ResolvePenetration = PenetrationAttempts * PenetrationAttempts * ResolvePenetrationDistance * (Pos - Penetrations[0].ClosestPoint(Pos)).normalized;
 
             if (ResolvePenetration == Vector3.zero)
             {
-                ResolvePenetration = (Pos - Penetrations[0].bounds.center).normalized * ResolvePenetrationDistance * PenetrationAttempts * PenetrationAttempts;
+                ResolvePenetration = PenetrationAttempts * PenetrationAttempts * ResolvePenetrationDistance * (Pos - Penetrations[0].bounds.center).normalized;
             }
 
             Vel += ResolvePenetration;
@@ -1960,6 +2026,11 @@ public class PlayerMovement : NetworkBehaviour
         return SelfTransform.position;
     }
 
+    public Vector3 GetGrappleShootStartLocation()
+    {
+        return GrappleShootLocationTransform.position;
+    }
+
     public bool GetIsSliding()
     {
         return bSliding;
@@ -1998,5 +2069,10 @@ public class PlayerMovement : NetworkBehaviour
     public PlayerManager GetPlayer()
     {
         return Player;
+    }
+
+    public bool GetIsDead()
+    {
+        return Player.GetIsDead();
     }
 }
