@@ -17749,8 +17749,8 @@ MonoBehaviour:
   MuzzlePoint: {fileID: 9027878572458844569}
   ShootSound1: {fileID: 1898197486318020314}
   ShootSound2: {fileID: 25194534600487127}
-  FireCooldown1: 30
-  FireCooldown2: 50
+  FireCooldown1: 35
+  FireCooldown2: 150
   LastTimeShot1: 0
   LastTimeShot2: 0
   PlayerLayer:
@@ -23536,6 +23536,38 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &4505862885269536837
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8340927252174558950}
+  m_Layer: 3
+  m_Name: CameraParentParentTransform
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8340927252174558950
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4505862885269536837}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4416519836424651475}
+  m_Father: {fileID: 245901753364132158}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4543654866570425060
 GameObject:
   m_ObjectHideFlags: 0
@@ -23907,13 +23939,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4851926479541994929}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7143213653962872233}
-  m_Father: {fileID: 245901753364132158}
+  m_Father: {fileID: 8340927252174558950}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4935691055142638147
 GameObject:
@@ -29099,7 +29131,7 @@ MonoBehaviour:
   pooledObjects: []
   objectToPool: {fileID: 1385817711339267225, guid: 765e16d4e390e5a4aa1ff26b2c2f0d07,
     type: 3}
-  amountToPool: 2
+  amountToPool: 1
 --- !u!1 &5108382789658267395
 GameObject:
   m_ObjectHideFlags: 0
@@ -30416,7 +30448,7 @@ MonoBehaviour:
   pooledObjects: []
   objectToPool: {fileID: 2892120337144841498, guid: e0ff40aeea5fcf644bee35bb388f9334,
     type: 3}
-  amountToPool: 2
+  amountToPool: 1
 --- !u!1 &6456472663876039472
 GameObject:
   m_ObjectHideFlags: 0
@@ -46382,7 +46414,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4416519836424651475}
+  - {fileID: 8340927252174558950}
   - {fileID: 6870187436196183879}
   - {fileID: 3899882630906304647}
   m_Father: {fileID: 3525563439652999784}
@@ -46413,6 +46445,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CameraTransform: {fileID: 7143213653962872233}
+  CameraParentParentTransform: {fileID: 8340927252174558950}
   PlayerCamera: {fileID: 188663263730116120}
   OverlayCamera: {fileID: 2614435694910805154}
   ThirdPersonOffset: {x: 0, y: 0, z: -2}
@@ -46650,7 +46683,7 @@ MonoBehaviour:
   FPOrientation: {fileID: 245901753364132158}
   TPOrientation: {fileID: 2328282342131481982}
   CameraVisuals: {fileID: 3015463303445800145}
-  ReplicatePositionInterval: 0.1
+  ReplicatePositionInterval: 0.075
   CorrectionDistance: 0.5
   MinTimeBetweenCorrections: 1
   DefaultCorrectionSmoothTime: 8
@@ -46788,7 +46821,7 @@ MonoBehaviour:
   MeleeDamage: 25
   MaxChargingTime: 25
   ThrowForce: 17
-  Radius: 1.25
+  Radius: 2
   MaxSwayVelocity: 100
   MaxSwayAmount: 0.25
   CameraParentTransform: {fileID: 4416519836424651475}

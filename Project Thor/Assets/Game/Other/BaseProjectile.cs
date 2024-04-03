@@ -39,12 +39,14 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     virtual public void Activate()
     {
         Model.SetActive(true);
+        ProjectileCollider.enabled = true;
         Tick.enabled = true;
     }
 
     virtual public void Deactivate()
     {
         Model.SetActive(false);
+        ProjectileCollider.enabled = false;
         Tick.enabled = false;
     }
 
@@ -52,6 +54,8 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
     [HideInInspector]
     public Transform SelfTransform;
+
+    private SphereCollider ProjectileCollider;
 
     [Header("Components")]
 
@@ -68,6 +72,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     public virtual void Awake()
     {
         SelfTransform = transform;
+        ProjectileCollider = GetComponent<SphereCollider>();
     }
 
     public virtual void Start()

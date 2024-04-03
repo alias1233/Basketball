@@ -274,7 +274,7 @@ GameObject:
   - component: {fileID: 7868402681162088721}
   - component: {fileID: 106530036943314900}
   - component: {fileID: 4214780071434354251}
-  - component: {fileID: 7723791826989599489}
+  - component: {fileID: 1508175028854511606}
   m_Layer: 7
   m_Name: Coin
   m_TagString: Untagged
@@ -345,7 +345,7 @@ MonoBehaviour:
   Ricochet: {fileID: 5533292053385235406}
   CoinTrail: {fileID: 4295925237713458683}
   ShootCoinSound: {fileID: 0}
-  CoinRange: 15
+  CoinRange: 12
 --- !u!114 &4214780071434354251
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -378,7 +378,7 @@ MonoBehaviour:
   ReplicatePositionInterval: 10
   LastTimeReplicatedPosition: 0
   bUpdatedThisFrame: 0
---- !u!135 &7723791826989599489
+--- !u!135 &1508175028854511606
 SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

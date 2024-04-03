@@ -15,7 +15,7 @@ public class GrapplingHook : BaseProjectile
     {
         base.OnNetworkSpawn();
 
-        if(!IsServer && IsOwner)
+        if(!IsServer)
         {
             TryFindOwner();
         }
@@ -31,6 +31,11 @@ public class GrapplingHook : BaseProjectile
             {
                 i.GrapplePool.pooledObjects.Add(gameObject);
                 i.GrapplePool.pooledNetworkObjects.Add(this);
+
+                if(!IsOwner)
+                {
+                    OwningPlayerMovement = i;
+                }
 
                 return;
             }

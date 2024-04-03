@@ -9,6 +9,8 @@ public class CameraVisualsScript : MonoBehaviour
     [SerializeField]
     private Transform CameraTransform;
     [SerializeField]
+    private Transform CameraParentParentTransform;
+    [SerializeField]
     private Camera PlayerCamera;
     [SerializeField]
     private Camera OverlayCamera;
@@ -139,13 +141,13 @@ public class CameraVisualsScript : MonoBehaviour
                 yield break;
             }
 
-            selftransform.localPosition = new Vector3((Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude, (Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude + 0.6f, 0);
+            CameraParentParentTransform.localPosition = new Vector3((Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude, (Mathf.PerlinNoise1D(elapsed * 25) - 0.5f) * Magnitude + 0.6f, 0);
 
             elapsed += Time.deltaTime;
 
             yield return null;
         }
 
-        selftransform.localPosition = Vector3.zero;
+        CameraParentParentTransform.localPosition = Vector3.zero;
     }
 }
