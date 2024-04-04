@@ -88,7 +88,7 @@ public class PlayerMovement : NetworkBehaviour
 
     [Header("// Physics //")]
 
-    public LayerMask layerMask;
+    public LayerMask PhysicsLayerMask;
     public int MaxBounces = 5;
     public float SkinWidth = 0.015f;
 
@@ -117,7 +117,9 @@ public class PlayerMovement : NetworkBehaviour
     public float FlyFriction = 5;
     public float FlyGravityFactor = 0.1f;
     public float FlyInputInfluence = 0.5f;
+    public float FlyInitialVelocityFactor;
     public float AfterFlyVelocityFactor = 2.5f;
+    public float AfterFlyUpFactor;
 
     public float SlideMoveSpeed = 8f;
     public float SlideJumpForce = 12f;
@@ -627,6 +629,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         bFly = true;
         LastTimeFly = CurrentTimeStamp;
+        Velocity += Rotation * Vector3.forward * FlyInitialVelocityFactor;
 
         if(Player.GetIsHoldingBall())
         {
@@ -657,7 +660,7 @@ public class PlayerMovement : NetworkBehaviour
 
         bTrySlideGroundPound = false;
 
-        Velocity = Velocity * AfterFlyVelocityFactor + Vector3.up * 25;
+        Velocity = Velocity * AfterFlyVelocityFactor + Vector3.up * AfterFlyUpFactor;
 
         ExitFlyVisuals();
     }
@@ -1324,7 +1327,7 @@ public class PlayerMovement : NetworkBehaviour
             Vel,
             out RaycastHit hit,
             Vel.magnitude + SkinWidth,
-            layerMask
+            PhysicsLayerMask
             ))
         {
 
@@ -1340,7 +1343,7 @@ public class PlayerMovement : NetworkBehaviour
             Pos + ColliderOffset2,
             CollidingRadius,
             Penetrations,
-            layerMask
+            PhysicsLayerMask
             )
             == 1 && PenetrationAttempts <= MaxResolvePenetrationAttempts + 1)
         {

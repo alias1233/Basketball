@@ -46689,9 +46689,9 @@ MonoBehaviour:
   DefaultCorrectionSmoothTime: 8
   SmallCorrectionThreshold: 3
   SmallCorrectionSmoothTime: 6
-  layerMask:
+  PhysicsLayerMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 2049
   MaxBounces: 5
   SkinWidth: 0.015
   MaxResolvePenetrationAttempts: 5
@@ -46710,15 +46710,17 @@ MonoBehaviour:
   JumpCooldown: 8
   FlyMoveSpeed: 6
   FlySprintSpeed: 12
-  FlyFriction: 1.5
-  FlyGravityFactor: 0.025
-  FlyInputInfluence: 0.1
-  AfterFlyVelocityFactor: 1.25
+  FlyFriction: 1.75
+  FlyGravityFactor: 0.02
+  FlyInputInfluence: 0.15
+  FlyInitialVelocityFactor: 15
+  AfterFlyVelocityFactor: 0.75
+  AfterFlyUpFactor: 10
   SlideMoveSpeed: 9
   SlideJumpForce: 18
   SlideMinSpeed: 3
   SlideCooldown: 10
-  SlideChargeJumpTime: 75
+  SlideChargeJumpTime: 65
   GrappleShootLocationTransform: {fileID: 8449532278084759062}
   GroundPoundSpeed: 25
   GroundPoundAcceleration: 200
@@ -46727,7 +46729,7 @@ MonoBehaviour:
   MaxGroundPoundChargeJumpTime: 50
   GroundPoundDamage: 15
   GroundPoundRadius: 2.5
-  WallRunSpeed: 10
+  WallRunSpeed: 12
   WallJumpForce: 8
   MinWallRunSpeed: 2
   WallRunDampen: 15
@@ -46763,7 +46765,7 @@ MonoBehaviour:
   GrappleSpeed: 25
   MinGrappleTimeBeforeJumping: 10
   FlyCooldown: 1000
-  FlyDuration: 500
+  FlyDuration: 250
   DashFOVOffset: 15
   DashFOVDuration: 0.25
   FirstPersonDashParticles: {fileID: 7429191906427250410}

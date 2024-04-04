@@ -353,7 +353,7 @@ MonoBehaviour:
   PlayerObjectLayer:
     serializedVersion: 2
     m_Bits: 9
-  InitialSpeed: 55
+  InitialSpeed: 50
   bGravity: 0
   Gravity: 0
   bBounce: 0
