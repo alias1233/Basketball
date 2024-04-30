@@ -93,7 +93,7 @@ public class LaserBlaster : BaseWeapon
 
         for (int i = 0; i < NumHits; i++)
         {
-            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
             {
                 stats.Damage(Manager.GetTeam(), Mathf.Clamp(Damage2 * (Manager.GetTimeStamp() - ChargingStartTime) / MaxChargingTime, 0, Damage2));
             }

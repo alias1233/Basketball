@@ -72,7 +72,7 @@ public class Shotgun : BaseWeapon
 
             if (Physics.Raycast(PelletRays[i], out hit, Range1, PlayerLayer))
             {
-                if (hit.transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+                if (hit.transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
                 {
                     if(stats.Damage(Manager.GetTeam(), Damage))
                     {

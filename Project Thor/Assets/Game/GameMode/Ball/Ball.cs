@@ -1,7 +1,9 @@
+using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class Ball : NetworkBehaviour
 {
@@ -10,10 +12,12 @@ public class Ball : NetworkBehaviour
     Transform SelfTransform;
 
     [HideInInspector]
-    public PlayerManager AttachedPlayer;
+    public BasePlayerManager AttachedPlayer;
 
     [SerializeField]
-    Transform ModelTransform;
+    private Transform ModelTransform;
+    [SerializeField]
+    private TrailRenderer BallTrail;
     [HideInInspector]
     public bool bAttached;
 
@@ -46,6 +50,9 @@ public class Ball : NetworkBehaviour
     public float NYPos;
 
     private BallIndicatorScript Indicator;
+
+    public LineRenderer SimulateThrowLine;
+    public int SimulationTimes;
 
     private void Awake()
     {
@@ -206,11 +213,13 @@ public class Ball : NetworkBehaviour
         SelfTransform.position = AttachedPlayer.GetAimPointLocation();
 
         AttachedPlayer.Unattach();
+
+        SimulateThrowLine.enabled = false;
     }
 
-    public void Attach(PlayerManager player)
+    public void Attach(BasePlayerManager player)
     {
-        if(player.GetIsFlying())
+        if(!player.GetCanCarryBall())
         {
             return;
         }
@@ -233,13 +242,11 @@ public class Ball : NetworkBehaviour
 
     public void Throw(Vector3 ThrowVel)
     {
-        SelfTransform.position = AttachedPlayer.GetAimPointLocation();
+        Detach();
 
         Velocity = ThrowVel;
-        bAttached = false;
-        AttachedPlayer.Unattach();
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 2;
 
         for (int i = 0; i < PingInTick; i++)
         {
@@ -272,9 +279,11 @@ public class Ball : NetworkBehaviour
         if (AttachedPlayer != null)
         {
             AttachedPlayer.Unattach();
+
+            SimulateThrowLine.enabled = false;
         }
 
-        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 3;
+        int PingInTick = (int)(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(0) * 0.05f) + 2;
 
         for (int i = 0; i < PingInTick; i++)
         {
@@ -297,7 +306,7 @@ public class Ball : NetworkBehaviour
 
         if (playerGameObject.TryGet(out NetworkObject networkObject))
         {
-            PlayerManager newattachedplayer = networkObject.GetComponent<PlayerManager>();
+            BasePlayerManager newattachedplayer = networkObject.GetComponent<BasePlayerManager>();
 
             if (AttachedPlayer != null)
             {
@@ -363,6 +372,26 @@ public class Ball : NetworkBehaviour
         return Vel;
     }
 
+    public void SimulateThrow(Vector3 newVelocity)
+    {
+        Vector3 SimulateVelocity = newVelocity;
+        Vector3[] Positions = new Vector3[SimulationTimes];
+        Positions[0] = AttachedPlayer.GetAimPointLocation();
+
+        for(int i = 1; i < SimulationTimes; i++)
+        {
+            Positions[i] = Positions[i - 1] + SimulateVelocity * 0.15f + GravityAcceleration * 0.0225f * Vector3.down;
+            SimulateVelocity += GravityAcceleration * 0.15f * Vector3.down;
+        }
+
+        SimulateThrowLine.SetPositions(Positions);
+    }
+
+    public void StartSimulatingThrow()
+    {
+        SimulateThrowLine.enabled = true;
+    }
+
     public ulong GetAttachedPlayer()
     {
         if(bAttached)
@@ -382,5 +411,15 @@ public class Ball : NetworkBehaviour
     {
         Indicator.SetOwningPlayer(OwningPlayer);
         Indicator.enabled = true;
+    }
+
+    public void EnableTrail()
+    {
+        BallTrail.enabled = true;
+    }
+
+    public void DisableTrail()
+    {
+        BallTrail.enabled = false;
     }
 }

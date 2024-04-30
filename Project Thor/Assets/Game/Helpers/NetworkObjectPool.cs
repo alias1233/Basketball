@@ -55,7 +55,7 @@ public class NetworkObjectPool : NetworkBehaviour
 
         for (int i = 0; i < amountToPool; i++)
         {
-            //pooledObjects[i].GetComponent<NetworkObject>().Despawn(true);
+            pooledObjects[i].GetComponent<NetworkObject>().Despawn(true);
         }
     }
 

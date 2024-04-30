@@ -15,8 +15,9 @@ public class WeaponManager : NetworkBehaviour
 {
     [Header("Components")]
 
-    private PlayerManager Player;
-    private PlayerMovement PlayerMovementComponent;
+    private BasePlayerManager Player;
+    [HideInInspector]
+    public BaseCharacterMovement PlayerMovementComponent;
     public Transform TPOrientation;
     public Transform FPOrientation;
 
@@ -100,8 +101,9 @@ public class WeaponManager : NetworkBehaviour
 
     [Header("Visuals")]
 
-    public float MaxSwayVelocity;
+    public float SwayFactor;
     public float MaxSwayAmount;
+    public float WeaponSwaySpeed;
 
     [SerializeField]
     private Transform CameraParentTransform;
@@ -121,7 +123,7 @@ public class WeaponManager : NetworkBehaviour
 
     public LayerMask ObjectLayer;
 
-    private List<PlayerManager> RewindedPlayerList = new List<PlayerManager>();
+    private List<BasePlayerManager> RewindedPlayerList = new List<BasePlayerManager>();
 
     private RaycastHit[] RewindHits = new RaycastHit[5];
 
@@ -129,8 +131,8 @@ public class WeaponManager : NetworkBehaviour
 
     private void Start()
     {
-        Player = GetComponent<PlayerManager>();
-        PlayerMovementComponent = GetComponent<PlayerMovement>();
+        Player = GetComponent<BasePlayerManager>();
+        PlayerMovementComponent = GetComponent<BaseCharacterMovement>();
         ThrowChargeBar = FistChargeBar.GetComponent<ProgressBar>();
 
         LocalRole = Player.GetLocalRole();
@@ -455,14 +457,16 @@ public class WeaponManager : NetworkBehaviour
         }
     }
 
+    private Vector3 WeaponSway;
+
     private void HandleOwnerVisuals()
     {
         // Handle Weapon Sway
-        Vector3 moveamount = -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() / MaxSwayVelocity, MaxSwayAmount);
+        Vector3 moveamount = -Vector3.ClampMagnitude(PlayerMovementComponent.GetVelocity() * SwayFactor, MaxSwayAmount);
 
-        ActiveWeapon.SetWeaponModelPos(
-            moveamount
-            );
+        WeaponSway = Vector3.MoveTowards(WeaponSway, moveamount, WeaponSwaySpeed);
+
+        ActiveWeapon.SetWeaponModelPos(WeaponSway);
 
         FistParentTransform.position = FistParentParentTransform.position + moveamount;
 
@@ -531,16 +535,23 @@ public class WeaponManager : NetworkBehaviour
     {
         if (bIsCharging)
         {
-            float chargingtime = CurrentTimeStamp - ChargingStartTime;
-
-            if (chargingtime > MaxChargingTime)
+            if(IsOwner)
             {
-                ThrowChargeBar.UpdateProgressBar(1);
-            }
+                Ball.Singleton.SimulateThrow((
+                    PlayerMovementComponent.GetRotation() * Vector3.forward + Vector3.up * 0.33f) *
+                Mathf.Clamp(ThrowForce * (CurrentTimeStamp - ChargingStartTime) / MaxChargingTime, 5, ThrowForce));
 
-            else
-            {
-                ThrowChargeBar.UpdateProgressBar(chargingtime / MaxChargingTime);
+                float chargingtime = CurrentTimeStamp - ChargingStartTime;
+
+                if (chargingtime > MaxChargingTime)
+                {
+                    ThrowChargeBar.UpdateProgressBar(1);
+                }
+
+                else
+                {
+                    ThrowChargeBar.UpdateProgressBar(chargingtime / MaxChargingTime);
+                }
             }
 
             return;
@@ -549,8 +560,13 @@ public class WeaponManager : NetworkBehaviour
         bIsCharging = true;
         ChargingStartTime = CurrentTimeStamp;
 
-        ThrowChargeBar.UpdateProgressBar(0);
-        FistChargeBar.SetActive(true);
+        if(IsOwner)
+        {
+            ThrowChargeBar.UpdateProgressBar(0);
+            FistChargeBar.SetActive(true);
+
+            Ball.Singleton.StartSimulatingThrow();
+        }
     }
 
     private void ThrowBall()
@@ -604,7 +620,7 @@ public class WeaponManager : NetworkBehaviour
 
             for (int i = 0; i < NumHits2; i++)
             {
-                if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+                if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
                 {
                     if (!stats.IsSameTeam(GetTeam()))
                     {
@@ -643,7 +659,7 @@ public class WeaponManager : NetworkBehaviour
 
         for (int i = 0; i < NumHits; i++)
         {
-            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
             {
                 if (stats.Damage(GetTeam(), MeleeDamage))
                 {
@@ -703,7 +719,7 @@ public class WeaponManager : NetworkBehaviour
 
         for (int i = 0; i < NumHits; i++)
         {
-            if (RewindHits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager rewind))
+            if (RewindHits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager rewind))
             {
                 if (rewind.RewindToPosition(GetTeam(), GetPingInTick()))
                 {
@@ -739,7 +755,7 @@ public class WeaponManager : NetworkBehaviour
             return;
         }
 
-        foreach (PlayerManager i in RewindedPlayerList)
+        foreach (BasePlayerManager i in RewindedPlayerList)
         {
             i.ResetToOriginalPosition();
         }
@@ -885,6 +901,11 @@ public class WeaponManager : NetworkBehaviour
             ActiveWeapon.ChangeActive(false);
             meleeanimation.HoldBall();
             bIsCharging = false;
+            
+            if(IsOwner)
+            {
+                Ball.Singleton.DisableTrail();
+            }
         }
     }
 
@@ -897,6 +918,11 @@ public class WeaponManager : NetworkBehaviour
             FistChargeBar.SetActive(false);
             meleeanimation.UnholdBall();
             meleeanimation.ExitDunk();
+
+            if(IsOwner)
+            {
+                Ball.Singleton.EnableTrail();
+            }
         }
     }
 

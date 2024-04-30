@@ -69,7 +69,7 @@ public class Hoop : NetworkBehaviour
 
         if(other.gameObject.layer == 3)
         {
-            if (other.TryGetComponent(out PlayerManager player))
+            if (other.TryGetComponent(out BasePlayerManager player))
             {
                 if (player.GetIsHoldingBall())
                 {

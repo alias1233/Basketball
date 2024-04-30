@@ -84,7 +84,7 @@ public class BaseProjectileTick : MonoBehaviour
 
                 if (Hit.transform.gameObject.layer == 3)
                 {
-                    if (Hit.transform.TryGetComponent<PlayerManager>(out PlayerManager player))
+                    if (Hit.transform.TryGetComponent<BasePlayerManager>(out BasePlayerManager player))
                     {
                         if (DamagesPlayer)
                         {

@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
@@ -11,12 +10,20 @@ public enum Teams
     Blue,
 }
 
+public enum Characters:int
+{ 
+    V1,
+    BigBertha
+}
+
 public class GameManager : NetworkBehaviour
 {
     public static GameManager Singleton { get; internal set; }
 
     [SerializeField]
     private GameObject PlayerPrefab;
+
+    public GameObject[] CharacterList;
 
     [SerializeField]
     private Transform RedTeamSpawn;
@@ -28,8 +35,8 @@ public class GameManager : NetworkBehaviour
 
     private NetworkList<PlayerInformation> PlayerList;
 
-    private List<PlayerManager> RedTeamPlayers = new List<PlayerManager>();
-    private List<PlayerManager> BlueTeamPlayers = new List<PlayerManager>();
+    private List<PlayerObject> RedTeamPlayers = new List<PlayerObject>();
+    private List<PlayerObject> BlueTeamPlayers = new List<PlayerObject>();
 
     private bool bStartGame;
     private bool bOvertime;
@@ -267,15 +274,20 @@ public class GameManager : NetworkBehaviour
 
         if(IsServer)
         {
-            foreach (PlayerManager i in RedTeamPlayers)
+            foreach (PlayerObject i in RedTeamPlayers)
             {
-                float LaunchMagnitude = 1 / Mathf.Clamp((i.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100);
-                Vector3 LaunchDirection = i.transform.position - BlueTeamHoopTransform.position;
-                Vector3 LaunchDirectionNormalized = new Vector3(LaunchDirection.x, 0, LaunchDirection.z).normalized;
+                BasePlayerManager launchedplayer = i.GetPlayerCharacter();
 
-                i.OnScore(
+                if (launchedplayer)
+                {
+                    float LaunchMagnitude = 1 / Mathf.Clamp((launchedplayer.transform.position - BlueTeamHoopTransform.position).magnitude, 1, 100);
+                    Vector3 LaunchDirection = launchedplayer.transform.position - BlueTeamHoopTransform.position;
+                    Vector3 LaunchDirectionNormalized = new Vector3(LaunchDirection.x, 0, LaunchDirection.z).normalized;
+
+                    launchedplayer.OnScore(
                     LaunchFactor * new Vector3(LaunchDirectionNormalized.x, 0.5f, LaunchDirectionNormalized.z) * LaunchMagnitude
                     );
+                }
             }
         }
     }
@@ -287,15 +299,20 @@ public class GameManager : NetworkBehaviour
 
         if(IsServer)
         {
-            foreach (PlayerManager i in BlueTeamPlayers)
+            foreach (PlayerObject i in BlueTeamPlayers)
             {
-                float LaunchMagnitude = 1 / Mathf.Clamp((i.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100);
-                Vector3 LaunchDirection = i.transform.position - RedTeamHoopTransform.position;
-                Vector3 LaunchDirectionNormalized = new Vector3(LaunchDirection.x, 0, LaunchDirection.z).normalized;
+                BasePlayerManager launchedplayer = i.GetPlayerCharacter();
 
-                i.OnScore(
+                if (launchedplayer)
+                {
+                    float LaunchMagnitude = 1 / Mathf.Clamp((launchedplayer.transform.position - RedTeamHoopTransform.position).magnitude, 1, 100);
+                    Vector3 LaunchDirection = launchedplayer.transform.position - RedTeamHoopTransform.position;
+                    Vector3 LaunchDirectionNormalized = new Vector3(LaunchDirection.x, 0, LaunchDirection.z).normalized;
+
+                    launchedplayer.OnScore(
                     LaunchFactor * new Vector3(LaunchDirectionNormalized.x, 0.5f, LaunchDirectionNormalized.z) * LaunchMagnitude
                     );
+                }
             }
         }
     }
@@ -334,18 +351,21 @@ public class GameManager : NetworkBehaviour
 
             PlayerList.Add(new PlayerInformation(clientId, team));
 
-            GameObject newPlayer = Instantiate(PlayerPrefab, GetSpawnLocation(team), Quaternion.identity);
+            GameObject newPlayer = Instantiate(PlayerPrefab);
 
-            newPlayer.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+            newPlayer.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+            PlayerObject playerobject = newPlayer.GetComponent<PlayerObject>();
 
             if (team == Teams.Red)
             {
-                RedTeamPlayers.Add(newPlayer.GetComponent<PlayerManager>());
+                RedTeamPlayers.Add(playerobject);
+                playerobject.Team = Teams.Red;
             }
 
             else
             {
-                BlueTeamPlayers.Add(newPlayer.GetComponent<PlayerManager>());
+                BlueTeamPlayers.Add(playerobject);
+                playerobject.Team = Teams.Blue;
             }
 
             return;

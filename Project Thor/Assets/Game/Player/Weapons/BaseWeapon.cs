@@ -1,7 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class BaseWeapon : MonoBehaviour
@@ -10,8 +8,8 @@ public class BaseWeapon : MonoBehaviour
 
     [SerializeField]
     public WeaponManager Manager;
-    [SerializeField]
-    public PlayerMovement PlayerMovementComponent;
+
+    protected BaseCharacterMovement PlayerMovementComponent;
 
     [HideInInspector]
     public bool bIsOwner;
@@ -44,7 +42,7 @@ public class BaseWeapon : MonoBehaviour
     public LayerMask PlayerLayer;
     public LayerMask ObjectLayer;
 
-    private List<PlayerManager> RewindedPlayerList = new List<PlayerManager>();
+    private List<BasePlayerManager> RewindedPlayerList = new List<BasePlayerManager>();
 
     private RaycastHit[] Hits = new RaycastHit[5];
 
@@ -55,6 +53,7 @@ public class BaseWeapon : MonoBehaviour
 
     virtual public void Start()
     {
+        PlayerMovementComponent = Manager.PlayerMovementComponent;
         bIsOwner = Manager.GetIsOwner();
         bIsServer = Manager.GetHasAuthority();
     }
@@ -84,7 +83,7 @@ public class BaseWeapon : MonoBehaviour
 
         for (int i = 0; i < NumHits; i++)
         {
-            if (Hits[i].transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager rewind))
+            if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager rewind))
             {
                 if (rewind.RewindToPosition(Manager.GetTeam(), Manager.GetPingInTick()))
                 {
@@ -120,7 +119,7 @@ public class BaseWeapon : MonoBehaviour
             return;
         }
 
-        foreach (PlayerManager i in RewindedPlayerList)
+        foreach (BasePlayerManager i in RewindedPlayerList)
         {
             i.ResetToOriginalPosition();
         }

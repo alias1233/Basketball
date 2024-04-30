@@ -50,6 +50,7 @@ public class LobbyManager : MonoBehaviour
     private Lobby joinedLobby;
     private string PlayerName;
 
+    public GameObject LobbyUI;
     public GameObject LobbyJoinUI;
     public GameObject LobbyCamera;
     public GameObject ScoreBoardUI;
@@ -151,7 +152,7 @@ public class LobbyManager : MonoBehaviour
                     GameManager.Singleton.StartGame();
                     ScoreBoardUI.SetActive(true);
                     joinedLobby = null;
-                    LobbyObject.SetActive(false);
+                    LobbyUI.SetActive(false);
                 }
             }
         }
@@ -391,6 +392,11 @@ public class LobbyManager : MonoBehaviour
             }
             );
 
+        GameManager.Singleton.StartGame();
+        ScoreBoardUI.SetActive(true);
+        joinedLobby = null;
+        LobbyUI.SetActive(false);
+
         joinedLobby = lobby;
     }
 
@@ -453,4 +459,8 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
+    public void DisableLobby()
+    {
+        LobbyObject.SetActive(false);
+    }
 }

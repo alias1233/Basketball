@@ -302,7 +302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   RotateSpeed: 0
-  RotateCenter: {fileID: 0}
+  Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2367591119854230875
 GameObject:
   m_ObjectHideFlags: 0
@@ -1609,7 +1609,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a14259dc4bfdeef4db5654c97251127d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LobbyObject: {fileID: 0}
+  LobbyObject: {fileID: 1378856662334591448}
+  LobbyUI: {fileID: 5963860264946203734}
   LobbyJoinUI: {fileID: 0}
   LobbyCamera: {fileID: 0}
   ScoreBoardUI: {fileID: 0}
@@ -2458,6 +2459,12 @@ GameObject:
 --- !u!1 &5689728125565616858 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5429544880882640138, guid: 970d2c500869a0748a71a90582f3009f,
+    type: 3}
+  m_PrefabInstance: {fileID: 408815847586375632}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5963860264946203734 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6300400126783445894, guid: 970d2c500869a0748a71a90582f3009f,
     type: 3}
   m_PrefabInstance: {fileID: 408815847586375632}
   m_PrefabAsset: {fileID: 0}

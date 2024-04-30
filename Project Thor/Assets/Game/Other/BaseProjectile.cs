@@ -91,7 +91,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
     public virtual void OnHitPlayer() { }
 
-    public virtual void OnHitPlayerWithTarget(PlayerManager player) { }
+    public virtual void OnHitPlayerWithTarget(BasePlayerManager player) { }
 
     public virtual void Init(Teams team, Vector3 pos, Vector3 dir)
     {

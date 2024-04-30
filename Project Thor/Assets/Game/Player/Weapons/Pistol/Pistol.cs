@@ -51,7 +51,7 @@ public class Pistol : BaseWeapon
 
         if (Physics.Raycast(CenterRay, out hit, Range1, PlayerLayer))
         {
-            if (hit.transform.gameObject.TryGetComponent<PlayerManager>(out PlayerManager stats))
+            if (hit.transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
             {
                 if (stats.Damage(Manager.GetTeam(), Damage))
                 {

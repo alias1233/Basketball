@@ -59,7 +59,7 @@ public class Coin : BaseProjectile
 
         for (int i = 0; i < NumHits; i++)
         {
-            PlayerManager player = Hits[i].GetComponent<PlayerManager>();
+            BasePlayerManager player = Hits[i].GetComponent<BasePlayerManager>();
 
             if (player.GetTeam() != OwningPlayerTeam)
             {
