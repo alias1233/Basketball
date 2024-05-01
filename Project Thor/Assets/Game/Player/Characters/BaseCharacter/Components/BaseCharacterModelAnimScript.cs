@@ -2,35 +2,35 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CharacterModelAnimScript : MonoBehaviour
+public class BaseCharacterModelAnimScript : MonoBehaviour
 {
-    private Transform SelfTransform;
+    protected Transform SelfTransform;
 
+    public BaseCharacterComponents Components;
+
+    protected BaseCharacterMovement PlayerMovement;
     [SerializeField]
-    private V1Movement playermovement;
+    protected Animator anim;
     [SerializeField]
-    private Animator anim;
-    [SerializeField]
-    private Animator WingAnim;
-    [SerializeField]
-    private Transform Parent;
+    protected Transform Parent;
 
     private bool bWasSliding;
-    private bool bWasFlying;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         SelfTransform = transform;
+
+        PlayerMovement = Components.CharacterMovement;
     }
 
     private void FixedUpdate()
     {
-        if (playermovement.GetIsDead())
+        if (PlayerMovement.GetIsDead())
         {
             return;
         }
 
-        if (playermovement.GetIsSliding())
+        if (PlayerMovement.GetIsSliding())
         {
             if (!bWasSliding)
             {
@@ -53,30 +53,12 @@ public class CharacterModelAnimScript : MonoBehaviour
             return;
         }
 
-        if (playermovement.GetIsFlying())
-        {
-            if (!bWasFlying)
-            {
-                WingAnim.SetInteger("Mode", 2);
-                anim.SetFloat("MoveSpeed", 2);
-                anim.SetFloat("MoveFactor", 1);
+        UpdateAnimations();
+    }
 
-                bWasFlying = true;
-            }
-
-            WingAnim.SetFloat("FlightSpeed", 1 + playermovement.GetVelocity().magnitude / 15);
-
-            return;
-        }
-
-        if (bWasFlying)
-        {
-            bWasFlying = false;
-
-            WingAnim.SetInteger("Mode", 1);
-        }
-
-        Vector3 Vel = playermovement.GetVelocity();
+    protected virtual void UpdateAnimations()
+    {
+        Vector3 Vel = PlayerMovement.GetVelocity();
         Vector2 VelXY = new Vector2(Vel.x, Vel.z);
 
         anim.SetFloat("MoveSpeed", VelXY.magnitude);

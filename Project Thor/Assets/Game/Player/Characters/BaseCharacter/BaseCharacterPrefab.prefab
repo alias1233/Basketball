@@ -13695,7 +13695,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4158439487665256047}
-  - component: {fileID: 1686462406465213082}
   m_Layer: 3
   m_Name: CharacterModel
   m_TagString: Untagged
@@ -13719,22 +13718,6 @@ Transform:
   - {fileID: 1598276760329756436}
   m_Father: {fileID: 5337379844792457558}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1686462406465213082
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4602325823127338134}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5b185edf647537447aa5914bcdd795b9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playermovement: {fileID: 0}
-  anim: {fileID: 0}
-  WingAnim: {fileID: 0}
-  Parent: {fileID: 5337379844792457558}
 --- !u!1 &4628381147441062438
 GameObject:
   m_ObjectHideFlags: 0
@@ -19700,7 +19683,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7612693654661991579}
-  - component: {fileID: 1648303580767848102}
   m_Layer: 3
   m_Name: PlayerUI
   m_TagString: Untagged
@@ -19724,24 +19706,6 @@ Transform:
   - {fileID: 5403529465821477911}
   m_Father: {fileID: 6858823751852101452}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1648303580767848102
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5984778461918668308}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 01585af41bba718419c9639029e0c61b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Player: {fileID: 0}
-  playermovement: {fileID: 0}
-  UpdateUIInterval: 5
-  DashAbilityBar: {fileID: 3694994742607146173}
-  GrappleAbilityBar: {fileID: 7530292063953937471}
-  FlyAbilityBar: {fileID: 4812249275246755876}
 --- !u!1 &6057762764095016443
 GameObject:
   m_ObjectHideFlags: 0
@@ -25684,10 +25648,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 542b7a11a15d624439ce3f788a9148d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  CharacterMovement: {fileID: 0}
+  PlayerManager: {fileID: 0}
   FPOrientation: {fileID: 245901753364132158}
   TPOrientation: {fileID: 2328282342131481982}
   CharacterModel: {fileID: 4602325823127338134}
-  CharacterAnimations: {fileID: 1686462406465213082}
+  CharacterAnimations: {fileID: 0}
   HandTransform: {fileID: 9123796275599009219}
   ThrowBallLocationTransform: {fileID: 5933093482926841075}
   DisabledForOwnerScripts: []

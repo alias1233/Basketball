@@ -4,11 +4,14 @@ using UnityEngine;
 
 public class BaseCharacterComponents : MonoBehaviour
 {
+    public BaseCharacterMovement CharacterMovement;
+    public BasePlayerManager PlayerManager;
+
     public Transform FPOrientation;
     public Transform TPOrientation;
 
     public GameObject CharacterModel;
-    public CharacterModelAnimScript CharacterAnimations;
+    public BaseCharacterModelAnimScript CharacterAnimations;
     public Transform HandTransform;
     public Transform ThrowBallLocationTransform;
     public List<MonoBehaviour> DisabledForOwnerScripts;

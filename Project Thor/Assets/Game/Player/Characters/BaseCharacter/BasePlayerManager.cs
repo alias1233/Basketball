@@ -41,7 +41,7 @@ public class BasePlayerManager : NetworkBehaviour
     protected WeaponManager Weapons;
 
     protected GameObject CharacterModel;
-    protected CharacterModelAnimScript CharacterAnimations;
+    protected BaseCharacterModelAnimScript CharacterAnimations;
 
     private Vector3 CharacterModelOriginalPosition;
     private Quaternion CharacterModelOriginalRotation;

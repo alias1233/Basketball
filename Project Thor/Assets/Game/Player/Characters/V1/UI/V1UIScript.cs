@@ -12,8 +12,10 @@ public class V1UIScript : BasePlayerUI
     private bool bIsChangingGrapple;
     private bool bChangingFly;
 
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
+
         V1movement = (V1Movement)playermovement;
     }
 

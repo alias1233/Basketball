@@ -1,12 +1,21 @@
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 public class BasePlayerUI : MonoBehaviour
 {
-    public BasePlayerManager Player;
-    public BaseCharacterMovement playermovement;
+    public BaseCharacterComponents Components;
+
+    protected BasePlayerManager Player;
+    protected BaseCharacterMovement playermovement;
 
     public int UpdateUIInterval;
     private int tick;
+
+    protected virtual void Awake()
+    {
+        Player = Components.PlayerManager;
+        playermovement = Components.CharacterMovement;
+    }
 
     private void FixedUpdate()
     {
