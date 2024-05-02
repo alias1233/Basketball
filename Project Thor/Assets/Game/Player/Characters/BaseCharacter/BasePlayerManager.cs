@@ -55,6 +55,8 @@ public class BasePlayerManager : NetworkBehaviour
     protected GameObject FPPlayerCamera;
     protected GameObject FirstPersonPlayerUI;
 
+    protected CameraScript camerascript;
+
     [Header("Hit Registration")]
 
     private Dictionary<int, Vector3> RewindDataDictionary = new Dictionary<int, Vector3>();
@@ -98,6 +100,7 @@ public class BasePlayerManager : NetworkBehaviour
         FirstPersonComponents = Components.FirstPersonComponents;
         ThirdPersonComponents = Components.ThirdPersonComponents;
         FPPlayerCamera = Components.FPPlayerCamera;
+        camerascript = Components.camerascript;
         FirstPersonPlayerUI = Components.FirstPersonPlayerUI;
         FirstPersonHealthBar = Components.FirstPersonHealthBar;
         FirstPersonHealthBarText = Components.FirstPersonHealthBarText;
@@ -212,6 +215,10 @@ public class BasePlayerManager : NetworkBehaviour
 
         if (IsOwner)
         {
+            SettingsUIScript.Singleton.OnSettingsUIChangeActive += OnChangeActiveSettingsUI;
+
+            camerascript.Sens = SettingsUIScript.Singleton.GetSensitivity();
+
             foreach (var i in Components.DisabledForOwnerScripts)
             {
                 i.enabled = false;
@@ -244,11 +251,27 @@ public class BasePlayerManager : NetworkBehaviour
     {
         Health.OnValueChanged -= OnHealthChanged;
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
+        SettingsUIScript.Singleton.OnSettingsUIChangeActive -= OnChangeActiveSettingsUI;
 
         if (GetIsHoldingBall())
         {
             Ball.Singleton.Detach();
         }
+    }
+
+    private void OnChangeActiveSettingsUI(bool active)
+    {
+        if(active)
+        {
+            FirstPersonPlayerUI.SetActive(false);
+            camerascript.enabled = false;
+
+            return;
+        }
+
+        camerascript.Sens = SettingsUIScript.Singleton.GetSensitivity();
+        FirstPersonPlayerUI.SetActive(true);
+        camerascript.enabled = true;
     }
 
     private void UpdateClientSendRPCParams(ulong clientId, ConnectionStatus connection)

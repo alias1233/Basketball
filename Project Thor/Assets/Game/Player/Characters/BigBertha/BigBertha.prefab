@@ -521,8 +521,8 @@ MonoBehaviour:
   PlayerObjectLayer:
     serializedVersion: 2
     m_Bits: 9
-  WalkMoveSpeed: 5
-  JumpForce: 22
+  WalkMoveSpeed: 6
+  JumpForce: 23
   JumpCooldown: 8
   SlideMoveSpeed: 10
   SlideJumpForce: 17
@@ -555,8 +555,8 @@ MonoBehaviour:
   HeadBobAmplitude: 0
   ResetHeadBobSpeed: 0
   LandAudioCooldown: 0.5
-  SlideCameraOffset: {x: 0, y: -2.5, z: 0}
-  SlideRotationOffset: 15
+  SlideCameraOffset: {x: 0, y: 0, z: 0}
+  SlideRotationOffset: 6
   SlideCameraDuration: 0.02
   SlideCameraResetDuration: 10
   SlideParticleOffset: 2

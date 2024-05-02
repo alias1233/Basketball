@@ -13025,10 +13025,10 @@ MonoBehaviour:
   SlideParticleOffset: 0.8
   FlyMoveSpeed: 7.5
   FlySprintSpeed: 15
-  FlyFriction: 1
-  FlyGravityFactor: 0.02
-  FlyInputInfluence: 0.15
-  FlyInitialVelocityFactor: 15
+  FlyFriction: 1.5
+  FlyGravityFactor: 0.0175
+  FlyInputInfluence: 0.075
+  FlyInitialVelocityFactor: 25
   AfterFlyVelocityFactor: 0.75
   AfterFlyUpFactor: 12
   DashDuration: 8

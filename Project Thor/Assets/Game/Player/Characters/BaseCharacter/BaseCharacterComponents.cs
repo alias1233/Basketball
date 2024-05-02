@@ -27,6 +27,7 @@ public class BaseCharacterComponents : MonoBehaviour
     public ProgressBar ThirdPersonHealthBar;
     public AudioSource DeathSound;
 
+    public CameraScript camerascript;
     public CameraVisualsScript CameraVisuals;
     public AudioSource LandAudio;
     public AudioSource JumpAudio;

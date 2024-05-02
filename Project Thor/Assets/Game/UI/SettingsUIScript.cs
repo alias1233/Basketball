@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -6,16 +7,22 @@ using UnityEngine.UI;
 
 public class SettingsUIScript : MonoBehaviour
 {
-    public BasePlayerManager Player;
-    public GameObject PlayerUI;
+    public static SettingsUIScript Singleton;
+
+    public event Action<bool> OnSettingsUIChangeActive;
+
     public GameObject SettingsObject;
     public Slider SensitivitySlider;
-    public CameraScript PlayerCameraScript;
 
     [SerializeField]
-    TMP_Text RedTeamPlayers;
+    private TMP_Text RedTeamPlayers;
     [SerializeField]
-    TMP_Text BlueTeamPlayers;
+    private TMP_Text BlueTeamPlayers;
+
+    private void Awake()
+    {
+        Singleton = this;
+    }
 
     private void Start()
     {
@@ -28,15 +35,9 @@ public class SettingsUIScript : MonoBehaviour
         {
             if (SettingsObject.activeSelf)
             {
-                PlayerCameraScript.enabled = true;
-                PlayerCameraScript.Sens = SensitivitySlider.value;
-
                 SettingsObject.SetActive(false);
 
-                if(!Player.GetIsDead())
-                {
-                    PlayerUI.SetActive(true);
-                }
+                OnSettingsUIChangeActive?.Invoke(false);
 
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
@@ -44,13 +45,12 @@ public class SettingsUIScript : MonoBehaviour
 
             else
             {
-                PlayerUI.SetActive(false);
                 SettingsObject.SetActive(true);
+
+                OnSettingsUIChangeActive?.Invoke(true);
 
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-
-                PlayerCameraScript.enabled = false;
 
                 DisplayPlayers();
             }
@@ -78,5 +78,10 @@ public class SettingsUIScript : MonoBehaviour
 
         RedTeamPlayers.text = RedTeam;
         BlueTeamPlayers.text = BlueTeam;
+    }
+
+    public float GetSensitivity()
+    {
+        return SensitivitySlider.value;
     }
 }

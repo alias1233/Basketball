@@ -431,14 +431,14 @@ public class BaseCharacterMovement : NetworkBehaviour
 
             if (bWallLeft)
             {
-                CameraVisuals.Tilt(-6);
+                CameraVisuals.Tilt(-7);
 
                 return;
             }
 
             if (bWallRight)
             {
-                CameraVisuals.Tilt(6);
+                CameraVisuals.Tilt(7);
 
                 return;
             }

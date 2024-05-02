@@ -233,7 +233,7 @@ public class V1Movement : BaseCharacterMovement
     {
         bFly = true;
         LastTimeFly = CurrentTimeStamp;
-        Velocity += Rotation * Vector3.forward * FlyInitialVelocityFactor;
+        Velocity = Rotation * Vector3.forward * FlyInitialVelocityFactor;
 
         if(Player.GetIsHoldingBall())
         {
