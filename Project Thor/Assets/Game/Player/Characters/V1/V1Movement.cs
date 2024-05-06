@@ -94,7 +94,7 @@ public class V1Movement : BaseCharacterMovement
             return;
         }
 
-        ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bSliding, bGroundPound, IgnoreOwnerRPCParams);
+        base.ReplicateMovement();
     }
 
     protected override void SimulatedProxyTick()
@@ -748,64 +748,15 @@ public class V1Movement : BaseCharacterMovement
         bWasSpace = input.SpaceBar;
     }
 
-/*
-*
-* Replicating Movement
-*
-*/
+    /*
+    *
+    * Replicating Movement
+    *
+    */
 
-    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
-    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, bool issliding, bool isgroundpounding, ClientRpcParams clientRpcParams = default)
+    protected override void OnBaseReplicateMovement()
     {
-        if (Player.GetIsDead())
-        {
-            return;
-        }
-
-        bUpdatedThisFrame = true;
-
-        SelfTransform.position = position;
-        Velocity = velocity;
-
-        Rotation = rotation;
-        FPOrientation.rotation = rotation;
-
-        if (issliding && !bSliding)
-        {
-            EnterSlide();
-        }
-
-        else if (!issliding && bSliding)
-        {
-            ExitSlide();
-        }
-
-        if(!bSliding)
-        {
-            float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
-            ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
-
-            TPOrientation.rotation = ForwardRotation;
-        }
-
-        else
-        {
-            TPOrientation.rotation = Quaternion.LookRotation(Velocity);
-        }
-
-        if(isgroundpounding && !bGroundPound)
-        {
-            bGroundPound = true;
-
-            GroundPoundTrails.Play();
-        }
-
-        else if(!isgroundpounding && bGroundPound)
-        {
-            ExitGroundPound(true);
-        }
-
-        if(bFly)
+        if (bFly)
         {
             ExitFly();
         }

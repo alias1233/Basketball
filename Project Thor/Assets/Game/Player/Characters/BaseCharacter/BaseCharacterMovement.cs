@@ -378,7 +378,7 @@ public class BaseCharacterMovement : NetworkBehaviour
 
     protected virtual void ReplicateMovement()
     {
-
+        ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bSliding, bGroundPound, IgnoreOwnerRPCParams);
     }
 
     protected virtual void SimulatedProxyTick()
@@ -812,7 +812,7 @@ public class BaseCharacterMovement : NetworkBehaviour
         }
 
         SlideParticles.transform.position = SelfTransform.position + MoveDirection * 0.5f + Vector3.down * SlideParticleOffset;
-        SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position - SlideParticles.transform.position), Vector3.up);
+        SlideParticles.transform.rotation = Quaternion.LookRotation((FPOrientation.position + Vector3.down * SlideParticleOffset - SlideParticles.transform.position), Vector3.up);
         SlideParticles.Play();
         SlideSmoke.Play();
 
@@ -1198,6 +1198,65 @@ public class BaseCharacterMovement : NetworkBehaviour
     * Replicating Movement
     *
     */
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    public void ReplicatePositionClientRpc(Vector3 position, Vector3 velocity, Quaternion rotation, bool issliding, bool isgroundpounding, ClientRpcParams clientRpcParams = default)
+    {
+        if (Player.GetIsDead())
+        {
+            return;
+        }
+
+        bUpdatedThisFrame = true;
+
+        SelfTransform.position = position;
+        Velocity = velocity;
+
+        Rotation = rotation;
+        FPOrientation.rotation = rotation;
+
+        if (issliding && !bSliding)
+        {
+            EnterSlide();
+        }
+
+        else if (!issliding && bSliding)
+        {
+            ExitSlide();
+        }
+
+        if (!bSliding)
+        {
+            float a = Mathf.Sqrt((rotation.w * rotation.w) + (rotation.y * rotation.y));
+            ForwardRotation = new Quaternion(0, rotation.y / a, 0, rotation.w / a);
+
+            TPOrientation.rotation = ForwardRotation;
+        }
+
+        else
+        {
+            TPOrientation.rotation = Quaternion.LookRotation(Velocity);
+        }
+
+        if (isgroundpounding && !bGroundPound)
+        {
+            bGroundPound = true;
+
+            GroundPoundTrails.Play();
+        }
+
+        else if (!isgroundpounding && bGroundPound)
+        {
+            ExitGroundPound(true);
+        }
+
+        OnBaseReplicateMovement();
+    }
+
+    protected virtual void OnBaseReplicateMovement()
+    {
+
+    }
 
     public void AddVelocity(Vector3 Impulse, bool bExternalSource)
     {
