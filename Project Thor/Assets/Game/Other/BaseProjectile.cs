@@ -106,6 +106,18 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         Tick.Velocity = dir * Tick.InitialSpeed;
     }
 
+    public virtual void InitNoRot(Teams team, Vector3 pos, Vector3 dir)
+    {
+        InitNoRotClientRpc(team, pos, dir);
+        OwningPlayerTeam = team;
+        SelfTransform.position = pos;
+
+        Tick.LastTimeReplicatedPosition = Time.time;
+        Tick.OwningPlayerTeam = team;
+        Tick.StartTime = Tick.TimeStamp;
+        Tick.Velocity = dir * Tick.InitialSpeed;
+    }
+
     public virtual void InitAndSimulateForward(Teams team, Vector3 pos, Vector3 dir, int tickstosimulate)
     {
         OwningPlayerTeam = team;
@@ -123,6 +135,17 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         }
 
         ReplicatePositionClientRpc(SelfTransform.position);
+    }
+
+    public virtual void InitStationary(Teams team, Vector3 pos)
+    {
+        InitStationaryClientRpc(team, pos);
+        OwningPlayerTeam = team;
+        SelfTransform.position = pos;
+
+        Tick.LastTimeReplicatedPosition = Time.time;
+        Tick.OwningPlayerTeam = team;
+        Tick.StartTime = Tick.TimeStamp;
     }
 
     [ClientRpc(Delivery = RpcDelivery.Unreliable)]
@@ -173,5 +196,48 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         Tick.StartTime = Tick.TimeStamp;
         Tick.OwningPlayerTeam = team;
         Tick.Velocity = dir * Tick.InitialSpeed;
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    private void InitNoRotClientRpc(Teams team, Vector3 pos, Vector3 dir)
+    {
+        if (IsServer)
+        {
+            return;
+        }
+
+        if (!bIsActive)
+        {
+            Spawn();
+        }
+
+        OwningPlayerTeam = team;
+        SelfTransform.position = pos;
+
+        Tick.bUpdatedThisFrame = true;
+        Tick.StartTime = Tick.TimeStamp;
+        Tick.OwningPlayerTeam = team;
+        Tick.Velocity = dir * Tick.InitialSpeed;
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    private void InitStationaryClientRpc(Teams team, Vector3 pos)
+    {
+        if (IsServer)
+        {
+            return;
+        }
+
+        if (!bIsActive)
+        {
+            Spawn();
+        }
+
+        OwningPlayerTeam = team;
+        SelfTransform.position = pos;
+
+        Tick.bUpdatedThisFrame = true;
+        Tick.StartTime = Tick.TimeStamp;
+        Tick.OwningPlayerTeam = team;
     }
 }

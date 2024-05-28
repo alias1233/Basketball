@@ -97,7 +97,7 @@ public class V1Movement : BaseCharacterMovement
         base.ReplicateMovement();
     }
 
-    protected override void SimulatedProxyTick()
+    protected override void ClientProxyTick()
     {
         if (ThirdPersonDashParticles.isPlaying)
         {
@@ -110,7 +110,7 @@ public class V1Movement : BaseCharacterMovement
             DashTrails.emitting = false;
         }
 
-        base.SimulatedProxyTick();
+        base.ClientProxyTick();
     }
 
     protected override void HandleCameraVisuals()

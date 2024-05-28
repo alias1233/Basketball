@@ -27,6 +27,7 @@ public class BasePlayerManager : NetworkBehaviour
 
     [Header("Networking")]
 
+    protected NetworkRole LocalRole;
     private ClientRpcParams OwningClientID;
     private List<ulong> ClientIDList = new List<ulong>();
 
@@ -38,7 +39,8 @@ public class BasePlayerManager : NetworkBehaviour
 
     [HideInInspector]
     public BaseCharacterMovement Movement;
-    protected WeaponManager Weapons;
+    protected Fist fist;
+    protected Spellbook Spells;
 
     protected GameObject CharacterModel;
     protected BaseCharacterModelAnimScript CharacterAnimations;
@@ -87,12 +89,22 @@ public class BasePlayerManager : NetworkBehaviour
 
     protected AudioSource DeathSound;
 
+    public float SwayFactor = 0.008f;
+    public float MaxSwayAmount = 0.2f;
+    public float WeaponSwaySpeed = 0.075f;
+
+    protected Transform SpellsFistTransform;
+    protected Transform SpellsFistParentTransform;
+
+    private Vector3 WeaponSway;
+
     protected virtual void Awake()
     {
         SelfTransform = transform;
 
         Movement = GetComponent<BaseCharacterMovement>();
-        Weapons = GetComponent<WeaponManager>();
+        fist = GetComponent<Fist>();
+        Spells = GetComponent<Spellbook>();
         CharacterModel = Components.CharacterModel;
         CharacterAnimations = Components.CharacterAnimations;
         HandTransform = Components.HandTransform;
@@ -110,6 +122,9 @@ public class BasePlayerManager : NetworkBehaviour
 
         CharacterModelOriginalPosition = CharacterModel.transform.localPosition;
         CharacterModelOriginalRotation = CharacterModel.transform.localRotation;
+
+        SpellsFistTransform = Components.SpellsFistTransform;
+        SpellsFistParentTransform = Components.SpellsFistParentTransform;
     }
 
     // Start is called before the first frame update
@@ -173,6 +188,8 @@ public class BasePlayerManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        LocalRole = GetLocalRole();
+
         if (IsServer)
         {
             TimeStamp = -ServerDelay;
@@ -204,7 +221,8 @@ public class BasePlayerManager : NetworkBehaviour
             };
 
             Movement.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
-            Weapons.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
+            fist.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
+            Spells.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
 
             Health.Value = MaxHealth;
 
@@ -295,7 +313,8 @@ public class BasePlayerManager : NetworkBehaviour
         };
 
         Movement.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
-        Weapons.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
+        fist.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
+        Spells.UpdateIgnoreOwnerRPCParams(IgnoreOwnerRPCParams);
     }
 
     void FixedUpdate()
@@ -307,8 +326,43 @@ public class BasePlayerManager : NetworkBehaviour
             return;
         }
 
-        Movement.FixedTick(TimeStamp);
-        Weapons.FixedTick(TimeStamp);
+        switch (LocalRole)
+        {
+            case NetworkRole.HostOwner:
+
+                Movement.HostOwnerTick(TimeStamp);
+                fist.HostOwnerTick(TimeStamp);
+                Spells.HostOwnerTick(TimeStamp);
+
+                HandleOwnerVisuals();
+
+                break;
+
+            case NetworkRole.HostProxy:
+
+                Movement.HostProxyTick(TimeStamp);
+                fist.HostProxyTick(TimeStamp);
+                Spells.HostProxyTick(TimeStamp);
+
+                break;
+
+            case NetworkRole.AutonomousProxy:
+
+                Movement.AutonomousProxyTick(TimeStamp);
+                fist.AutonomousProxyTick(TimeStamp);
+                Spells.AutonomousProxyTick(TimeStamp);
+
+                HandleOwnerVisuals();
+
+                break;
+
+            case NetworkRole.SimulatedProxy:
+
+                Movement.SimulatedProxyTick(TimeStamp);
+                Spells.SimulatedProxyTick(TimeStamp);
+
+                break;
+        }
 
         if (!IsServer)
         {
@@ -324,6 +378,14 @@ public class BasePlayerManager : NetworkBehaviour
         {
             Health.Value = -1;
         }
+    }
+
+    protected virtual void HandleOwnerVisuals()
+    {
+        Vector3 moveamount = -Vector3.ClampMagnitude(Movement.GetVelocity() * SwayFactor, MaxSwayAmount);
+        WeaponSway = Vector3.MoveTowards(WeaponSway, moveamount, WeaponSwaySpeed);
+
+        SpellsFistTransform.position = SpellsFistParentTransform.position + WeaponSway;
     }
 
     public void OnHealthChanged(float previous, float current)
@@ -370,7 +432,7 @@ public class BasePlayerManager : NetworkBehaviour
         CharacterAnimations.Die();
         DeathSound.Play();
 
-        if (Weapons.bHoldingBall)
+        if (fist.bHoldingBall)
         {
             Ball.Singleton.Detach();
         }
@@ -418,7 +480,7 @@ public class BasePlayerManager : NetworkBehaviour
         }
 
         SelfTransform.position = GameManager.Singleton.GetSpawnLocation(Team);
-        Movement.ChangeVelocity(Vector3.zero);
+        Movement.ChangeVelocity(Vector3.zero, false);
     }
 
     public bool Damage(Teams team, float damage)
@@ -488,7 +550,7 @@ public class BasePlayerManager : NetworkBehaviour
         CharacterModel.transform.localRotation = CharacterModelOriginalRotation;
         ThirdPersonComponents.SetActive(false);
 
-        Weapons.EnableFist();
+        fist.EnableFist();
     }
 
     public void EnterThirdPerson()
@@ -497,7 +559,7 @@ public class BasePlayerManager : NetworkBehaviour
         CharacterModel.transform.localRotation = CharacterModelOriginalRotation;
         ThirdPersonComponents.SetActive(true);
 
-        Weapons.DisableFist();
+        fist.DisableFist();
     }
 
     public bool RewindToPosition(Teams team, int pingintick)
@@ -630,27 +692,27 @@ public class BasePlayerManager : NetworkBehaviour
 
     public void EnterDunk()
     {
-        Weapons.EnterDunk();
+        fist.EnterDunk();
     }
 
     public void ExitDunk()
     {
-        Weapons.ExitDunk();
+        fist.ExitDunk();
     }
 
     public bool GetIsDunking()
     {
-        return Weapons.bHoldingBall && Movement.GetIsGroundPounding();
+        return fist.bHoldingBall && Movement.GetIsGroundPounding();
     }
 
     public void Attach()
     {
-        Weapons.Attach();
+        fist.Attach();
     }
 
     public void Unattach()
     {
-        Weapons.Detach();
+        fist.Detach();
     }
 
     public Vector3 GetVelocity()
@@ -660,12 +722,12 @@ public class BasePlayerManager : NetworkBehaviour
 
     public bool GetIsHoldingBall()
     {
-        return Weapons.bHoldingBall;
+        return fist.bHoldingBall;
     }
 
     public void OnScore(Vector3 NewVelocity)
     {
-        if (Weapons.bHoldingBall)
+        if (fist.bHoldingBall)
         {
             Ball.Singleton.Detach();
         }

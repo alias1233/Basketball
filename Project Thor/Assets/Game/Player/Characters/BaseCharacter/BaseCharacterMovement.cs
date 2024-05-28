@@ -96,7 +96,7 @@ public class BaseCharacterMovement : NetworkBehaviour
 
     public float WalkMoveSpeed = 5;
 
-    public float JumpForce = 23;
+    public float JumpForce = 25;
     public int JumpCooldown = 8;
 
     public float SlideMoveSpeed = 10f;
@@ -107,7 +107,7 @@ public class BaseCharacterMovement : NetworkBehaviour
     public int SlideChargeJumpTime = 65;
 
     public float GroundPoundSpeed = 25f;
-    public float GroundPoundAcceleration = 200;
+    public float GroundPoundAcceleration = 250;
     public float MinHeightToGroundPound = 2.5f;
     public float MaxGroundPoundJumpForce = 1.75f;
     public float MaxGroundPoundChargeJumpTime = 50;
@@ -117,7 +117,7 @@ public class BaseCharacterMovement : NetworkBehaviour
     private Collider[] GroundPoundHits = new Collider[5];
 
     public float WallRunSpeed = 13;
-    public int WallJumpForce = 8;
+    public int WallJumpForce = 10;
     public float MinWallRunSpeed = 2;
     public float WallRunDampen = 15;
     public float WallRunCheckForWallRange = 1;
@@ -125,8 +125,8 @@ public class BaseCharacterMovement : NetworkBehaviour
     public float GroundFriction = 15;
     public float SlideFriction = 0.75f;
     public float WallRunFriction = 10;
-    public float AirFriction = 1.25f;
-    public float Gravity = 0.65f;
+    public float AirFriction = 1f;
+    public float Gravity = 0.75f;
 
     protected Vector3 PreviousPosition;
     protected Quaternion Rotation;
@@ -258,39 +258,34 @@ public class BaseCharacterMovement : NetworkBehaviour
         }
     }
 
-    // Called a fixed amount every second from PlayerManager with the current Timestamp
-    public void FixedTick(int timestamp)
+    public void HostOwnerTick(int timestamp)
     {
         CurrentTimeStamp = timestamp;
 
-        switch (LocalRole)
-        {
-            case NetworkRole.HostOwner:
+        HostTick();
+        ServerTickForAll();
+    }
 
-                HostTick();
-                ServerTickForAll();
+    public void HostProxyTick(int timestamp)
+    {
+        CurrentTimeStamp = timestamp;
 
-                break;
+        ServerTickForOtherPlayers();
+        ServerTickForAll();
+    }
 
-            case NetworkRole.HostProxy:
+    public void AutonomousProxyTick(int timestamp)
+    {
+        CurrentTimeStamp = timestamp;
 
-                ServerTickForOtherPlayers();
-                ServerTickForAll();
+        ClientOwnerTick();
+    }
 
-                break;
+    public void SimulatedProxyTick(int timestamp)
+    {
+        CurrentTimeStamp = timestamp;
 
-            case NetworkRole.AutonomousProxy:
-
-                AutonomousProxyTick();
-
-                break;
-
-            case NetworkRole.SimulatedProxy:
-
-                SimulatedProxyTick();
-
-                break;
-        }
+        ClientProxyTick();
     }
 
     protected virtual void HostTick()
@@ -324,7 +319,7 @@ public class BaseCharacterMovement : NetworkBehaviour
         HandleOtherPlayerVisuals();
     }
 
-    protected virtual void AutonomousProxyTick()
+    protected virtual void ClientOwnerTick()
     {
         if (bSmoothingPosition)
         {
@@ -381,7 +376,7 @@ public class BaseCharacterMovement : NetworkBehaviour
         ReplicatePositionClientRpc(SelfTransform.position, Velocity, Rotation, bSliding, bGroundPound, IgnoreOwnerRPCParams);
     }
 
-    protected virtual void SimulatedProxyTick()
+    protected virtual void ClientProxyTick()
     {
         if (bUpdatedThisFrame)
         {
@@ -1258,24 +1253,34 @@ public class BaseCharacterMovement : NetworkBehaviour
 
     }
 
-    public void AddVelocity(Vector3 Impulse, bool bExternalSource)
+    public void ChangeVelocity(Vector3 NewVel, bool bExternalSource)
     {
-        Velocity += Impulse;
+        ExitSlide();
+        ExitGroundPound(false);
 
-        if (IsOwner)
+        Velocity = NewVel;
+
+        if (!IsServer || IsOwner || bNoMovement || !bExternalSource)
         {
-            ExitSlide();
-            ExitGroundPound(false);
-
             return;
         }
 
-        if (bExternalSource && !bNoMovement)
-        {
-            SendClientCorrection();
-        }
+        SendClientCorrection();
+    }
 
+    public void AddVelocity(Vector3 Impulse, bool bExternalSource)
+    {
         ExitSlide();
+        ExitGroundPound(false);
+
+        Velocity += Impulse;
+
+        if (!IsServer || IsOwner || bNoMovement || !bExternalSource)
+        {
+            return;
+        }
+        
+        SendClientCorrection();
     }
 
     public void OnScore(Vector3 Impulse)
@@ -1334,11 +1339,6 @@ public class BaseCharacterMovement : NetworkBehaviour
     public void UpdateIgnoreOwnerRPCParams(ClientRpcParams newIgnoreOwnerRPCParams)
     {
         IgnoreOwnerRPCParams = newIgnoreOwnerRPCParams;
-    }
-
-    public void ChangeVelocity(Vector3 NewVel)
-    {
-        Velocity = NewVel;
     }
 
     public Vector3 GetVelocity()

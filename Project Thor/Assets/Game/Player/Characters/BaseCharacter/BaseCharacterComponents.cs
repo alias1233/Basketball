@@ -10,6 +10,9 @@ public class BaseCharacterComponents : MonoBehaviour
     public Transform FPOrientation;
     public Transform TPOrientation;
 
+    public Transform SpellsFistTransform;
+    public Transform SpellsFistParentTransform;
+
     public GameObject CharacterModel;
     public BaseCharacterModelAnimScript CharacterAnimations;
     public Transform HandTransform;
@@ -28,6 +31,7 @@ public class BaseCharacterComponents : MonoBehaviour
     public AudioSource DeathSound;
 
     public CameraScript camerascript;
+    public Camera FPCamera;
     public CameraVisualsScript CameraVisuals;
     public AudioSource LandAudio;
     public AudioSource JumpAudio;

@@ -12761,6 +12761,11 @@ PrefabInstance:
       propertyPath: CharacterMovement
       value: 
       objectReference: {fileID: 1808523635988277640}
+    - target: {fileID: 2652501053666512286, guid: 323ebdf44186a9c40a99b0aa63b14990,
+        type: 3}
+      propertyPath: CharacterAnimations
+      value: 
+      objectReference: {fileID: 7367505919778413089}
     - target: {fileID: 3262352661020298619, guid: 323ebdf44186a9c40a99b0aa63b14990,
         type: 3}
       propertyPath: GlobalObjectIdHash
@@ -12949,6 +12954,9 @@ MonoBehaviour:
   TimeBetweenHealing: 1
   HealAmount: 3
   RespawnTime: 7
+  SwayFactor: 0.008
+  MaxSwayAmount: 0.2
+  WeaponSwaySpeed: 0.075
 --- !u!114 &1808523635988277640
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13039,10 +13047,10 @@ MonoBehaviour:
   GrappleLineConnectedTransform: {fileID: 1339499420562995126}
   GrapplePool: {fileID: 5512817985451752426}
   GrappleDuration: 50
-  GrappleShootCooldown: 300
+  GrappleShootCooldown: 400
   GrappleSpeed: 25
   MinGrappleTimeBeforeJumping: 10
-  FlyCooldown: 750
+  FlyCooldown: 1000
   FlyDuration: 250
   DashFOVOffset: 15
   DashFOVDuration: 0.25
