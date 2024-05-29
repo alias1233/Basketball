@@ -1356,6 +1356,11 @@ public class BaseCharacterMovement : NetworkBehaviour
         return Rotation;
     }
 
+    public Quaternion GetForwardRotation()
+    {
+        return ForwardRotation;
+    }
+
     public void SetRotation(Quaternion newrot)
     {
         Rotation = newrot;

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 64583282711464061}
   - component: {fileID: 2240875838856615501}
   - component: {fileID: 3324318091673921233}
-  - component: {fileID: 7579003642478274854}
+  - component: {fileID: 631900401218641380}
   - component: {fileID: 5152770044558456551}
   m_Layer: 7
   m_Name: Meteor
@@ -71,10 +71,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bisactive: 0
   SelfTransform: {fileID: 0}
-  Tick: {fileID: 7579003642478274854}
+  Tick: {fileID: 631900401218641380}
   Model: {fileID: 775644327250426969}
   OwningPlayerTeam: 0
   Damage: 45
+  ObjectLayer:
+    serializedVersion: 2
+    m_Bits: 0
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -83,7 +86,7 @@ MonoBehaviour:
     m_Bits: 9
   Radius: 10
   Sound: {fileID: 7768498761212993639}
---- !u!114 &7579003642478274854
+--- !u!114 &631900401218641380
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -92,7 +95,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1385817711339267225}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 38adb54a6f1224c4c9d5f75c9ed2969b, type: 3}
+  m_Script: {fileID: 11500000, guid: f0be8400b289ede47b350b6d0a2dd3f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   SelfTransform: {fileID: 0}
@@ -112,11 +115,11 @@ MonoBehaviour:
   OwningPlayerTeam: 0
   Lifetime: 100
   StartTime: 0
-  ReplicatePositionInterval: 100000
+  ReplicatePositionInterval: 10000
   LastTimeReplicatedPosition: 0
   bUpdatedThisFrame: 0
-  meteor: {fileID: 3324318091673921233}
-  TimeBeforeTrigger: 50
+  bStationary: 1
+  TimeBeforeTrigger: 45
 --- !u!135 &5152770044558456551
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -180,8 +183,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_audioClip: {fileID: 8300000, guid: df5f118d05a2b3e43b902c43a9ab2769, type: 3}
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -193,7 +196,7 @@ AudioSource:
   MinDistance: 1
   MaxDistance: 500
   Pan2D: 0
-  rolloffMode: 0
+  rolloffMode: 1
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
@@ -226,7 +229,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0

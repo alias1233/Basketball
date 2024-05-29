@@ -8,7 +8,8 @@ public enum SpellList
     Fireball,
     Updraft,
     MeteorStrike,
-    LaserBeam
+    LaserBeam,
+    Slash
 }
 
 
@@ -24,6 +25,7 @@ public class Spellbook : NetworkBehaviour
     private Transform TPOrientation;
     private Transform FPOrientation;
 
+    private GameObject CameraObject;
     private CameraScript camerascript;
     private Camera FPCamera;
 
@@ -41,6 +43,7 @@ public class Spellbook : NetworkBehaviour
     private RaycastHit[] Hits = new RaycastHit[5];
 
     public GameObject SpellbookObject;
+    private Vector3 InitialRotation;
 
     private bool bSpellActive;
     private SpellList CurrentSpell;
@@ -72,6 +75,8 @@ public class Spellbook : NetworkBehaviour
     bool SpellInput8;
     bool SpellInput9;
 
+    private bool bLeftMouseDown;
+
     public GameObject FireballVisuals;
     public GameObject UpdraftVisuals;
     public GameObject MeteorStrikeVisuals;
@@ -80,17 +85,26 @@ public class Spellbook : NetworkBehaviour
     public NetworkObjectPool FireballPool;
 
     public ParticleSystem UpdraftParticles;
+    public AudioSource UpdraftSound;
     public float UpdraftImpulse = 25;
 
     public NetworkObjectPool MeteorPool;
     public float MeteorOffset;
     public float MeteorRange = 30;
 
-    public BigLaserScript BigLaser;
-    public AudioSource LaserSound;
-    public float LaserRange;
-    public float LaserDamage;
-    public float LaserRadius;
+    public NetworkObjectPool LaserBeamPool;
+
+    public GameObject SlashVisuals;
+    public ParticleSystem SlashParticle;
+    public int SlashCooldown;
+    private int LastTimeSlash;
+    private int SlashAmount;
+    public int SlashRadius;
+    public int SlashRange;
+    public int SlashDamage;
+    public AudioSource SlashSFX1; 
+    public AudioSource SlashSFX2;
+    public AudioSource SlashSFX3;
 
     private void Awake()
     {
@@ -101,6 +115,7 @@ public class Spellbook : NetworkBehaviour
         TPOrientation = components.TPOrientation;
         FPOrientation = components.FPOrientation;
         camerascript = components.camerascript;
+        CameraObject = components.FPPlayerCamera;
         FPCamera = components.FPCamera;
 
         CurrentSpellVisuals = FireballVisuals;
@@ -122,6 +137,31 @@ public class Spellbook : NetworkBehaviour
             return;
         }
 
+        if(Input.GetKeyDown(KeyCode.Mouse0))
+        {
+            bLeftMouseDown = true;
+        }
+
+        if (SpellbookObject.activeSelf)
+        {
+            SpellbookObject.transform.position = CameraObject.transform.position;
+
+            if (Input.GetKeyUp(KeyCode.Mouse0))
+            {
+                AttemptSpell();
+            }
+
+            if (Input.GetKey(KeyCode.Mouse0))
+            {
+                RaycastHit hit;
+
+                if (Physics.Raycast(CameraObject.transform.position, CameraObject.transform.forward, out hit, 2, SpellbookButtonsMask))
+                {
+                    ActivateButton(hit.transform.GetComponent<SpellbookButtons>().SpellbookNum);
+                }
+            }
+        }
+
         if (Input.GetKeyDown(KeyCode.Mouse1))
         {
             if (!SpellbookObject.activeSelf)
@@ -132,22 +172,6 @@ public class Spellbook : NetworkBehaviour
             else
             {
                 DeactivateSpellbook();
-            }
-        }
-
-        if (Input.GetKeyUp(KeyCode.Mouse0) && SpellbookObject.activeSelf)
-        {
-            AttemptSpell();
-        }
-
-        if (Input.GetKey(KeyCode.Mouse0) && SpellbookObject.activeSelf)
-        {
-            Ray ray = FPCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit, 5, SpellbookButtonsMask))
-            {
-                ActivateButton(hit.transform.GetComponent<SpellbookButtons>().SpellbookNum);
             }
         }
     }
@@ -204,19 +228,34 @@ public class Spellbook : NetworkBehaviour
             {
                 case SpellList.Fireball:
                     Fireball(PlayerMovementComponent.GetRotation() * Vector3.forward);
-                    break;
+                    return;
 
                 case SpellList.MeteorStrike:
                     MeteorStrike(PlayerMovementComponent.GetRotation() * Vector3.forward);
-                    break;
+                    return;
 
                 case SpellList.Updraft:
                     Updraft();
-                    break;
+                    return;
 
                 case SpellList.LaserBeam:
                     LaserBeam(PlayerMovementComponent.GetRotation() * Vector3.forward);
-                    break;
+                    return;
+            }
+        }
+
+        if(bLeftMouseDown)
+        {
+            bLeftMouseDown = false;
+
+            if (bSpellActive && !SpellbookObject.activeSelf)
+            {
+                switch (CurrentSpell)
+                {
+                    case SpellList.Slash:
+                        Slash(PlayerMovementComponent.GetRotation() * Vector3.forward);
+                        return;
+                }
             }
         }
     }
@@ -237,24 +276,41 @@ public class Spellbook : NetworkBehaviour
 
                     bSpellActive = false;
                     CurrentSpellVisuals.SetActive(false);
-                    break;
+                    return;
 
                 case SpellList.MeteorStrike:
                     CastSpellWithRotationServerRpc(SpellList.MeteorStrike, PlayerMovementComponent.GetRotation() * Vector3.forward);
 
                     bSpellActive = false;
                     CurrentSpellVisuals.SetActive(false);
-                    break;
+                    return;
 
                 case SpellList.Updraft:
                     Updraft();
                     CastSpellServerRpc(SpellList.Updraft);
-                    break;
+                    return;
 
                 case SpellList.LaserBeam:
                     CastSpellWithRotationServerRpc(SpellList.LaserBeam, PlayerMovementComponent.GetRotation() * Vector3.forward);
-                    LaserBeamSimulate(PlayerMovementComponent.GetRotation() * Vector3.forward);
-                    break;
+
+                    bSpellActive = false;
+                    CurrentSpellVisuals.SetActive(false);
+                    return;
+            }
+        }
+
+        if (bLeftMouseDown)
+        {
+            bLeftMouseDown = false;
+
+            if (bSpellActive && !SpellbookObject.activeSelf)
+            {
+                switch (CurrentSpell)
+                {
+                    case SpellList.Slash:
+                        SlashSimulate();
+                        return;
+                }
             }
         }
     }
@@ -316,6 +372,19 @@ public class Spellbook : NetworkBehaviour
 
             return;
         }
+
+        if(SpellInput1 && SpellInput4 && SpellInput7)
+        {
+            bSpellActive = true;
+            CurrentSpell = SpellList.Slash;
+            CurrentSpellVisuals.SetActive(false);
+            CurrentSpellVisuals = SlashVisuals;
+            CurrentSpellVisuals.SetActive(true);
+
+            SlashAmount = 3;
+
+            return;
+        }
     }
 
     [ServerRpc]
@@ -333,6 +402,10 @@ public class Spellbook : NetworkBehaviour
 
             case SpellList.LaserBeam:
                 LaserBeam(Rot);
+                break;
+
+            case SpellList.Slash:
+                Slash(Rot);
                 break;
         }
     }
@@ -353,9 +426,7 @@ public class Spellbook : NetworkBehaviour
     {
         switch (AttemptingSpell)
         {
-            case SpellList.LaserBeam:
-                LaserBeamSimulate(Rot);
-                break;
+
         }
     }
 
@@ -366,6 +437,10 @@ public class Spellbook : NetworkBehaviour
         {
             case SpellList.Updraft:
                 UpdraftSimulate();
+                break;
+
+            case SpellList.Slash:
+                SlashSimulate();
                 break;
         }
     }
@@ -431,11 +506,13 @@ public class Spellbook : NetworkBehaviour
         PlayerMovementComponent.ChangeVelocity(new Vector3(Velocity.x, UpdraftImpulse, Velocity.z), true);
 
         UpdraftParticles.Play();
+        UpdraftSound.Play();
     }
 
     private void UpdraftSimulate()
     {
         UpdraftParticles.Play();
+        UpdraftSound.Play();
     }
 
     private void LaserBeam(Vector3 Rot)
@@ -443,70 +520,105 @@ public class Spellbook : NetworkBehaviour
         bSpellActive = false;
         CurrentSpellVisuals.SetActive(false);
 
-        ReplicateSpellWithRotationClientRpc(SpellList.LaserBeam, Rot, IgnoreOwnerRPCParams);
+        GameObject obj = LaserBeamPool.GetPooledObject();
 
-        RaycastHit colliderInfo2;
-
-        if (Physics.Raycast(AimPoint.position, PlayerMovementComponent.GetRotation() * Vector3.forward, out colliderInfo2, LaserRange, ObjectLayer))
+        if (obj != null)
         {
-            BigLaser.ShootLaser(colliderInfo2.distance / 2, AimPoint.forward);
-
-            int NumHits = Physics.SphereCastNonAlloc(AimPoint.position, LaserRadius, Rot, Hits, colliderInfo2.distance, PlayerLayer);
-
-            for (int i = 0; i < NumHits; i++)
-            {
-                if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
-                {
-                    stats.Damage(Player.GetTeam(), LaserDamage);
-                }
-            }
+            LaserBeamScript rocket = obj.GetComponent<LaserBeamScript>();
+            rocket.Init(Player.GetTeam(), AimPoint.position + Rot, Rot);
+            rocket.Spawn();
         }
-
-        else
-        {
-            BigLaser.ShootLaser(LaserRange / 2, AimPoint.forward);
-
-            int NumHits = Physics.SphereCastNonAlloc(AimPoint.position, LaserRadius, Rot, Hits, LaserRange, PlayerLayer);
-
-            for (int i = 0; i < NumHits; i++)
-            {
-                if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
-                {
-                    stats.Damage(Player.GetTeam(), LaserDamage);
-                }
-            }
-        }
-
-        LaserSound.Play();
     }
 
-    private void LaserBeamSimulate(Vector3 Rot)
+    private void Slash(Vector3 Rot)
     {
-        bSpellActive = false;
-        CurrentSpellVisuals.SetActive(false);
-
-        RaycastHit colliderInfo2;
-
-        if (Physics.Raycast(AimPoint.position, Rot, out colliderInfo2, LaserRange, ObjectLayer))
+        if (CurrentTimeStamp - LastTimeSlash >= SlashCooldown)
         {
-            BigLaser.ShootLaser(colliderInfo2.distance / 2, AimPoint.forward);
-        }
+            LastTimeSlash = CurrentTimeStamp;
 
-        else
+            SlashParticle.Play();
+            int rand = Random.Range(1, 4);
+
+            if (rand == 1)
+            {
+                SlashSFX1.Play();
+            }
+
+            else if (rand == 2)
+            {
+                SlashSFX2.Play();
+            }
+
+            else
+            {
+                SlashSFX3.Play();
+            }
+
+            ReplicateSpellClientRpc(SpellList.Slash, IgnoreOwnerRPCParams);
+
+            int NumHits = Physics.SphereCastNonAlloc(AimPoint.position, SlashRadius, Rot, Hits, SlashRange, PlayerLayer);
+
+            for (int i = 0; i < NumHits; i++)
+            {
+                if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
+                {
+                    stats.Damage(Player.GetTeam(), SlashDamage);
+                }
+            }
+
+            SlashAmount--;
+
+            if (SlashAmount <= 0)
+            {
+                bSpellActive = false;
+                CurrentSpellVisuals.SetActive(false);
+            }
+        }
+    }
+
+    private void SlashSimulate()
+    {
+        if (CurrentTimeStamp - LastTimeSlash >= SlashCooldown)
         {
-            BigLaser.ShootLaser(LaserRange / 2, AimPoint.forward);
-        }
+            LastTimeSlash = CurrentTimeStamp;
 
-        LaserSound.Play();
+            SlashParticle.Play();
+            int rand = Random.Range(1, 4);
+
+            if (rand == 1)
+            {
+                SlashSFX1.Play();
+            }
+
+            else if (rand == 2)
+            {
+                SlashSFX2.Play();
+            }
+
+            else
+            {
+                SlashSFX3.Play();
+            }
+
+            CastSpellWithRotationServerRpc(SpellList.Slash, PlayerMovementComponent.GetRotation() * Vector3.forward);
+
+            SlashAmount--;
+
+            if (SlashAmount <= 0)
+            {
+                bSpellActive = false;
+                CurrentSpellVisuals.SetActive(false);
+            }
+        }
     }
 
     protected void ActivateSpellbool()
     {
         SpellbookObject.SetActive(true);
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-        camerascript.enabled = false;
+        InitialRotation = PlayerMovementComponent.GetForwardRotation() * Vector3.forward;
+        SpellbookObject.transform.position = CameraObject.transform.position;
+        SpellbookObject.transform.LookAt(CameraObject.transform.position + InitialRotation);
 
         SpellInput1 = false;
         SpellInput2 = false;
@@ -532,10 +644,6 @@ public class Spellbook : NetworkBehaviour
     protected void DeactivateSpellbook()
     {
         SpellbookObject.SetActive(false);
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-        camerascript.enabled = true;
     }
 
     public void ActivateButton(int buttonnum)

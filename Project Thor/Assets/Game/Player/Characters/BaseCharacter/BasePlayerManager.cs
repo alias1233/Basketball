@@ -40,6 +40,7 @@ public class BasePlayerManager : NetworkBehaviour
     [HideInInspector]
     public BaseCharacterMovement Movement;
     protected Fist fist;
+    protected GameObject RightHand;
     protected Spellbook Spells;
 
     protected GameObject CharacterModel;
@@ -89,9 +90,9 @@ public class BasePlayerManager : NetworkBehaviour
 
     protected AudioSource DeathSound;
 
-    public float SwayFactor = 0.008f;
-    public float MaxSwayAmount = 0.2f;
-    public float WeaponSwaySpeed = 0.075f;
+    public float SwayFactor = 0.01f;
+    public float MaxSwayAmount = 0.25f;
+    public float WeaponSwaySpeed = 0.08f;
 
     protected Transform SpellsFistTransform;
     protected Transform SpellsFistParentTransform;
@@ -119,6 +120,7 @@ public class BasePlayerManager : NetworkBehaviour
         ThirdPersonHealthBarObject = Components.ThirdPersonHealthBarObject;
         ThirdPersonHealthBar = Components.ThirdPersonHealthBar;
         DeathSound = Components.DeathSound;
+        RightHand = Components.RightHand;
 
         CharacterModelOriginalPosition = CharacterModel.transform.localPosition;
         CharacterModelOriginalRotation = CharacterModel.transform.localRotation;
@@ -263,6 +265,7 @@ public class BasePlayerManager : NetworkBehaviour
 
         FirstPersonComponents.SetActive(false);
         FPPlayerCamera.SetActive(false);
+        RightHand.SetActive(false);
     }
 
     public override void OnNetworkDespawn()
@@ -549,7 +552,7 @@ public class BasePlayerManager : NetworkBehaviour
         CharacterModel.transform.localPosition = CharacterModelOriginalPosition;
         CharacterModel.transform.localRotation = CharacterModelOriginalRotation;
         ThirdPersonComponents.SetActive(false);
-
+        RightHand.SetActive(true);
         fist.EnableFist();
     }
 
@@ -558,7 +561,7 @@ public class BasePlayerManager : NetworkBehaviour
         CharacterModel.transform.localPosition = CharacterModelOriginalPosition;
         CharacterModel.transform.localRotation = CharacterModelOriginalRotation;
         ThirdPersonComponents.SetActive(true);
-
+        RightHand.SetActive(false);
         fist.DisableFist();
     }
 

@@ -66,6 +66,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     public Teams OwningPlayerTeam;
 
     public float Damage;
+    public LayerMask ObjectLayer;
     public LayerMask PlayerLayer;
     public LayerMask PlayerObjectLayer;
 
@@ -92,6 +93,8 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     public virtual void OnHitPlayer() { }
 
     public virtual void OnHitPlayerWithTarget(BasePlayerManager player) { }
+
+    public virtual void Trigger() { }
 
     public virtual void Init(Teams team, Vector3 pos, Vector3 dir)
     {

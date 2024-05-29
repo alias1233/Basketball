@@ -54,6 +54,9 @@ public class BaseProjectileTick : MonoBehaviour
     [HideInInspector]
     public bool bUpdatedThisFrame;
 
+    public bool bStationary;
+    public int TimeBeforeTrigger;
+
     private void Awake()
     {
         SelfTransform = transform;
@@ -64,6 +67,46 @@ public class BaseProjectileTick : MonoBehaviour
     // Update is called once per frame
     public virtual void FixedUpdate()
     {
+        if (bStationary)
+        {
+            TimeStamp++;
+
+            if (bIsServer)
+            {
+                if (TimeStamp - StartTime == TimeBeforeTrigger)
+                {
+                    Projectile.Trigger();
+                }
+
+                if (TimeStamp - StartTime >= Lifetime)
+                {
+                    Projectile.ReplicateDisableClientRpc();
+                    Projectile.Despawn();
+                }
+
+                return;
+            }
+
+            if (TimeStamp - StartTime == TimeBeforeTrigger)
+            {
+                Projectile.Trigger();
+            }
+
+            if (TimeStamp - StartTime >= Lifetime)
+            {
+                Projectile.Despawn();
+            }
+
+            if (bUpdatedThisFrame)
+            {
+                bUpdatedThisFrame = false;
+
+                return;
+            }
+
+            return;
+        }
+
         TimeStamp++;
 
         if (bIsServer)

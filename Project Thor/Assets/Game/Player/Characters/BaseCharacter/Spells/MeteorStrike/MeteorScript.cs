@@ -9,7 +9,7 @@ public class MeteorScript : BaseProjectile
 
     private Collider[] Hits = new Collider[5];
 
-    public void Trigger()
+    public override void Trigger()
     {
         Sound.Play();
 

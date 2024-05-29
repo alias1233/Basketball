@@ -29,6 +29,7 @@ public class BaseCharacterComponents : MonoBehaviour
     public GameObject ThirdPersonHealthBarObject;
     public ProgressBar ThirdPersonHealthBar;
     public AudioSource DeathSound;
+    public GameObject RightHand;
 
     public CameraScript camerascript;
     public Camera FPCamera;
