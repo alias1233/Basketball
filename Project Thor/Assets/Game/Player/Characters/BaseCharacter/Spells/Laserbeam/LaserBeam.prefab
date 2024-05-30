@@ -75,7 +75,7 @@ MonoBehaviour:
   Tick: {fileID: 631900401218641380}
   Model: {fileID: 6210110495596006426}
   OwningPlayerTeam: 0
-  Damage: 30
+  Damage: 40
   ObjectLayer:
     serializedVersion: 2
     m_Bits: 1

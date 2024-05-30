@@ -160,6 +160,9 @@ MonoBehaviour:
   Model: {fileID: 809271689842028591}
   OwningPlayerTeam: 0
   Damage: 75
+  ObjectLayer:
+    serializedVersion: 2
+    m_Bits: 0
   PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -168,7 +171,7 @@ MonoBehaviour:
     m_Bits: 9
   Explosion: {fileID: 2156937033313898048}
   ExplosionSound: {fileID: 5691713576904343420}
-  Radius: 5
+  Radius: 7.5
   Impulse: 50
   Offset: {x: 0, y: 0.6, z: 0}
 --- !u!114 &3064190746862477706
@@ -203,6 +206,8 @@ MonoBehaviour:
   ReplicatePositionInterval: 1
   LastTimeReplicatedPosition: 0
   bUpdatedThisFrame: 0
+  bStationary: 0
+  TimeBeforeTrigger: 0
 --- !u!135 &927925702825796876
 SphereCollider:
   m_ObjectHideFlags: 0

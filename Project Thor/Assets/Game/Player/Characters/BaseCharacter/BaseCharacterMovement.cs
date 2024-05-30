@@ -313,7 +313,11 @@ public class BaseCharacterMovement : NetworkBehaviour
         if (ClientDataDictionary.TryGetValue(CurrentTimeStamp, out Vector3 clientposition))
         {
             ClientDataDictionary.Remove(CurrentTimeStamp);
-            CheckClientPositionError(SelfTransform.position, clientposition);
+
+            if (Time.time - LastTimeSentCorrection > MinTimeBetweenCorrections)
+            {
+                CheckClientPositionError(SelfTransform.position, clientposition);
+            }
         }
 
         HandleOtherPlayerVisuals();
@@ -983,11 +987,6 @@ public class BaseCharacterMovement : NetworkBehaviour
 
     private void CheckClientPositionError(Vector3 serverpos, Vector3 clientpos)
     {
-        if (Time.time - LastTimeSentCorrection < MinTimeBetweenCorrections)
-        {
-            return;
-        }
-
         if ((clientpos - serverpos).magnitude <= CorrectionDistance)
         {
             SelfTransform.position = clientpos;
@@ -995,20 +994,26 @@ public class BaseCharacterMovement : NetworkBehaviour
             return;
         }
 
-        SendClientCorrection();
+        TryClientCorrection();
 
         print("Client Error Detected" + CurrentTimeStamp);
     }
 
-    public virtual void SendClientCorrection()
+    public void TryClientCorrection()
     {
+        if(Time.time - LastTimeSentCorrection < MinTimeBetweenCorrections / 10)
+        {
+            return;
+        }
 
+        LastTimeSentCorrection = Time.time;
+
+        SendClientCorrection();
     }
 
-    protected virtual void SetToServerState()
-    {
+    public virtual void SendClientCorrection() { }
 
-    }
+    protected virtual void SetToServerState() { }
 
     private void ReplayMovesAfterCorrection()
     {
@@ -1265,7 +1270,7 @@ public class BaseCharacterMovement : NetworkBehaviour
             return;
         }
 
-        SendClientCorrection();
+        TryClientCorrection();
     }
 
     public void AddVelocity(Vector3 Impulse, bool bExternalSource)
@@ -1280,7 +1285,7 @@ public class BaseCharacterMovement : NetworkBehaviour
             return;
         }
         
-        SendClientCorrection();
+        TryClientCorrection();
     }
 
     public void OnScore(Vector3 Impulse)

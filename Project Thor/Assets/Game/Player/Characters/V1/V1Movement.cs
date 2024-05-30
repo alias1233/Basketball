@@ -526,8 +526,6 @@ public class V1Movement : BaseCharacterMovement
 
     public override void SendClientCorrection()
     {
-        LastTimeSentCorrection = Time.time;
-
         ClientCorrectionClientRpc(new ClientCorrection(
             CurrentTimeStamp,
             SelfTransform.position,

@@ -1,7 +1,6 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEngine.Rendering.DebugUI.Table;
 
 public enum SpellList
 {
@@ -9,7 +8,8 @@ public enum SpellList
     Updraft,
     MeteorStrike,
     LaserBeam,
-    Slash
+    Slash,
+    Tornado
 }
 
 
@@ -77,10 +77,24 @@ public class Spellbook : NetworkBehaviour
 
     private bool bLeftMouseDown;
 
+    public ProgressBar ManaBar;
+    public float MaxMana = 100;
+    public float ManaRegenRate = 0.02f;
+    private float Mana;
+
     public GameObject FireballVisuals;
     public GameObject UpdraftVisuals;
     public GameObject MeteorStrikeVisuals;
     public GameObject LaserBeamVisuals;
+    public GameObject SlashVisuals;
+    public GameObject TornadoVisuals;
+
+    public float FireballManaCost;
+    public float UpdraftManaCost;
+    public float MeteorStrikeManaCost;
+    public float LaserBeamManaCost;
+    public float SlashManaCost;
+    public float TornadoManaCost;
 
     public NetworkObjectPool FireballPool;
 
@@ -94,7 +108,6 @@ public class Spellbook : NetworkBehaviour
 
     public NetworkObjectPool LaserBeamPool;
 
-    public GameObject SlashVisuals;
     public ParticleSystem SlashParticle;
     public int SlashCooldown;
     private int LastTimeSlash;
@@ -105,6 +118,8 @@ public class Spellbook : NetworkBehaviour
     public AudioSource SlashSFX1; 
     public AudioSource SlashSFX2;
     public AudioSource SlashSFX3;
+
+    public NetworkObjectPool TornadoPool;
 
     private void Awake()
     {
@@ -119,6 +134,8 @@ public class Spellbook : NetworkBehaviour
         FPCamera = components.FPCamera;
 
         CurrentSpellVisuals = FireballVisuals;
+
+        Mana = MaxMana;
     }
 
     // Start is called before the first frame update
@@ -222,6 +239,15 @@ public class Spellbook : NetworkBehaviour
 
     protected virtual void HostTick()
     {
+        Mana += ManaRegenRate;
+        
+        if(Mana > MaxMana)
+        {
+            Mana = MaxMana;
+        }
+
+        ManaBar.UpdateProgressBar(Mana / MaxMana);
+
         if (bSpellActive && !SpellbookObject.activeSelf && Input.GetKey(KeyCode.Mouse0))
         {
             switch (CurrentSpell)
@@ -240,6 +266,10 @@ public class Spellbook : NetworkBehaviour
 
                 case SpellList.LaserBeam:
                     LaserBeam(PlayerMovementComponent.GetRotation() * Vector3.forward);
+                    return;
+
+                case SpellList.Tornado:
+                    Tornado(PlayerMovementComponent.GetRotation() * Vector3.forward);
                     return;
             }
         }
@@ -267,6 +297,15 @@ public class Spellbook : NetworkBehaviour
 
     protected virtual void ClientOwnerTick()
     {
+        Mana += ManaRegenRate;
+
+        if (Mana > MaxMana)
+        {
+            Mana = MaxMana;
+        }
+
+        ManaBar.UpdateProgressBar(Mana / MaxMana);
+
         if (bSpellActive && !SpellbookObject.activeSelf && Input.GetKey(KeyCode.Mouse0))
         {
             switch (CurrentSpell)
@@ -292,6 +331,13 @@ public class Spellbook : NetworkBehaviour
 
                 case SpellList.LaserBeam:
                     CastSpellWithRotationServerRpc(SpellList.LaserBeam, PlayerMovementComponent.GetRotation() * Vector3.forward);
+
+                    bSpellActive = false;
+                    CurrentSpellVisuals.SetActive(false);
+                    return;
+
+                case SpellList.Tornado:
+                    CastSpellWithRotationServerRpc(SpellList.Tornado, PlayerMovementComponent.GetRotation() * Vector3.forward);
 
                     bSpellActive = false;
                     CurrentSpellVisuals.SetActive(false);
@@ -329,8 +375,10 @@ public class Spellbook : NetworkBehaviour
     {
         DeactivateSpellbook();
 
-        if (SpellInput1 && SpellInput2 && SpellInput3)
+        if (SpellInput1 && SpellInput2 && SpellInput3
+            && Mana >= FireballManaCost)
         {
+            Mana -= FireballManaCost;
             bSpellActive = true;
             CurrentSpell = SpellList.Fireball;
             CurrentSpellVisuals.SetActive(false);
@@ -340,8 +388,10 @@ public class Spellbook : NetworkBehaviour
             return;
         }
 
-        if (SpellInput2 && SpellInput5 && SpellInput8)
+        if (SpellInput2 && SpellInput5 && SpellInput8
+            && Mana >= UpdraftManaCost)
         {
+            Mana -= UpdraftManaCost;
             bSpellActive = true;
             CurrentSpell = SpellList.Updraft;
             CurrentSpellVisuals.SetActive(false);
@@ -351,8 +401,10 @@ public class Spellbook : NetworkBehaviour
             return;
         }
 
-        if (SpellInput7 && SpellInput8 && SpellInput9)
+        if (SpellInput7 && SpellInput8 && SpellInput9
+            && Mana >= MeteorStrikeManaCost)
         {
+            Mana -= MeteorStrikeManaCost;
             bSpellActive = true;
             CurrentSpell = SpellList.MeteorStrike;
             CurrentSpellVisuals.SetActive(false);
@@ -362,8 +414,10 @@ public class Spellbook : NetworkBehaviour
             return;
         }
 
-        if (SpellInput4 && SpellInput5 && SpellInput6)
+        if (SpellInput4 && SpellInput5 && SpellInput6
+            && Mana >= LaserBeamManaCost)
         {
+            Mana -= LaserBeamManaCost;
             bSpellActive = true;
             CurrentSpell = SpellList.LaserBeam;
             CurrentSpellVisuals.SetActive(false);
@@ -373,8 +427,10 @@ public class Spellbook : NetworkBehaviour
             return;
         }
 
-        if(SpellInput1 && SpellInput4 && SpellInput7)
+        if(SpellInput1 && SpellInput4 && SpellInput7
+            && Mana >= SlashManaCost)
         {
+            Mana -= SlashManaCost;
             bSpellActive = true;
             CurrentSpell = SpellList.Slash;
             CurrentSpellVisuals.SetActive(false);
@@ -382,6 +438,19 @@ public class Spellbook : NetworkBehaviour
             CurrentSpellVisuals.SetActive(true);
 
             SlashAmount = 3;
+
+            return;
+        }
+
+        if (SpellInput3 && SpellInput6 && SpellInput9
+            && Mana >= TornadoManaCost)
+        {
+            Mana -= TornadoManaCost;
+            bSpellActive = true;
+            CurrentSpell = SpellList.Tornado;
+            CurrentSpellVisuals.SetActive(false);
+            CurrentSpellVisuals = TornadoVisuals;
+            CurrentSpellVisuals.SetActive(true);
 
             return;
         }
@@ -406,6 +475,10 @@ public class Spellbook : NetworkBehaviour
 
             case SpellList.Slash:
                 Slash(Rot);
+                break;
+
+            case SpellList.Tornado:
+                Tornado(Rot);
                 break;
         }
     }
@@ -609,6 +682,21 @@ public class Spellbook : NetworkBehaviour
                 bSpellActive = false;
                 CurrentSpellVisuals.SetActive(false);
             }
+        }
+    }
+
+    private void Tornado(Vector3 Rot)
+    {
+        bSpellActive = false;
+        CurrentSpellVisuals.SetActive(false);
+
+        GameObject obj = TornadoPool.GetPooledObject();
+
+        if (obj != null)
+        {
+            BaseProjectile rocket = obj.GetComponent<BaseProjectile>();
+            rocket.InitNoRot(Player.GetTeam(), AimPoint.position + Vector3.down * 2.5f - Rot * 2.5f, Rot);
+            rocket.Spawn();
         }
     }
 
