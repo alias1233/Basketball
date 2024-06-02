@@ -17,7 +17,7 @@ public class HueValue: MonoBehaviour
 
     public float hue = 0;
 
-    void Update()
+    public void ChangeHue(float hue)
     {
         if (type == ColorType.Material)
         {
@@ -68,6 +68,7 @@ public class HueValue: MonoBehaviour
         {
             sh = 0;
         }
+
         Color.RGBToHSV(main, out h, out s, out v);
         return Color.HSVToRGB(sh, s, v);
     }

@@ -40,8 +40,11 @@ public class RocketScript : BaseProjectile
         {
             float DistanceFactor = Mathf.Clamp(1 - (Hits[i].transform.position - SelfTransform.position).magnitude / Radius, 0.25f, 0.5f);
 
-            Hits[i].GetComponent<BasePlayerManager>().DamageWithKnockback(OwningPlayerTeam, Damage * DistanceFactor,
-                (Hits[i].transform.position + Offset - SelfTransform.position).normalized * Impulse * DistanceFactor, true);
+            if(Hits[i].GetComponent<BasePlayerManager>().DamageWithKnockback(OwningPlayerTeam, Damage * DistanceFactor,
+                (Hits[i].transform.position + Offset - SelfTransform.position).normalized * Impulse * DistanceFactor, true, true))
+            {
+                OwningPlayer.PlayHitSoundOnOwner();
+            }
         }
 
         ExplodeVisuals();

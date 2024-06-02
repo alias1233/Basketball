@@ -55,13 +55,15 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     [HideInInspector]
     public Transform SelfTransform;
 
-    private SphereCollider ProjectileCollider;
+    private Collider ProjectileCollider;
 
     [Header("Components")]
 
     public BaseProjectileTick Tick;
     public GameObject Model;
 
+    [HideInInspector]
+    public BasePlayerManager OwningPlayer;
     [HideInInspector]
     public Teams OwningPlayerTeam;
 
@@ -73,7 +75,7 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
     public virtual void Awake()
     {
         SelfTransform = transform;
-        ProjectileCollider = GetComponent<SphereCollider>();
+        ProjectileCollider = GetComponent<Collider>();
     }
 
     public virtual void Start()
@@ -96,39 +98,42 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
 
     public virtual void Trigger() { }
 
-    public virtual void Init(Teams team, Vector3 pos, Vector3 dir)
+    public virtual void Init(BasePlayerManager Player, Vector3 pos, Vector3 dir)
     {
-        InitClientRpc(team, pos, dir);
-        OwningPlayerTeam = team;
+        OwningPlayer = Player;
+        OwningPlayerTeam = OwningPlayer.GetTeam();
+        InitClientRpc(OwningPlayerTeam, pos, dir);
         SelfTransform.position = pos;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
         Tick.LastTimeReplicatedPosition = Time.time;
-        Tick.OwningPlayerTeam = team;
+        Tick.OwningPlayerTeam = OwningPlayerTeam;
         Tick.StartTime = Tick.TimeStamp;
         Tick.Velocity = dir * Tick.InitialSpeed;
     }
 
-    public virtual void InitNoRot(Teams team, Vector3 pos, Vector3 dir)
+    public virtual void InitNoRot(BasePlayerManager Player, Vector3 pos, Vector3 dir)
     {
-        InitNoRotClientRpc(team, pos, dir);
-        OwningPlayerTeam = team;
+        OwningPlayer = Player;
+        OwningPlayerTeam = OwningPlayer.GetTeam();
+        InitNoRotClientRpc(OwningPlayerTeam, pos, dir);
         SelfTransform.position = pos;
 
         Tick.LastTimeReplicatedPosition = Time.time;
-        Tick.OwningPlayerTeam = team;
+        Tick.OwningPlayerTeam = OwningPlayerTeam;
         Tick.StartTime = Tick.TimeStamp;
         Tick.Velocity = dir * Tick.InitialSpeed;
     }
 
-    public virtual void InitAndSimulateForward(Teams team, Vector3 pos, Vector3 dir, int tickstosimulate)
+    public virtual void InitAndSimulateForward(BasePlayerManager Player, Vector3 pos, Vector3 dir, int tickstosimulate)
     {
-        OwningPlayerTeam = team;
+        OwningPlayer = Player;
+        OwningPlayerTeam = OwningPlayer.GetTeam();
         SelfTransform.position = pos;
         SelfTransform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
         Tick.Velocity = dir * Tick.InitialSpeed;
-        Tick.OwningPlayerTeam = team;
+        Tick.OwningPlayerTeam = OwningPlayerTeam;
         Tick.LastTimeReplicatedPosition = Time.time;
         Tick.StartTime = Tick.TimeStamp;
 
@@ -140,14 +145,15 @@ public class BaseProjectile : NetworkBehaviour, IBaseNetworkObject
         ReplicatePositionClientRpc(SelfTransform.position);
     }
 
-    public virtual void InitStationary(Teams team, Vector3 pos)
+    public virtual void InitStationary(BasePlayerManager Player, Vector3 pos)
     {
-        InitStationaryClientRpc(team, pos);
-        OwningPlayerTeam = team;
+        OwningPlayer = Player;
+        OwningPlayerTeam = OwningPlayer.GetTeam();
+        InitStationaryClientRpc(OwningPlayerTeam, pos);
         SelfTransform.position = pos;
 
         Tick.LastTimeReplicatedPosition = Time.time;
-        Tick.OwningPlayerTeam = team;
+        Tick.OwningPlayerTeam = OwningPlayerTeam;
         Tick.StartTime = Tick.TimeStamp;
     }
 

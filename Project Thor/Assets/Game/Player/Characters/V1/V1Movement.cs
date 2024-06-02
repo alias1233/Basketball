@@ -370,12 +370,12 @@ public class V1Movement : BaseCharacterMovement
 
             if (IsServer && !IsOwner)
             {
-                grapplinghook.InitAndSimulateForward(Player.GetTeam(), GrappleShootLocationTransform.position, Rotation * Vector3.forward, Player.GetHalfRTTInTick());
+                grapplinghook.InitAndSimulateForward(Player, GrappleShootLocationTransform.position, Rotation * Vector3.forward, Player.GetHalfRTTInTick());
             }
 
             else
             {
-                grapplinghook.Init(Player.GetTeam(), GrappleShootLocationTransform.position, Rotation * Vector3.forward);
+                grapplinghook.Init(Player, GrappleShootLocationTransform.position, Rotation * Vector3.forward);
             }
         }
 

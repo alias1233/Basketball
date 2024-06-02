@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 64583282711464061}
   - component: {fileID: 2240875838856615501}
   - component: {fileID: 4652954890231857980}
-  - component: {fileID: 3064190746862477706}
-  - component: {fileID: 927925702825796876}
+  - component: {fileID: 6233121412235719843}
+  - component: {fileID: 8777405492004752856}
   m_Layer: 7
   m_Name: Tornado
   m_TagString: Untagged
@@ -71,10 +71,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bisactive: 0
   SelfTransform: {fileID: 0}
-  Tick: {fileID: 3064190746862477706}
+  Tick: {fileID: 6233121412235719843}
   Model: {fileID: 4812995843158052442}
+  OwningPlayer: {fileID: 0}
   OwningPlayerTeam: 0
-  Damage: 4
+  Damage: 0
   ObjectLayer:
     serializedVersion: 2
     m_Bits: 1
@@ -84,10 +85,8 @@ MonoBehaviour:
   PlayerObjectLayer:
     serializedVersion: 2
     m_Bits: 9
-  KnockbackFactor: 2
-  KnockbackUpFactor: 5
   TornadoSound: {fileID: 8449715867889910015}
---- !u!114 &3064190746862477706
+--- !u!114 &6233121412235719843
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -96,13 +95,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 1385817711339267225}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f0be8400b289ede47b350b6d0a2dd3f7, type: 3}
+  m_Script: {fileID: 11500000, guid: ae3046ea5e55d1743b764dbe5e45c3e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   SelfTransform: {fileID: 0}
   Projectile: {fileID: 4652954890231857980}
   bIsServer: 0
   PlayerObjectLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  PlayerLayer:
     serializedVersion: 2
     m_Bits: 8
   InitialSpeed: 12
@@ -112,7 +114,8 @@ MonoBehaviour:
   Bounces: 0
   Velocity: {x: 0, y: 0, z: 0}
   TimeStamp: 0
-  DamagesPlayer: 1
+  DamagesPlayer: 0
+  bDoesNotHaveSphereCollider: 1
   OwningPlayerTeam: 0
   Lifetime: 200
   StartTime: 0
@@ -121,8 +124,11 @@ MonoBehaviour:
   bUpdatedThisFrame: 0
   bStationary: 0
   TimeBeforeTrigger: 0
---- !u!135 &927925702825796876
-SphereCollider:
+  KnockbackFactor: 0.25
+  KnockbackUpFactor: 5
+  Damage: 1
+--- !u!136 &8777405492004752856
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -136,12 +142,14 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 6
-  m_Center: {x: 0, y: 7, z: 0}
+  serializedVersion: 2
+  m_Radius: 4
+  m_Height: 15
+  m_Direction: 1
+  m_Center: {x: 0, y: 8, z: 0}
 --- !u!1 &1637743973144006304
 GameObject:
   m_ObjectHideFlags: 0

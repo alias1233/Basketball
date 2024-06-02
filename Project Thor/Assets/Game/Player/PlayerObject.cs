@@ -19,9 +19,14 @@ public class PlayerObject : NetworkBehaviour
         if(!IsOwner)
         {
             PickCharacterUI.SetActive(false);
+
+            return;
         }
+
+        Invoke(nameof(V1), 1);
     }
 
+    /*
     private void Update()
     {
         if (!IsOwner)
@@ -48,6 +53,7 @@ public class PlayerObject : NetworkBehaviour
             }
         }
     }
+    */
 
     public void V1()
     {

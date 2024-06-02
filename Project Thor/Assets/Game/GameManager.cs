@@ -432,4 +432,47 @@ public class GameManager : NetworkBehaviour
     {
         base.OnDestroy();
     }
+
+    public void ActivateDomain()
+    {
+        BasePlayerManager player = NetworkManager.LocalClient.PlayerObject.GetComponent<BasePlayerManager>();
+
+        if(player)
+        {
+            player.ActivateDomainVisuals();
+        }
+
+
+        /*
+        foreach (PlayerObject i in RedTeamPlayers)
+        {
+            BasePlayerManager launchedplayer = i.GetPlayerCharacter();
+
+            if (launchedplayer)
+            {
+                if(launchedplayer.IsOwner)
+                {
+                    launchedplayer.ActivateDomainVisuals();
+
+                    return;
+                }
+            }
+        }
+
+        foreach (PlayerObject i in BlueTeamPlayers)
+        {
+            BasePlayerManager launchedplayer = i.GetPlayerCharacter();
+
+            if (launchedplayer)
+            {
+                if (launchedplayer.IsOwner)
+                {
+                    launchedplayer.ActivateDomainVisuals();
+
+                    return;
+                }
+            }
+        }
+        */
+    }
 }

@@ -41,7 +41,10 @@ public class LaserBeamScript : BaseProjectile
                 {
                     if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
                     {
-                        stats.Damage(OwningPlayerTeam, Damage);
+                        if(stats.Damage(OwningPlayerTeam, Damage))
+                        {
+                            OwningPlayer.PlayHitSoundOnOwner();
+                        }
                     }
                 }
             }
@@ -58,7 +61,10 @@ public class LaserBeamScript : BaseProjectile
                 {
                     if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
                     {
-                        stats.Damage(OwningPlayerTeam, Damage);
+                        if(stats.Damage(OwningPlayerTeam, Damage))
+                        {
+                            OwningPlayer.PlayHitSoundOnOwner();
+                        }
                     }
                 }
             }

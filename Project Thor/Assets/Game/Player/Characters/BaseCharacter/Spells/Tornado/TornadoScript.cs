@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class TornadoScript : BaseProjectile
 {
-    public float KnockbackFactor;
-    public float KnockbackUpFactor;
     public AudioSource TornadoSound;
 
     public override void Activate()
@@ -13,10 +11,5 @@ public class TornadoScript : BaseProjectile
         base.Activate();
 
         TornadoSound.Play();
-    }
-
-    public override void OnHitPlayerWithTarget(BasePlayerManager player)
-    {
-        player.DamageWithKnockback(OwningPlayerTeam, Damage, (Tick.Velocity + Vector3.up * KnockbackUpFactor) * KnockbackFactor, true);
     }
 }

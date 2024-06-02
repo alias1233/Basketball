@@ -18,6 +18,7 @@ public class BaseProjectileTick : MonoBehaviour
     [Header("Movement")]
 
     public LayerMask PlayerObjectLayer;
+    public LayerMask PlayerLayer;
 
     public float InitialSpeed;
     public bool bGravity;
@@ -28,7 +29,7 @@ public class BaseProjectileTick : MonoBehaviour
     [HideInInspector]
     public Vector3 Velocity;
 
-    private float DeltaTime;
+    protected float DeltaTime;
 
     [Header("Stats")]
 
@@ -37,6 +38,7 @@ public class BaseProjectileTick : MonoBehaviour
 
     public bool DamagesPlayer;
 
+    public bool bDoesNotHaveSphereCollider;
     private float ColliderRadius;
 
     [HideInInspector]
@@ -60,7 +62,12 @@ public class BaseProjectileTick : MonoBehaviour
     private void Awake()
     {
         SelfTransform = transform;
-        ColliderRadius = GetComponent<SphereCollider>().radius;
+
+        if(!bDoesNotHaveSphereCollider)
+        {
+            ColliderRadius = GetComponent<SphereCollider>().radius;
+        }
+
         DeltaTime = Time.fixedDeltaTime;
     }
 

@@ -89,7 +89,7 @@ MonoBehaviour:
   LaserSound: {fileID: 1999382324006454613}
   ElectricSound: {fileID: 4506244884508608732}
   LaserRange: 40
-  LaserRadius: 2
+  LaserRadius: 3
   InitialElectricity: {fileID: 709923286857043211}
 --- !u!114 &631900401218641380
 MonoBehaviour:
@@ -109,6 +109,9 @@ MonoBehaviour:
   PlayerObjectLayer:
     serializedVersion: 2
     m_Bits: 9
+  PlayerLayer:
+    serializedVersion: 2
+    m_Bits: 0
   InitialSpeed: 0
   bGravity: 0
   Gravity: 0
@@ -117,6 +120,7 @@ MonoBehaviour:
   Velocity: {x: 0, y: 0, z: 0}
   TimeStamp: 0
   DamagesPlayer: 0
+  bDoesNotHaveSphereCollider: 0
   OwningPlayerTeam: 0
   Lifetime: 100
   StartTime: 0
@@ -433,7 +437,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.25
+      scalar: 0.3
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -539,7 +543,7 @@ ParticleSystem:
     startSizeZ:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.25
+      scalar: 0.3
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -5319,7 +5323,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.45
+      scalar: 0.5
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -5425,7 +5429,7 @@ ParticleSystem:
     startSizeZ:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.45
+      scalar: 0.5
       minScalar: 1
       maxCurve:
         serializedVersion: 2

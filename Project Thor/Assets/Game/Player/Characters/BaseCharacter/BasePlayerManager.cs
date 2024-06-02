@@ -89,6 +89,7 @@ public class BasePlayerManager : NetworkBehaviour
     protected ProgressBar ThirdPersonHealthBar;
 
     protected AudioSource DeathSound;
+    protected AudioSource HitSound;
 
     public float SwayFactor = 0.01f;
     public float MaxSwayAmount = 0.25f;
@@ -98,6 +99,9 @@ public class BasePlayerManager : NetworkBehaviour
     protected Transform SpellsFistParentTransform;
 
     private Vector3 WeaponSway;
+
+    public float HitSoundCooldown = 0.25f;
+    private float LastTimePlayHitSound;
 
     protected virtual void Awake()
     {
@@ -120,6 +124,7 @@ public class BasePlayerManager : NetworkBehaviour
         ThirdPersonHealthBarObject = Components.ThirdPersonHealthBarObject;
         ThirdPersonHealthBar = Components.ThirdPersonHealthBar;
         DeathSound = Components.DeathSound;
+        HitSound = Components.HitSound;
         RightHand = Components.RightHand;
 
         CharacterModelOriginalPosition = CharacterModel.transform.localPosition;
@@ -282,7 +287,7 @@ public class BasePlayerManager : NetworkBehaviour
 
     private void OnChangeActiveSettingsUI(bool active)
     {
-        if(active)
+        if (active)
         {
             FirstPersonPlayerUI.SetActive(false);
             camerascript.enabled = false;
@@ -501,9 +506,12 @@ public class BasePlayerManager : NetworkBehaviour
     }
 
     public bool DamageWithKnockback(Teams team, float damage,
-        Vector3 Impulse, bool bExternalSource)
+        Vector3 Impulse, bool balwaysknockback, bool bExternalSource)
     {
-        Movement.AddVelocity(Impulse, bExternalSource);
+        if (balwaysknockback || Team != team)
+        {
+            Movement.AddVelocity(Impulse, bExternalSource);
+        }
 
         if (Team == team || !IsServer)
         {
@@ -811,5 +819,64 @@ public class BasePlayerManager : NetworkBehaviour
     public virtual bool GetCanCarryBall()
     {
         return true;
+    }
+
+    public void PlayHitSoundOnOwner()
+    {
+        if(!IsServer)
+        {
+            return;
+        }
+
+        if (Time.time - LastTimePlayHitSound < HitSoundCooldown)
+        {
+            return;
+        }
+
+        LastTimePlayHitSound = Time.time;
+
+        if (IsOwner)
+        {
+            HitSound.Play();
+
+            return;
+        }
+
+        PlayHitSoundClientRpc(OwningClientID);
+    }
+
+    [ClientRpc(Delivery = RpcDelivery.Unreliable)]
+    private void PlayHitSoundClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        HitSound.Play();
+    }
+
+    public void ActivateDomainVisuals()
+    {
+        Components.Letter1.SetActive(true);
+        Components.DomainExpansionVoice.Play();
+
+        Invoke(nameof(ShowLetter2), 0.5f);
+        Invoke(nameof(ShowLetter3), 1f);
+        Invoke(nameof(EndDomain), 2);
+    }
+
+    private void ShowLetter2()
+    {
+        Components.Letter2.SetActive(true);
+        Components.Boom1.Play();
+    }
+
+    private void ShowLetter3()
+    {
+        Components.Letter3.SetActive(true);
+        Components.Boom2.Play();
+    }
+
+    private void EndDomain()
+    {
+        Components.Letter1.SetActive(false);
+        Components.Letter2.SetActive(false);
+        Components.Letter3.SetActive(false);
     }
 }

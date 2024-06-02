@@ -12,16 +12,15 @@ public class HueControl : MonoBehaviour
     {
         for (int i = 0; i < hues.Length; i++)
         {
-            hues[i].hue = hue;
+            hues[i].ChangeHue(hue);
         }
     }
 
-    void Update()
+    public void UpdateHue(float newhue)
     {
         for (int i = 0; i < hues.Length; i++)
         {
-            hues[i].hue = hue;
+            hues[i].ChangeHue(newhue);
         }
     }
-
 }

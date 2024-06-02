@@ -22,7 +22,10 @@ public class MeteorScript : BaseProjectile
 
         for (int i = 0; i < NumHits; i++)
         {
-            Hits[i].GetComponent<BasePlayerManager>().Damage(OwningPlayerTeam, Damage);
+            if(Hits[i].GetComponent<BasePlayerManager>().Damage(OwningPlayerTeam, Damage))
+            {
+                OwningPlayer.PlayHitSoundOnOwner();
+            }
         }
     }
 }

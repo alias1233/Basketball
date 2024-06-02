@@ -1,4 +1,5 @@
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +10,8 @@ public enum SpellList
     MeteorStrike,
     LaserBeam,
     Slash,
-    Tornado
+    Tornado,
+    DomainExpansion
 }
 
 
@@ -64,6 +66,7 @@ public class Spellbook : NetworkBehaviour
     public Button SpellbookButton7;
     public Button SpellbookButton8;
     public Button SpellbookButton9;
+    public Button SpellbookButton10;
 
     bool SpellInput1;
     bool SpellInput2;
@@ -74,6 +77,7 @@ public class Spellbook : NetworkBehaviour
     bool SpellInput7;
     bool SpellInput8;
     bool SpellInput9;
+    bool SpellInput10;
 
     private bool bLeftMouseDown;
 
@@ -88,6 +92,7 @@ public class Spellbook : NetworkBehaviour
     public GameObject LaserBeamVisuals;
     public GameObject SlashVisuals;
     public GameObject TornadoVisuals;
+    public GameObject DomainExpansionVisuals;
 
     public float FireballManaCost;
     public float UpdraftManaCost;
@@ -95,6 +100,7 @@ public class Spellbook : NetworkBehaviour
     public float LaserBeamManaCost;
     public float SlashManaCost;
     public float TornadoManaCost;
+    public float DomainExpansionManaCost;
 
     public NetworkObjectPool FireballPool;
 
@@ -120,6 +126,13 @@ public class Spellbook : NetworkBehaviour
     public AudioSource SlashSFX3;
 
     public NetworkObjectPool TornadoPool;
+
+    public int DomainExpansionDuration;
+    private int DomainExpansionStartTime;
+    private bool bInDomainExpansion;
+    private bool bUsedDomainExpansion;
+    public AudioSource DomainExpansionSFX;
+    public AudioSource DomainExpansionSFX1;
 
     private void Awake()
     {
@@ -248,6 +261,11 @@ public class Spellbook : NetworkBehaviour
 
         ManaBar.UpdateProgressBar(Mana / MaxMana);
 
+        if(bInDomainExpansion && CurrentTimeStamp - DomainExpansionStartTime >= DomainExpansionDuration)
+        {
+            RyoikiTenkai(false);
+        }    
+
         if (bSpellActive && !SpellbookObject.activeSelf && Input.GetKey(KeyCode.Mouse0))
         {
             switch (CurrentSpell)
@@ -271,6 +289,10 @@ public class Spellbook : NetworkBehaviour
                 case SpellList.Tornado:
                     Tornado(PlayerMovementComponent.GetRotation() * Vector3.forward);
                     return;
+
+                case SpellList.DomainExpansion:
+                    RyoikiTenkai(true);
+                    return;
             }
         }
 
@@ -292,7 +314,10 @@ public class Spellbook : NetworkBehaviour
 
     protected virtual void ServerTickForOtherPlayers()
     {
-
+        if (bInDomainExpansion && CurrentTimeStamp - DomainExpansionStartTime >= DomainExpansionDuration)
+        {
+            RyoikiTenkai(false);
+        }
     }
 
     protected virtual void ClientOwnerTick()
@@ -305,6 +330,11 @@ public class Spellbook : NetworkBehaviour
         }
 
         ManaBar.UpdateProgressBar(Mana / MaxMana);
+
+        if (bInDomainExpansion && CurrentTimeStamp - DomainExpansionStartTime >= DomainExpansionDuration)
+        {
+            SimulateRyoikiTenkai(false);
+        }
 
         if (bSpellActive && !SpellbookObject.activeSelf && Input.GetKey(KeyCode.Mouse0))
         {
@@ -342,6 +372,12 @@ public class Spellbook : NetworkBehaviour
                     bSpellActive = false;
                     CurrentSpellVisuals.SetActive(false);
                     return;
+
+                case SpellList.DomainExpansion:
+                    CastSpellServerRpc(SpellList.DomainExpansion);
+
+                    SimulateRyoikiTenkai(true);
+                    return;
             }
         }
 
@@ -368,17 +404,37 @@ public class Spellbook : NetworkBehaviour
 
     protected virtual void ClientProxyTick()
     {
-
+        if (bInDomainExpansion && CurrentTimeStamp - DomainExpansionStartTime >= DomainExpansionDuration)
+        {
+            RyoikiTenkai(false);
+        }
     }
 
     public void AttemptSpell()
     {
         DeactivateSpellbook();
 
-        if (SpellInput1 && SpellInput2 && SpellInput3
-            && Mana >= FireballManaCost)
+        if (SpellInput1 && SpellInput2 && SpellInput3 && SpellInput4 && !SpellInput5 && SpellInput6 && SpellInput7 && SpellInput8 && SpellInput9 && SpellInput10 && !bUsedDomainExpansion)
         {
-            Mana -= FireballManaCost;
+            bUsedDomainExpansion = true;
+            Mana -= DomainExpansionManaCost;
+            bSpellActive = true;
+            CurrentSpell = SpellList.DomainExpansion;
+            CurrentSpellVisuals.SetActive(false);
+            CurrentSpellVisuals = DomainExpansionVisuals;
+            CurrentSpellVisuals.SetActive(true);
+
+            return;
+        }
+
+        if (SpellInput1 && SpellInput2 && SpellInput3
+            && (Mana >= FireballManaCost || bInDomainExpansion))
+        {
+            if(!bInDomainExpansion)
+            {
+                Mana -= FireballManaCost;
+            }
+
             bSpellActive = true;
             CurrentSpell = SpellList.Fireball;
             CurrentSpellVisuals.SetActive(false);
@@ -389,9 +445,13 @@ public class Spellbook : NetworkBehaviour
         }
 
         if (SpellInput2 && SpellInput5 && SpellInput8
-            && Mana >= UpdraftManaCost)
+            && (Mana >= UpdraftManaCost || bInDomainExpansion))
         {
-            Mana -= UpdraftManaCost;
+            if (!bInDomainExpansion)
+            {
+                Mana -= UpdraftManaCost;
+            }
+
             bSpellActive = true;
             CurrentSpell = SpellList.Updraft;
             CurrentSpellVisuals.SetActive(false);
@@ -402,9 +462,13 @@ public class Spellbook : NetworkBehaviour
         }
 
         if (SpellInput7 && SpellInput8 && SpellInput9
-            && Mana >= MeteorStrikeManaCost)
+            && (Mana >= MeteorStrikeManaCost || bInDomainExpansion))
         {
-            Mana -= MeteorStrikeManaCost;
+            if (!bInDomainExpansion)
+            {
+                Mana -= MeteorStrikeManaCost;
+            }
+
             bSpellActive = true;
             CurrentSpell = SpellList.MeteorStrike;
             CurrentSpellVisuals.SetActive(false);
@@ -415,9 +479,13 @@ public class Spellbook : NetworkBehaviour
         }
 
         if (SpellInput4 && SpellInput5 && SpellInput6
-            && Mana >= LaserBeamManaCost)
+            && (Mana >= LaserBeamManaCost || bInDomainExpansion))
         {
-            Mana -= LaserBeamManaCost;
+            if (!bInDomainExpansion)
+            {
+                Mana -= LaserBeamManaCost;
+            }
+
             bSpellActive = true;
             CurrentSpell = SpellList.LaserBeam;
             CurrentSpellVisuals.SetActive(false);
@@ -428,9 +496,13 @@ public class Spellbook : NetworkBehaviour
         }
 
         if(SpellInput1 && SpellInput4 && SpellInput7
-            && Mana >= SlashManaCost)
+            && (Mana >= SlashManaCost || bInDomainExpansion))
         {
-            Mana -= SlashManaCost;
+            if (!bInDomainExpansion)
+            {
+                Mana -= SlashManaCost;
+            }
+
             bSpellActive = true;
             CurrentSpell = SpellList.Slash;
             CurrentSpellVisuals.SetActive(false);
@@ -443,9 +515,13 @@ public class Spellbook : NetworkBehaviour
         }
 
         if (SpellInput3 && SpellInput6 && SpellInput9
-            && Mana >= TornadoManaCost)
+            && (Mana >= TornadoManaCost || bInDomainExpansion))
         {
-            Mana -= TornadoManaCost;
+            if (!bInDomainExpansion)
+            {
+                Mana -= TornadoManaCost;
+            }
+
             bSpellActive = true;
             CurrentSpell = SpellList.Tornado;
             CurrentSpellVisuals.SetActive(false);
@@ -491,6 +567,10 @@ public class Spellbook : NetworkBehaviour
             case SpellList.Updraft:
                 Updraft();
                 break;
+
+            case SpellList.DomainExpansion:
+                RyoikiTenkai(true);
+                break;
         }
     }
 
@@ -515,6 +595,10 @@ public class Spellbook : NetworkBehaviour
             case SpellList.Slash:
                 SlashSimulate();
                 break;
+
+            case SpellList.DomainExpansion:
+                SimulateRyoikiTenkai(true);
+                break;
         }
     }
 
@@ -528,7 +612,7 @@ public class Spellbook : NetworkBehaviour
         if (obj != null)
         {
             RocketScript rocket = obj.GetComponent<RocketScript>();
-            rocket.InitNoRot(Player.GetTeam(), AimPoint.position, Rot);
+            rocket.InitNoRot(Player, AimPoint.position - Rot, Rot);
             rocket.Spawn();
         }
     }
@@ -547,7 +631,7 @@ public class Spellbook : NetworkBehaviour
             if (obj != null)
             {
                 MeteorScript meteor = obj.GetComponent<MeteorScript>();
-                meteor.InitStationary(Player.GetTeam(), hit.point + Vector3.up * MeteorOffset);
+                meteor.InitStationary(Player, hit.point + Vector3.up * MeteorOffset);
                 meteor.Spawn();
             }
         }
@@ -559,7 +643,7 @@ public class Spellbook : NetworkBehaviour
             if (obj != null)
             {
                 MeteorScript meteor = obj.GetComponent<MeteorScript>();
-                meteor.InitStationary(Player.GetTeam(), hit.point + Vector3.up * MeteorOffset);
+                meteor.InitStationary(Player, hit.point + Vector3.up * MeteorOffset);
                 meteor.Spawn();
             }
         }
@@ -598,7 +682,7 @@ public class Spellbook : NetworkBehaviour
         if (obj != null)
         {
             LaserBeamScript rocket = obj.GetComponent<LaserBeamScript>();
-            rocket.Init(Player.GetTeam(), AimPoint.position + Rot, Rot);
+            rocket.Init(Player, AimPoint.position + Rot, Rot);
             rocket.Spawn();
         }
     }
@@ -635,7 +719,10 @@ public class Spellbook : NetworkBehaviour
             {
                 if (Hits[i].transform.gameObject.TryGetComponent<BasePlayerManager>(out BasePlayerManager stats))
                 {
-                    stats.Damage(Player.GetTeam(), SlashDamage);
+                    if(stats.Damage(Player.GetTeam(), SlashDamage))
+                    {
+                        Player.PlayHitSoundOnOwner();
+                    }
                 }
             }
 
@@ -695,9 +782,73 @@ public class Spellbook : NetworkBehaviour
         if (obj != null)
         {
             BaseProjectile rocket = obj.GetComponent<BaseProjectile>();
-            rocket.InitNoRot(Player.GetTeam(), AimPoint.position + Vector3.down * 2.5f - Rot * 2.5f, Rot);
+            rocket.InitNoRot(Player, AimPoint.position + Vector3.down * 2.5f, Rot);
             rocket.Spawn();
         }
+    }
+
+    private void RyoikiTenkai(bool bstart)
+    {
+        if (bstart)
+        {
+            bSpellActive = false;
+            CurrentSpellVisuals.SetActive(false);
+
+            ReplicateSpellClientRpc(SpellList.DomainExpansion, IgnoreOwnerRPCParams);
+
+            DomainExpansionStartTime = CurrentTimeStamp;
+
+            GameManager.Singleton.ActivateDomain();
+        }
+
+        bInDomainExpansion = bstart;
+
+        if(bstart)
+        {
+            Invoke(nameof(OpenDomain), 2.1f);
+        }
+
+        else
+        {
+            CloseDomain();
+        }
+    }
+
+    private void SimulateRyoikiTenkai(bool bstart)
+    {
+        if(bstart)
+        {
+            bSpellActive = false;
+            CurrentSpellVisuals.SetActive(false);
+
+            DomainExpansionStartTime = CurrentTimeStamp;
+
+            GameManager.Singleton.ActivateDomain();
+        }
+
+        bInDomainExpansion = bstart;
+
+        if (bstart)
+        {
+            Invoke(nameof(OpenDomain), 2.1f);
+        }
+
+        else
+        {
+            CloseDomain();
+        }
+    }
+
+    private void OpenDomain()
+    {
+        StartCoroutine(MapScript.Singleton.ChangeDomain(true));
+        DomainExpansionSFX.Play();
+        DomainExpansionSFX1.Play();
+    }
+
+    private void CloseDomain()
+    {
+        StartCoroutine(MapScript.Singleton.ChangeDomain(false));
     }
 
     protected void ActivateSpellbool()
@@ -717,6 +868,7 @@ public class Spellbook : NetworkBehaviour
         SpellInput7 = false;
         SpellInput8 = false;
         SpellInput9 = false;
+        SpellInput10 = false;
 
         SpellbookButton1.colors = SpellbookOriginalColor;
         SpellbookButton2.colors = SpellbookOriginalColor;
@@ -727,6 +879,7 @@ public class Spellbook : NetworkBehaviour
         SpellbookButton7.colors = SpellbookOriginalColor;
         SpellbookButton8.colors = SpellbookOriginalColor;
         SpellbookButton9.colors = SpellbookOriginalColor;
+        SpellbookButton10.colors = SpellbookOriginalColor;
     }
 
     protected void DeactivateSpellbook()
@@ -773,6 +926,10 @@ public class Spellbook : NetworkBehaviour
             case 9:
                 SpellbookButton9.colors = SpellbookActiveColor;
                 SpellInput9 = true;
+                break;
+            case 10:
+                SpellbookButton10.colors = SpellbookActiveColor;
+                SpellInput10 = true;
                 break;
         }
     }

@@ -28,7 +28,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2181337889328113282}
@@ -171,7 +171,7 @@ MonoBehaviour:
     m_Bits: 9
   Explosion: {fileID: 2156937033313898048}
   ExplosionSound: {fileID: 5691713576904343420}
-  Radius: 7.5
+  Radius: 8
   Impulse: 50
   Offset: {x: 0, y: 0.6, z: 0}
 --- !u!114 &3064190746862477706
@@ -192,6 +192,9 @@ MonoBehaviour:
   PlayerObjectLayer:
     serializedVersion: 2
     m_Bits: 9
+  PlayerLayer:
+    serializedVersion: 2
+    m_Bits: 0
   InitialSpeed: 30
   bGravity: 0
   Gravity: 0
@@ -200,6 +203,7 @@ MonoBehaviour:
   Velocity: {x: 0, y: 0, z: 0}
   TimeStamp: 0
   DamagesPlayer: 0
+  bDoesNotHaveSphereCollider: 0
   OwningPlayerTeam: 0
   Lifetime: 200
   StartTime: 0
@@ -227,7 +231,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
+  m_Radius: 1.5
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4055145998486639154
 GameObject:

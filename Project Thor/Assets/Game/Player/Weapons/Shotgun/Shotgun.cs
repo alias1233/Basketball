@@ -183,14 +183,16 @@ public class Shotgun : BaseWeapon
 
         GameObject obj = Manager.RocketPool.GetPooledObject();
 
+        /*
         if (obj != null)
         {
             Vector3 Dir = PlayerMovementComponent.GetRotation() * Vector3.forward;
             RocketScript rocket = obj.GetComponent<RocketScript>();
-            rocket.Init(Manager.GetTeam(), Manager.GetAimPointLocation() + Dir * Offset, Dir
+            rocket.Init(Manager.GetPlayer(), Manager.GetAimPointLocation() + Dir * Offset, Dir
                 * Mathf.Clamp(RocketSpeedFactor * (Manager.GetTimeStamp() - ChargingStartTime) / MaxChargingTime, 1, RocketSpeedFactor));
             rocket.Spawn();
         }
+        */
     }
 
     public override void OnActivate()

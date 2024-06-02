@@ -29,6 +29,7 @@ public class BaseCharacterComponents : MonoBehaviour
     public GameObject ThirdPersonHealthBarObject;
     public ProgressBar ThirdPersonHealthBar;
     public AudioSource DeathSound;
+    public AudioSource HitSound;
     public GameObject RightHand;
 
     public CameraScript camerascript;
@@ -46,4 +47,11 @@ public class BaseCharacterComponents : MonoBehaviour
     public ParticleSystem GroundPoundImpactParticle;
     public ParticleSystem GroundPoundTrails;
     public AudioSource GroundPoundLandAudio;
+
+    public GameObject Letter1;
+    public GameObject Letter2;
+    public GameObject Letter3;
+    public AudioSource DomainExpansionVoice;
+    public AudioSource Boom1;
+    public AudioSource Boom2;
 }
