@@ -1,4 +1,6 @@
 # ProjectMbappe - Multiplayer Unity Game
+[Play the game here!](https://aaalias.itch.io/basketball)
+
 ## Overview -
 Custom multiplayer solution with server authoritative gameplay and client-side prediction.
 Utilizes unity's Networking with GameObjects, lobby, and Relay system alongside websockets
