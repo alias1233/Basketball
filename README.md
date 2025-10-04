@@ -23,13 +23,13 @@ current frame.
 When the server receives the input data of the player, it would save it into a map and wait until 
 it reaches the exact timestamp of the input data. Once it does, it uses the input data and simulates
 the current frame. It then determines if the actual endstate of the player's movement and
-the predicted endstate has any descrepancies. If there are, the server sends a client correction.
-In this packet, it sends all of the current movement data that is needed to reset the player's
-movement, such as location, velocity, and then variables such as dashing, dashing cooldown, 
-dashing duration, etc. to the client.
+the predicted endstate has any discrepancies. If there are, the server sends a client correction
+with all of the current movement data that is needed to reset the player's movement to what
+the server simulated, such as location, velocity, along with state variables such as bdashing,
+when the player began dashing, if the player is ground pounding, and etc. to the client.
 
-If the client receives a client correction, it resets to the state that the server sends. However,
-this state is old; it is an entire roundtrip ping time behind where the client should be simulating at.
+When a client receives a client correction, it resets to the state that the server sends. However,
+the state in the correction is an entire roundtrip ping time behind where the client should be simulating at.
 So, the client then replays from the client correction to the correct timestamp that the client should be
 at, using input from the player that it has saved from the client correction until the current moment.
 This should completely reconcile the error, and reset the client and server to lockstep, where the 
