@@ -760,7 +760,10 @@ public class Spellbook : NetworkBehaviour
                 SlashSFX3.Play();
             }
 
-            CastSpellWithRotationServerRpc(SpellList.Slash, PlayerMovementComponent.GetRotation() * Vector3.forward);
+            if(IsOwner)
+            {
+                CastSpellWithRotationServerRpc(SpellList.Slash, PlayerMovementComponent.GetRotation() * Vector3.forward);
+            }
 
             SlashAmount--;
 
@@ -798,7 +801,7 @@ public class Spellbook : NetworkBehaviour
 
             DomainExpansionStartTime = CurrentTimeStamp;
 
-            GameManager.Singleton.ActivateDomain();
+            GlobalUIScript.Singleton.ActivateDomain();
         }
 
         bInDomainExpansion = bstart;
@@ -823,7 +826,7 @@ public class Spellbook : NetworkBehaviour
 
             DomainExpansionStartTime = CurrentTimeStamp;
 
-            GameManager.Singleton.ActivateDomain();
+            GlobalUIScript.Singleton.ActivateDomain();
         }
 
         bInDomainExpansion = bstart;

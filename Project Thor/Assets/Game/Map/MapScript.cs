@@ -5,6 +5,7 @@ using UnityEngine;
 public class MapScript : MonoBehaviour
 {
     public static MapScript Singleton;
+
     public GameObject PlayerUsable;
     public GameObject VisualOnly;
     public GameObject Domain;

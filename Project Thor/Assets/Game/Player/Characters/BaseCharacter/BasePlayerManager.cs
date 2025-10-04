@@ -240,9 +240,9 @@ public class BasePlayerManager : NetworkBehaviour
 
         if (IsOwner)
         {
-            SettingsUIScript.Singleton.OnSettingsUIChangeActive += OnChangeActiveSettingsUI;
+            GlobalUIScript.Singleton.OnSettingsUIChangeActive += OnChangeActiveSettingsUI;
 
-            camerascript.Sens = SettingsUIScript.Singleton.GetSensitivity();
+            camerascript.Sens = GlobalUIScript.Singleton.GetSensitivity();
 
             foreach (var i in Components.DisabledForOwnerScripts)
             {
@@ -277,7 +277,7 @@ public class BasePlayerManager : NetworkBehaviour
     {
         Health.OnValueChanged -= OnHealthChanged;
         ConnectionNotificationManager.Singleton.OnClientConnectionNotification -= UpdateClientSendRPCParams;
-        SettingsUIScript.Singleton.OnSettingsUIChangeActive -= OnChangeActiveSettingsUI;
+        GlobalUIScript.Singleton.OnSettingsUIChangeActive -= OnChangeActiveSettingsUI;
 
         if (GetIsHoldingBall())
         {
@@ -295,7 +295,7 @@ public class BasePlayerManager : NetworkBehaviour
             return;
         }
 
-        camerascript.Sens = SettingsUIScript.Singleton.GetSensitivity();
+        camerascript.Sens = GlobalUIScript.Singleton.GetSensitivity();
         FirstPersonPlayerUI.SetActive(true);
         camerascript.enabled = true;
     }
@@ -849,34 +849,5 @@ public class BasePlayerManager : NetworkBehaviour
     private void PlayHitSoundClientRpc(ClientRpcParams clientRpcParams = default)
     {
         HitSound.Play();
-    }
-
-    public void ActivateDomainVisuals()
-    {
-        Components.Letter1.SetActive(true);
-        Components.DomainExpansionVoice.Play();
-
-        Invoke(nameof(ShowLetter2), 0.5f);
-        Invoke(nameof(ShowLetter3), 1f);
-        Invoke(nameof(EndDomain), 2);
-    }
-
-    private void ShowLetter2()
-    {
-        Components.Letter2.SetActive(true);
-        Components.Boom1.Play();
-    }
-
-    private void ShowLetter3()
-    {
-        Components.Letter3.SetActive(true);
-        Components.Boom2.Play();
-    }
-
-    private void EndDomain()
-    {
-        Components.Letter1.SetActive(false);
-        Components.Letter2.SetActive(false);
-        Components.Letter3.SetActive(false);
     }
 }

@@ -12957,6 +12957,7 @@ MonoBehaviour:
   SwayFactor: 0.008
   MaxSwayAmount: 0.2
   WeaponSwaySpeed: 0.075
+  HitSoundCooldown: 0.25
 --- !u!114 &1808523635988277640
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12973,9 +12974,9 @@ MonoBehaviour:
   ReplicatePositionInterval: 0.05
   CorrectionDistance: 0.5
   MinTimeBetweenCorrections: 1
-  DefaultCorrectionSmoothTime: 8
-  SmallCorrectionThreshold: 3
-  SmallCorrectionSmoothTime: 6
+  DefaultCorrectionSmoothTime: 3
+  SmallCorrectionThreshold: 1
+  SmallCorrectionSmoothTime: 2
   PhysicsLayerMask:
     serializedVersion: 2
     m_Bits: 2049
