@@ -4,6 +4,7 @@ using UnityEngine;
 using Unity.Netcode;
 using TMPro;
 using static ConnectionNotificationManager;
+using System;
 
 public enum NetworkRole
 {
@@ -370,6 +371,11 @@ public class BasePlayerManager : NetworkBehaviour
                 Spells.SimulatedProxyTick(TimeStamp);
 
                 break;
+        }
+
+        //if (IsOwner)
+        {
+            //Debug.Log(NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetCurrentRtt(NetworkManager.ServerClientId));
         }
 
         if (!IsServer)
